@@ -41,7 +41,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\INV_Hammer_04",
         art = {
             7963781,
-            LOAD_SCREEN .. "LoadScreenIronforge",
             LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
@@ -88,7 +87,10 @@ local DUNGEONS = {
         location = "Cleft of Shadow, Orgrimmar",
         description = "Ragefire Chasm consists of a network of volcanic caverns that lie below Orgrimmar. Lately, followers of the demonic Shadow Council have nestled into the Chasm's fiery depths.",
         icon = "Interface\\Icons\\Spell_Fire_Fire",
-        art = { LOAD_SCREEN .. "LoadScreenRagefireChasm" },
+        art = {
+            LOAD_SCREEN .. "LoadScreenRagefireChasm",
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "rfc", "ragefire" },
         bosses = {
@@ -136,7 +138,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\INV_Misc_Bone_HumanSkull_01",
         art = {
             7963782,
-            LOAD_SCREEN .. "LoadScreenUndercity",
             LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
@@ -205,7 +206,10 @@ local DUNGEONS = {
         location = "Northern Barrens",
         description = "Deep beneath the Barrens, corrupted Druids of the Fang guard the sleeping archdruid Naralex while nightmare beasts prowl the subterranean springs.",
         icon = "Interface\\Icons\\Spell_Nature_Purge",
-        art = { LOAD_SCREEN .. "LoadScreenWailingCaverns" },
+        art = {
+            LOAD_SCREEN .. "LoadScreenWailingCaverns",
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "wc", "wailing" },
         bosses = {
@@ -232,7 +236,10 @@ local DUNGEONS = {
         location = "Moonbrook, Westfall",
         description = "Beneath the abandoned town of Moonbrook, Edwin VanCleef and the Defias Brotherhood have constructed a massive subterranean drydock and juggernaut warship.",
         icon = "Interface\\Icons\\INV_Pick_02",
-        art = { LOAD_SCREEN .. "LoadScreenDeadmines" },
+        art = {
+            LOAD_SCREEN .. "LoadScreenDeadmines",
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "dm", "vc", "deadmines", "vancleef" },
         bosses = {
@@ -259,7 +266,10 @@ local DUNGEONS = {
         location = "Pyrewood Village, Silverpine Forest",
         description = "Once the fortress of Baron Silverlaine, Shadowfang Keep has fallen under the curse of Archmage Arugal and his ferocious worgen pack.",
         icon = "Interface\\Icons\\Spell_Shadow_ChillTouch",
-        art = { LOAD_SCREEN .. "LoadScreenShadowFangKeep" },
+        art = {
+            LOAD_SCREEN .. "LoadScreenShadowFangKeep",
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "sfk", "shadowfang", "arugal" },
         bosses = {
@@ -289,7 +299,10 @@ local DUNGEONS = {
         location = "Zoram Strand, Ashenvale",
         description = "Once dedicated to the night elves' goddess Elune, Blackfathom Deeps was thought to have been destroyed during the Sundering. Millennia later, Twilight's Hammer cultists and naga have claimed the sunken temple to guard the ancient hydra Aku'mai.",
         icon = "Interface\\Icons\\Spell_Frost_Stun",
-        art = { LOAD_SCREEN .. "LoadScreenBlackFathomDeeps" },
+        art = {
+            LOAD_SCREEN .. "LoadScreenBlackFathomDeeps",
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "bfd", "blackfathom" },
         bosses = {
@@ -399,7 +412,10 @@ local DUNGEONS = {
         location = "Dun Morogh",
         description = "The irradiated techno-city of the gnomes, betrayed from within by Mekgineer Thermaplugg and overrun by troggs, leper gnomes, and haywire mechanostriders.",
         icon = "Interface\\Icons\\INV_Gizmo_02",
-        art = { LOAD_SCREEN .. "LoadScreenGnomeregan" },
+        art = {
+            LOAD_SCREEN .. "LoadScreenGnomeregan",
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "gnomer", "gnomeregan", "thermaplugg" },
         bosses = {
@@ -456,7 +472,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\Spell_Shadow_Haunting",
         art = {
             LOAD_SCREEN .. "LoadScreenMonastery",
-            LOAD_SCREEN .. "LoadScreenScarletMonastery",
             LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
@@ -484,7 +499,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\INV_Misc_Book_11",
         art = {
             LOAD_SCREEN .. "LoadScreenMonastery",
-            LOAD_SCREEN .. "LoadScreenScarletMonastery",
             LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
@@ -508,7 +522,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\INV_Helmet_03",
         art = {
             LOAD_SCREEN .. "LoadScreenMonastery",
-            LOAD_SCREEN .. "LoadScreenScarletMonastery",
             LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
@@ -559,7 +572,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\Spell_Holy_Resurrection",
         art = {
             LOAD_SCREEN .. "LoadScreenMonastery",
-            LOAD_SCREEN .. "LoadScreenScarletMonastery",
             LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
@@ -584,7 +596,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\Spell_Frost_FrostArmor02",
         art = {
             LOAD_SCREEN .. "LoadScreenRazorfenDowns",
-            LOAD_SCREEN .. "LoadScreenRazorfen",
             LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
@@ -611,7 +622,10 @@ local DUNGEONS = {
         location = "Badlands",
         description = "An ancient Titan vault buried deep beneath the Badlands where the earthen first awoke, guarded by the titanic watcher Archaedas.",
         icon = "Interface\\Icons\\INV_Misc_StoneTablet_11",
-        art = { LOAD_SCREEN .. "LoadScreenUldaman", LOAD_SCREEN .. "LoadScreenDungeon" },
+        art = {
+            LOAD_SCREEN .. "LoadScreenUldaman",
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "ulda", "uldaman" },
         bosses = {
@@ -665,7 +679,10 @@ local DUNGEONS = {
         location = "Tanaris",
         description = "The sun-baked open-air troll city in the deserts of Tanaris, stronghold of the Sandfury tribe and the sacred hydra Gahz'rilla.",
         icon = "Interface\\Icons\\INV_Misc_Head_Troll_01",
-        art = { LOAD_SCREEN .. "LoadScreenZulFarrak", LOAD_SCREEN .. "LoadScreenDungeon" },
+        art = {
+            LOAD_SCREEN .. "LoadScreenZulFarrak",
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "zf", "zulfarrak", "zul'farrak" },
         bosses = {
@@ -696,7 +713,10 @@ local DUNGEONS = {
         location = "Valley of Spears, Desolace",
         description = "Sacred burial site of Zaetar, divided between the corrupted Orange/Purple wings and the subterranean waterfall realm of Princess Theradras.",
         icon = "Interface\\Icons\\Spell_Nature_Acid_01",
-        art = { LOAD_SCREEN .. "LoadScreenMaraudon", LOAD_SCREEN .. "LoadScreenDungeon" },
+        art = {
+            LOAD_SCREEN .. "LoadScreenMaraudon",
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "mara", "maraudon", "theradras" },
         bosses = {
@@ -754,7 +774,10 @@ local DUNGEONS = {
         location = "Swamp of Sorrows",
         description = "The Temple of Atal'Hakkar, where exiled Atal'ai priests seek to summon the blood god Hakkar while green dragonflight guardians battle the corruption.",
         icon = "Interface\\Icons\\Spell_Nature_Thorns",
-        art = { LOAD_SCREEN .. "LoadScreenSunkenTemple", LOAD_SCREEN .. "LoadScreenDungeon" },
+        art = {
+            LOAD_SCREEN .. "LoadScreenSunkenTemple",
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "st", "sunken temple", "atal'hakkar", "atalhakkar" },
         bosses = {
@@ -783,7 +806,10 @@ local DUNGEONS = {
         location = "Blackrock Mountain",
         description = "The sprawling subterranean city of Shadowforge, capital of the Dark Iron dwarves ruled by Emperor Dagran Thaurissan beneath Blackrock Mountain.",
         icon = "Interface\\Icons\\INV_Hammer_Unique_Sulfuras",
-        art = { LOAD_SCREEN .. "LoadScreenBlackrockDepths", LOAD_SCREEN .. "LoadScreenDungeon" },
+        art = {
+            LOAD_SCREEN .. "LoadScreenBlackrockDepths",
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "brd", "depths", "shadowforge" },
         bosses = {
@@ -829,7 +855,10 @@ local DUNGEONS = {
         location = "Blackrock Mountain",
         description = "The lower halls of Blackrock Spire, held by the Spirestone ogres, Smolderthorn trolls, and Bloodaxe orcs of the Dark Horde under Overlord Wyrmthalak.",
         icon = "Interface\\Icons\\INV_Misc_Head_Dragon_Black",
-        art = { LOAD_SCREEN .. "LoadScreenBlackrockSpire", LOAD_SCREEN .. "LoadScreenDungeon" },
+        art = {
+            LOAD_SCREEN .. "LoadScreenBlackrockSpire",
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "lbrs", "lower spire" },
         bosses = {
@@ -864,7 +893,10 @@ local DUNGEONS = {
         location = "Blackrock Mountain",
         description = "The upper citadel of Blackrock Spire, unlocked with the Seal of Ascension and ruled by Warchief Rend Blackhand and General Drakkisath.",
         icon = "Interface\\Icons\\INV_Misc_Head_Dragon_Black",
-        art = { LOAD_SCREEN .. "LoadScreenBlackrockSpire", LOAD_SCREEN .. "LoadScreenDungeon" },
+        art = {
+            LOAD_SCREEN .. "LoadScreenBlackrockSpire",
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "ubrs", "upper spire", "rend", "drakkisath" },
         bosses = {
@@ -891,7 +923,10 @@ local DUNGEONS = {
         location = "Feralas",
         description = "Warpwood Quarter — the eastern wing of ancient Eldre'Thalas, overrun by satyrs and corrupted plant life under Alzzin the Wildshaper.",
         icon = "Interface\\Icons\\Spell_Nature_Preservation",
-        art = { LOAD_SCREEN .. "LoadScreenDireMaul", LOAD_SCREEN .. "LoadScreenDungeon" },
+        art = {
+            LOAD_SCREEN .. "LoadScreenDireMaul",
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "dme", "dm east", "warpwood" },
         bosses = {
@@ -944,7 +979,10 @@ local DUNGEONS = {
         location = "Feralas",
         description = "Capital Gardens — the western wing of Eldre'Thalas where the Shen'dralar Highborne siphon demonic energy from the bound demon Immol'thar.",
         icon = "Interface\\Icons\\Spell_Nature_Preservation",
-        art = { LOAD_SCREEN .. "LoadScreenDireMaul", LOAD_SCREEN .. "LoadScreenDungeon" },
+        art = {
+            LOAD_SCREEN .. "LoadScreenDireMaul",
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "dmw", "dm west", "capital gardens" },
         bosses = {
@@ -969,7 +1007,10 @@ local DUNGEONS = {
         location = "Feralas",
         description = "Gordok Commons — the northern ogre wing of Eldre'Thalas where players can either slay the Gordok guards or complete a Tribute run to become King.",
         icon = "Interface\\Icons\\Spell_Nature_Preservation",
-        art = { LOAD_SCREEN .. "LoadScreenDireMaul", LOAD_SCREEN .. "LoadScreenDungeon" },
+        art = {
+            LOAD_SCREEN .. "LoadScreenDireMaul",
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "dmn", "dm north", "tribute", "gordok" },
         bosses = {

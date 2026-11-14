@@ -824,19 +824,34 @@ end
 
 
 local KNOWN_VALID_FILE_IDS = {
-    [131865] = true, -- LoadScreenRazorfen
-    [131870] = true, -- LoadScreenStockade
-    [131871] = true, -- LoadScreenStratholme living
-    [131872] = true, -- LoadScreenStratholme undead
-    [7963734] = true, -- Alcaz Prison
-    [7963741] = true, -- The Drowned City
-    [7963775] = true, -- City of Dalaran
-    [7963777] = true, -- Excavation Site: Wetlands
-    [7963780] = true, -- Krol'dok Stronghold
-    [7963781] = true, -- Hall of Thanes
-    [7963782] = true, -- Ruins of Lordaeron
-    [7963783] = true, -- Shaper's Terrace
-    [7963784] = true, -- Blackmaw Hold
+    [131824] = true, -- LoadScreenBlackFathomDeeps
+    [131825] = true, -- LoadScreenBlackrockDepths
+    [131826] = true, -- LoadScreenBlackrockSpire (LBRS / UBRS)
+    [131834] = true, -- LoadScreenDeadmines
+    [131836] = true, -- LoadScreenDireMaul (East / West / North)
+    [131839] = true, -- LoadScreenDungeon (Universal Fallback)
+    [131842] = true, -- LoadScreenGnomeregan
+    [131851] = true, -- LoadScreenMaraudon
+    [131853] = true, -- LoadScreenMonastery (Scarlet Monastery all wings)
+    [131863] = true, -- LoadScreenRagefireChasm
+    [131865] = true, -- LoadScreenRazorfen / RazorfenDowns (RFK / RFD)
+    [131869] = true, -- LoadScreenScholomance
+    [131870] = true, -- LoadScreenStockade / LoadScreenShadowFangKeep
+    [131871] = true, -- LoadScreenStratholme living / undead
+    [131872] = true, -- LoadScreenStratholme undead secondary
+    [131873] = true, -- LoadScreenSunkenTemple
+    [131877] = true, -- LoadScreenUldaman
+    [131883] = true, -- LoadScreenWailingCaverns
+    [131886] = true, -- LoadScreenZulFarrak
+    [7963734] = true, -- Alcaz Prison (WoW Forever)
+    [7963741] = true, -- The Drowned City (WoW Forever)
+    [7963775] = true, -- City of Dalaran (WoW Forever)
+    [7963777] = true, -- Excavation Site: Wetlands (WoW Forever)
+    [7963780] = true, -- Krol'dok Stronghold (WoW Forever)
+    [7963781] = true, -- Hall of Thanes (WoW Forever)
+    [7963782] = true, -- Ruins of Lordaeron (WoW Forever)
+    [7963783] = true, -- Shaper's Terrace (WoW Forever)
+    [7963784] = true, -- Blackmaw Hold (WoW Forever)
 }
 
 --- Helper function to resolve the best valid loading screen texture for a dungeon.
