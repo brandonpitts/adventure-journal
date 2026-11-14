@@ -15,11 +15,10 @@ desktop.ini
 *.swp
 
 # ==============================================================================
-# UNFINISHED MODULE BOUNDARY - DO NOT COMMIT TO PUBLIC REPOSITORY
+# UNFINISHED & PRIVATE MODULE BOUNDARY - DO NOT COMMIT TO PUBLIC REPOSITORY
 # Only Core, Journal_Dungeons, and Utility_MapIcons are currently public.
-# When a module reaches release parity (v1.0.0+), remove it from this list
-# as documented in _designs/task-list.md.
 # ==============================================================================
 Adventure_Journal/Modules/Journal_Raids/
 Adventure_Journal/Modules/Journal_Professions/
 Adventure_Journal/Modules/Journal_Quests/
+Adventure_Journal/Modules/Utility_Development/

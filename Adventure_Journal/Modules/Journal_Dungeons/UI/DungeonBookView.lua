@@ -608,9 +608,17 @@ function DungeonBookView:BuildInstanceOverviewPane(rightPage)
 
     if ns.ItemsManager and ns.ItemsManager.RegisterUpdateListener then
         ns.ItemsManager:RegisterUpdateListener(function()
-            if self.frame and self.frame:IsShown() and self.searchQuery and self.searchQuery ~= "" then
-                self:RefreshLeftPage()
-                self:RefreshRightPage()
+            if self.frame and self.frame:IsShown() then
+                if self.searchQuery and self.searchQuery ~= "" then
+                    local prevBoss = self.selectedBoss
+                    self:RefreshLeftPage()
+                    self:RefreshRightPage()
+                    if self.selectedBoss ~= prevBoss and self.selectedBoss and self.onSelectBoss then
+                        self.onSelectBoss(self.selectedBoss)
+                    end
+                elseif self.selectedBoss then
+                    self:RefreshRightPage()
+                end
             end
         end)
     end
@@ -974,15 +982,11 @@ function DungeonBookView:RefreshLeftPage()
     local challengeBosses = {}
     local firstMatchingBoss = nil
     local selectedBossMatches = false
+    local isSearching = (q ~= "")
 
     for _, boss in ipairs(d.bosses or {}) do
         if bossMatches(boss) then
-            if not firstMatchingBoss then
-                firstMatchingBoss = boss
-            end
-            if self.selectedBoss == boss then
-                selectedBossMatches = true
-            end
+            local addedToSection = false
 
             if boss.isEvent then
                 local shouldShow = true
@@ -992,24 +996,38 @@ function DungeonBookView:RefreshLeftPage()
                 else
                     shouldShow = (showEventBosses == "always") or (showEventBosses == true)
                 end
-                if shouldShow then
+                if shouldShow or isSearching then
                     eventBosses[#eventBosses + 1] = boss
+                    addedToSection = true
                 end
             elseif boss.isChallenge then
-                if showDungeonSetChallenges then
+                if showDungeonSetChallenges or isSearching then
                     challengeBosses[#challengeBosses + 1] = boss
+                    addedToSection = true
                 end
             else
                 local isRare = (boss.rare == true) or (boss.isRare == true) or (boss.classification == "rare") or (boss.classification == "rareelite")
                 local isMinor = (boss.isMinor == true) or (boss.classification == "minor") or (boss.classification == "quest")
                 if isRare then
                     rareBosses[#rareBosses + 1] = boss
+                    addedToSection = true
                 elseif isMinor then
-                    if showMinor then
+                    if showMinor or isSearching then
                         minorBosses[#minorBosses + 1] = boss
+                        addedToSection = true
                     end
                 else
                     mainBosses[#mainBosses + 1] = boss
+                    addedToSection = true
+                end
+            end
+
+            if addedToSection then
+                if not firstMatchingBoss then
+                    firstMatchingBoss = boss
+                end
+                if self.selectedBoss == boss then
+                    selectedBossMatches = true
                 end
             end
         end
@@ -1236,16 +1254,29 @@ function DungeonBookView:RefreshLeftPage()
         local zoneMatches = false
         if strfind("zone drops", q, 1, true) then
             zoneMatches = true
-        else
-            for _, itemID in ipairs(zoneDrops) do
-                local itemName = ns.ItemsManager and ns.ItemsManager:GetItemName(itemID)
-                if itemName and strfind(strlower(itemName), q, 1, true) then
-                    zoneMatches = true
-                    break
-                end
-            end
+        elseif ns.ItemsManager and ns.ItemsManager.BossMatchesQuery then
+            zoneMatches = ns.ItemsManager:BossMatchesQuery(d.id, { name = "Zone Drops", isZone = true }, q)
         end
         hasZoneDrops = zoneMatches
+    end
+
+    if not self.zoneBossEntry or self.zoneBossEntry.dungeonId ~= d.id then
+        self.zoneBossEntry = {
+            dungeonId = d.id,
+            name = "Zone Drops",
+            isZone = true,
+            isTrash = true,
+            classification = "trash",
+            icon = "Interface\\Icons\\INV_Box_01",
+            level = "Zone",
+            description = string.format("Notable zone-wide drops from creatures throughout %s.", d.name or "the dungeon"),
+        }
+    end
+
+    -- Preserve Zone Drops selection if currently selected and valid
+    if hasZoneDrops and self.selectedBoss and (self.selectedBoss.isZone or self.selectedBoss.isTrash) then
+        self.selectedBoss = self.zoneBossEntry
+        selectedBossMatches = true
     end
 
     -- Auto-select matching boss or zone drops when search query is active
@@ -1253,21 +1284,7 @@ function DungeonBookView:RefreshLeftPage()
         if not selectedBossMatches then
             if firstMatchingBoss then
                 self.selectedBoss = firstMatchingBoss
-            elseif hasZoneDrops and (self.selectedBoss and (self.selectedBoss.isZone or self.selectedBoss.isTrash)) then
-                -- keep zone drops selected
-            elseif hasZoneDrops and not firstMatchingBoss then
-                if not self.zoneBossEntry or self.zoneBossEntry.dungeonId ~= d.id then
-                    self.zoneBossEntry = {
-                        dungeonId = d.id,
-                        name = "Zone Drops",
-                        isZone = true,
-                        isTrash = true,
-                        classification = "trash",
-                        icon = "Interface\\Icons\\INV_Box_01",
-                        level = "Zone",
-                        description = string.format("Notable zone-wide drops from creatures throughout %s.", d.name or "the dungeon"),
-                    }
-                end
+            elseif hasZoneDrops then
                 self.selectedBoss = self.zoneBossEntry
             else
                 self.selectedBoss = nil
@@ -1287,18 +1304,6 @@ function DungeonBookView:RefreshLeftPage()
 
         btnIndex = btnIndex + 1
         local zoneBtn = self:AcquireBossButton(btnIndex)
-        if not self.zoneBossEntry or self.zoneBossEntry.dungeonId ~= d.id then
-            self.zoneBossEntry = {
-                dungeonId = d.id,
-                name = "Zone Drops",
-                isZone = true,
-                isTrash = true,
-                classification = "trash",
-                icon = "Interface\\Icons\\INV_Box_01",
-                level = "Zone",
-                description = string.format("Notable zone-wide drops from creatures throughout %s.", d.name or "the dungeon"),
-            }
-        end
 
         local zoneY = dividerY - 30
         renderBossButton(zoneBtn, self.zoneBossEntry, zoneY)
@@ -1358,7 +1363,9 @@ function DungeonBookView:RenderItemDrops(d, boss)
     local dropIDs = ns.ItemsManager and ns.ItemsManager:GetEncounterDrops(d.id, bossKey) or {}
 
     local q = (type(self.searchQuery) == "string" and strlower(self.searchQuery:match("^%s*(.-)%s*$") or "")) or ""
-    local bossNameMatches = (boss.name and strfind(strlower(boss.name), q, 1, true))
+    local parsedQuery = (q ~= "" and ns.ItemsManager and ns.ItemsManager.ParseQuery) and ns.ItemsManager:ParseQuery(q) or nil
+    local isMultiConstraint = parsedQuery and ((#parsedQuery.tags > 1) or parsedQuery.minLevel or parsedQuery.maxLevel or (#parsedQuery.tags == 1 and #parsedQuery.textTerms > 0))
+    local bossNameMatches = (not isMultiConstraint) and (boss.name and strfind(strlower(boss.name), q, 1, true))
     local filterByItem = (q ~= "" and not bossNameMatches)
 
     if #dropIDs == 0 then
@@ -1381,7 +1388,8 @@ function DungeonBookView:RenderItemDrops(d, boss)
 
     for _, itemID in ipairs(dropIDs) do
         local itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, _, classID, subclassID = safeGetItemInfo(itemID)
-        
+        local catalogRec = ns.ItemsManager and ns.ItemsManager.GetItem and ns.ItemsManager:GetItem(itemID) or nil
+
         -- Fallback and async cache loading for items not yet in local client cache
         if not itemName or itemName == "" then
             if C_Item and C_Item.RequestLoadItemDataByID then
@@ -1397,16 +1405,29 @@ function DungeonBookView:RenderItemDrops(d, boss)
                 classID = classID or instClassID
                 subclassID = subclassID or instSubclassID
             end
-            local cachedName = ns.ItemsManager and ns.ItemsManager:GetItemName(itemID)
+            local cachedName = (catalogRec and catalogRec.name) or (ns.ItemsManager and ns.ItemsManager:GetItemName(itemID))
             if cachedName and cachedName ~= "" then
                 itemName = cachedName
+            end
+        end
+
+        if catalogRec then
+            if itemQuality == nil and catalogRec.q ~= nil then
+                itemQuality = catalogRec.q
+            end
+            if (not itemSubType or itemSubType == "") and catalogRec.subType then
+                itemSubType = catalogRec.subType
             end
         end
 
         local displayName = (itemName and itemName ~= "") and itemName or ("Item #" .. tostring(itemID))
         local matchesQuery = true
         if filterByItem then
-            matchesQuery = strfind(strlower(displayName), q, 1, true) ~= nil
+            if ns.ItemsManager and ns.ItemsManager.ItemMatchesQuery then
+                matchesQuery = ns.ItemsManager:ItemMatchesQuery(itemID, parsedQuery or q)
+            else
+                matchesQuery = strfind(strlower(displayName), q, 1, true) ~= nil
+            end
         end
 
         if matchesQuery then

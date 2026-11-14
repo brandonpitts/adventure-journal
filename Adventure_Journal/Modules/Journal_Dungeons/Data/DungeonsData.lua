@@ -750,7 +750,7 @@ local DUNGEONS = {
         description = "Deep beneath the naga-infested jungles of Alcaz Island lies a subterranean prison complex holding high-value captives and dark secrets.",
         icon = "Interface\\Icons\\INV_Misc_Key_07",
         art = {
-            7963734,
+            7963784,
             LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
@@ -1285,16 +1285,10 @@ function DungeonsData:GetFiltered(searchQuery, sortOrder)
                 end
             end
         end
-        if not matched and ns.ItemsManager and ns.ItemsManager.GetEncounterDrops then
-            local zoneDrops = ns.ItemsManager:GetEncounterDrops(dungeon.id, "Zone Drops")
-            if zoneDrops then
-                for _, itemID in ipairs(zoneDrops) do
-                    local itemName = ns.ItemsManager:GetItemName(itemID)
-                    if itemName and strfind(strlower(itemName), q, 1, true) then
-                        matched = true
-                        break
-                    end
-                end
+        if not matched and ns.ItemsManager and ns.ItemsManager.BossMatchesQuery then
+            local isZoneMatch = ns.ItemsManager:BossMatchesQuery(dungeon.id, { name = "Zone Drops", isZone = true }, q)
+            if isZoneMatch then
+                matched = true
             end
         end
         if matched then
@@ -1313,4 +1307,3 @@ end
 -- 4. Namespace Attachment
 -- ----------------------------------------------------------------------------
 ns.Data.DungeonsData = DungeonsData
-

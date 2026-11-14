@@ -25,17 +25,26 @@ local DEFAULT_PLUGIN_ORDER = 100
 
 --- Returns the effective sort order for a plugin (user's custom drag-and-drop
 --- order from `Database`, falling back to `plugin.defaultOrder`).
+--- Pinned utility/development modules always use their static `defaultOrder`.
 local function getEffectiveOrder(plugin)
-    local custom = ns.Database and ns.Database:GetPluginCustomOrder(plugin.id)
-    if type(custom) == "number" then
-        return custom
+    if not plugin.isUtility and not plugin.pinLast then
+        local custom = ns.Database and ns.Database:GetPluginCustomOrder(plugin.id)
+        if type(custom) == "number" then
+            return custom
+        end
     end
     return plugin.defaultOrder or plugin.order or DEFAULT_PLUGIN_ORDER
 end
 
 --- Comparator for sorting plugins left-to-right by effective order then `title`.
---- Utility modules (`isUtility == true`) are always pinned to the bottom.
+--- Utility modules (`isUtility == true`) are pinned to the bottom, and `pinLast == true`
+--- modules (such as Development) are always pinned as the very last entry.
 local function comparePlugins(a, b)
+    local aLast = (a.pinLast == true)
+    local bLast = (b.pinLast == true)
+    if aLast ~= bLast then
+        return not aLast
+    end
     local aUtil = (a.isUtility == true)
     local bUtil = (b.isUtility == true)
     if aUtil ~= bUtil then
@@ -132,6 +141,9 @@ function PluginRegistry:Register(pluginDef)
 
     local defaultOrder = tonumber(pluginDef.order) or DEFAULT_PLUGIN_ORDER
     local isUtility = (pluginDef.isUtility == true)
+    local hasTab = (pluginDef.hasTab == true) or (not isUtility)
+    local alignRight = (pluginDef.alignRight == true)
+    local pinLast = (pluginDef.pinLast == true)
     local plugin = {
         id = id,
         title = title,
@@ -144,6 +156,9 @@ function PluginRegistry:Register(pluginDef)
         defaultOrder = defaultOrder,
         order = defaultOrder,
         isUtility = isUtility,
+        hasTab = hasTab,
+        alignRight = alignRight,
+        pinLast = pinLast,
         OnInitialize = pluginDef.OnInitialize,
         OnActivate = pluginDef.OnActivate,
         OnDeactivate = pluginDef.OnDeactivate,
@@ -185,17 +200,63 @@ function PluginRegistry:GetAllPlugins()
     return self.orderedPlugins
 end
 
---- Returns only enabled non-utility plugins in their current sort order (used by `TabBar` and `MainFrame`).
+--- Returns all enabled tab-bearing plugins in their current sort order (including unloaded modules
+--- that were just enabled and are awaiting a `/reload` so their tab displays the reload prompt).
 --- @return table[]
 function PluginRegistry:GetOrderedPlugins()
     self:ResortPlugins()
     local enabled = {}
     for _, plugin in ipairs(self.orderedPlugins) do
-        if not ns.Database:IsPluginDisabled(plugin.id) and not plugin.isUtility then
+        if not ns.Database:IsPluginDisabled(plugin.id) and (not plugin.isUtility or plugin.hasTab) then
             enabled[#enabled + 1] = plugin
         end
     end
     return enabled
+end
+
+--- Immediately unloads a module's data tables, event frames, and UI controllers from memory,
+--- marking it as unloaded so re-enabling requires a UI `/reload`.
+--- @param pluginId string
+--- @param skipGC boolean|nil
+function PluginRegistry:UnloadPlugin(pluginId, skipGC)
+    local plugin = self.pluginsById[pluginId]
+    if not plugin or plugin.isUnloaded then
+        return
+    end
+
+    safeInvokePlugin(plugin, "OnUnload")
+
+    if plugin.canvas then
+        plugin.canvas:Hide()
+    end
+
+    plugin.canvas = nil
+    plugin.isInitialized = false
+    plugin.isUnloaded = true
+    plugin.OnInitialize = nil
+    plugin.OnActivate = nil
+    plugin.OnDeactivate = nil
+    plugin.OnSearch = nil
+    plugin.OnUnload = nil
+
+    if not skipGC and collectgarbage then
+        collectgarbage("collect")
+    end
+end
+
+--- Purges all disabled modules from memory at `ADDON_LOADED` time so disabled modules
+--- consume zero runtime memory until the user re-enables them and executes a `/reload`.
+function PluginRegistry:PurgeDisabledModules()
+    local purgedAny = false
+    for _, plugin in ipairs(self.orderedPlugins) do
+        if ns.Database:IsPluginDisabled(plugin.id) and not plugin.isUnloaded then
+            self:UnloadPlugin(plugin.id, true)
+            purgedAny = true
+        end
+    end
+    if purgedAny and collectgarbage then
+        collectgarbage("collect")
+    end
 end
 
 --- Returns the full catalog of all possible Journal plugins for Settings,
@@ -210,6 +271,8 @@ function PluginRegistry:GetCatalogPlugins()
         local live = self.pluginsById[known.id]
         local isInstalled = (live ~= nil) or isAddOnInstalledOnDisk(known.addonName)
         local isDisabled = ns.Database:IsPluginDisabled(known.id)
+        local isUnloaded = (live == nil) or (live.isUnloaded == true)
+        local pendingReload = (live ~= nil and live.isUnloaded == true and not isDisabled)
         local entry = {
             id = known.id,
             title = (live and live.title) or known.title,
@@ -221,9 +284,14 @@ function PluginRegistry:GetCatalogPlugins()
             apiVersion = (live and live.apiVersion) or Constants.PLUGIN_API_VERSION,
             defaultOrder = (live and live.defaultOrder) or known.defaultOrder or DEFAULT_PLUGIN_ORDER,
             isUtility = (live and live.isUtility ~= nil and live.isUtility) or (known.isUtility == true) or false,
+            hasTab = (live and live.hasTab ~= nil and live.hasTab) or (known.hasTab == true) or false,
+            alignRight = (live and live.alignRight ~= nil and live.alignRight) or (known.alignRight == true) or false,
+            pinLast = (live and live.pinLast ~= nil and live.pinLast) or (known.pinLast == true) or false,
             isInstalled = isInstalled,
-            isLoaded = (live ~= nil),
-            isEnabled = isInstalled and (live ~= nil) and (not isDisabled),
+            isLoaded = (live ~= nil) and not isUnloaded,
+            isUnloaded = isUnloaded,
+            pendingReload = pendingReload,
+            isEnabled = isInstalled and (live ~= nil) and (not isUnloaded) and (not isDisabled),
         }
         catalogById[entry.id] = entry
         list[#list + 1] = entry
@@ -233,6 +301,8 @@ function PluginRegistry:GetCatalogPlugins()
     for _, live in ipairs(self.orderedPlugins) do
         if not catalogById[live.id] then
             local isDisabled = ns.Database:IsPluginDisabled(live.id)
+            local isUnloaded = (live.isUnloaded == true)
+            local pendingReload = (isUnloaded and not isDisabled)
             local entry = {
                 id = live.id,
                 title = live.title,
@@ -244,9 +314,14 @@ function PluginRegistry:GetCatalogPlugins()
                 apiVersion = live.apiVersion or Constants.PLUGIN_API_VERSION,
                 defaultOrder = live.defaultOrder or DEFAULT_PLUGIN_ORDER,
                 isUtility = (live.isUtility == true) or false,
+                hasTab = (live.hasTab == true) or false,
+                alignRight = (live.alignRight == true) or false,
+                pinLast = (live.pinLast == true) or false,
                 isInstalled = true,
-                isLoaded = true,
-                isEnabled = not isDisabled,
+                isLoaded = not isUnloaded,
+                isUnloaded = isUnloaded,
+                pendingReload = pendingReload,
+                isEnabled = (not isUnloaded) and (not isDisabled),
             }
             catalogById[entry.id] = entry
             list[#list + 1] = entry
@@ -319,7 +394,34 @@ function PluginRegistry:GetCount()
     return #self:GetOrderedPlugins()
 end
 
---- Enables or disables an installed plugin dynamically and refreshes the bottom tabs.
+--- Resolves the active default landing plugin ID, guaranteeing that one enabled
+--- non-utility module is always selected as the default (preferring `"dungeons"`).
+--- @return string
+function PluginRegistry:GetEffectiveDefaultLandingPluginId()
+    local savedId = ns.Database:GetDefaultLandingPluginId()
+    local savedPlugin = savedId and self.pluginsById[savedId]
+    if savedPlugin and not savedPlugin.isUtility and not savedPlugin.isUnloaded and not ns.Database:IsPluginDisabled(savedId) then
+        return savedId
+    end
+
+    local dungeonsPlugin = self.pluginsById["dungeons"]
+    if dungeonsPlugin and not dungeonsPlugin.isUtility and not dungeonsPlugin.isUnloaded and not ns.Database:IsPluginDisabled("dungeons") then
+        ns.Database:SetDefaultLandingPluginId("dungeons")
+        return "dungeons"
+    end
+
+    for _, plugin in ipairs(self:GetOrderedPlugins()) do
+        if not plugin.isUtility then
+            ns.Database:SetDefaultLandingPluginId(plugin.id)
+            return plugin.id
+        end
+    end
+
+    return savedId or "dungeons"
+end
+
+--- Enables or disables an installed plugin. Disabling a module immediately unloads its data
+--- and UI from memory; re-enabling an unloaded module stages it for the next UI `/reload`.
 --- @param pluginId string
 --- @param isEnabled boolean
 function PluginRegistry:SetPluginEnabled(pluginId, isEnabled)
@@ -330,35 +432,19 @@ function PluginRegistry:SetPluginEnabled(pluginId, isEnabled)
 
     ns.Database:SetPluginDisabled(pluginId, not isEnabled)
 
-    if not isEnabled and ns.Database:GetDefaultLandingPluginId() == pluginId then
-        ns.Database:SetDefaultLandingPluginId(nil)
-    end
-
-    if not isEnabled and self.activePluginId == pluginId then
-        self:ActivateDefaultPlugin()
-    end
-
-    if ns.UI.MainFrame and ns.UI.MainFrame:IsInitialized() then
-        ns.UI.MainFrame:OnPluginsChanged()
-    end
-end
-
---- Toggles or sets a plugin tab as the user's preferred default opening / landing tab.
---- Passing `nil` or the already-selected `defaultLandingPluginId` clears it so the Journal
---- remembers the last-opened tab instead.
---- @param pluginId string|nil
-function PluginRegistry:ToggleDefaultLandingPlugin(pluginId)
-    if pluginId then
-        local plugin = self.pluginsById[pluginId]
-        if plugin and plugin.isUtility then
-            return -- Utility modules cannot be set as default landing tab
+    if not isEnabled then
+        if ns.Database:GetDefaultLandingPluginId() == pluginId then
+            -- Reassign default landing tab to another enabled non-utility module so there is always one selected
+            self:GetEffectiveDefaultLandingPluginId()
         end
-    end
-    local current = ns.Database:GetDefaultLandingPluginId()
-    if not pluginId or current == pluginId then
-        ns.Database:SetDefaultLandingPluginId(nil)
-    else
-        ns.Database:SetDefaultLandingPluginId(pluginId)
+
+        if self.activePluginId == pluginId then
+            self:ActivateDefaultPlugin()
+        end
+
+        self:UnloadPlugin(pluginId)
+    elseif not self.activePluginId and (not plugin.isUtility or plugin.hasTab) then
+        self:ActivatePlugin(pluginId)
     end
 
     if ns.UI.MainFrame and ns.UI.MainFrame:IsInitialized() then
@@ -367,6 +453,34 @@ function PluginRegistry:ToggleDefaultLandingPlugin(pluginId)
     if ns.UI.SettingsPanel and ns.UI.SettingsPanel.Refresh then
         ns.UI.SettingsPanel:Refresh()
     end
+end
+
+--- Sets `pluginId` as the user's preferred default opening / landing tab using radio-button
+--- semantics ("there always must be one" — clicking the active default keeps it selected).
+--- @param pluginId string|nil
+function PluginRegistry:SetDefaultLandingPlugin(pluginId)
+    if not pluginId or pluginId == "" then
+        return
+    end
+    local plugin = self.pluginsById[pluginId]
+    if not plugin or plugin.isUtility or plugin.isUnloaded or ns.Database:IsPluginDisabled(pluginId) then
+        return -- Only installed, enabled, loaded, non-utility modules can be selected
+    end
+
+    ns.Database:SetDefaultLandingPluginId(pluginId)
+
+    if ns.UI.MainFrame and ns.UI.MainFrame:IsInitialized() then
+        ns.UI.MainFrame:OnPluginsChanged()
+    end
+    if ns.UI.SettingsPanel and ns.UI.SettingsPanel.Refresh then
+        ns.UI.SettingsPanel:Refresh()
+    end
+end
+
+--- Radio-button wrapper for `SetDefaultLandingPlugin` (never clears to nil).
+--- @param pluginId string|nil
+function PluginRegistry:ToggleDefaultLandingPlugin(pluginId)
+    self:SetDefaultLandingPlugin(pluginId)
 end
 
 --- Backwards-compatibility wrapper for `ToggleDefaultLandingPlugin`.
@@ -393,13 +507,20 @@ end
 ---   * If all plugins are disabled, deactivates all views.
 function PluginRegistry:ActivateDefaultPlugin()
     local defaultId = ns.Database:GetDefaultLandingPluginId()
-    if defaultId and self.pluginsById[defaultId] and not ns.Database:IsPluginDisabled(defaultId) then
+    local defaultPlugin = defaultId and self.pluginsById[defaultId]
+    if defaultPlugin and not defaultPlugin.isUtility and not defaultPlugin.isUnloaded and not ns.Database:IsPluginDisabled(defaultId) then
         self:ActivatePlugin(defaultId)
         return
     end
 
-    -- If no default landing plugin is set, activate the first enabled plugin (e.g. Dungeons)
+    -- If no default landing plugin is set, activate the first enabled non-utility plugin (e.g. Dungeons)
     local ordered = self:GetOrderedPlugins()
+    for _, plugin in ipairs(ordered) do
+        if not plugin.isUtility then
+            self:ActivatePlugin(plugin.id)
+            return
+        end
+    end
     if #ordered > 0 then
         self:ActivatePlugin(ordered[1].id)
         return
@@ -437,6 +558,9 @@ function PluginRegistry:DeactivateAll()
     end
 
     mainFrame:SetPortraitIcon(Constants.ASSETS.JOURNAL_PORTRAIT)
+    if mainFrame.SetReloadPromptVisible then
+        mainFrame:SetReloadPromptVisible(false)
+    end
     mainFrame:SetEmptyStateVisible(true)
     mainFrame:ClearTabSelection()
 end
@@ -447,11 +571,13 @@ function PluginRegistry:ShowCatalogHome()
 end
 
 --- Activates the specified plugin tab, lazily initializing its canvas on first view.
+--- If the plugin was unloaded and re-enabled during the current session without a `/reload`,
+--- displays the `"Required reload to enable this"` prompt on the module page.
 --- @param pluginId string
 --- @return boolean
 function PluginRegistry:ActivatePlugin(pluginId)
     local target = self.pluginsById[pluginId]
-    if not target or target.isUtility or ns.Database:IsPluginDisabled(pluginId) or not ns.UI.MainFrame or not ns.UI.MainFrame:IsInitialized() then
+    if not target or (target.isUtility and not target.hasTab) or ns.Database:IsPluginDisabled(pluginId) or not ns.UI.MainFrame or not ns.UI.MainFrame:IsInitialized() then
         return false
     end
 
@@ -468,14 +594,30 @@ function PluginRegistry:ActivatePlugin(pluginId)
 
     local mainFrame = ns.UI.MainFrame
     local headerBar = mainFrame:GetHeaderBar()
-    if headerBar then
-        headerBar:ResetBreadcrumbs(target.title, function()
-            safeInvokePlugin(target, "OnActivate", target.canvas, headerBar)
-        end)
-    end
 
     mainFrame:SetPortraitIcon(target.icon)
     mainFrame:SetEmptyStateVisible(false)
+
+    if target.isUnloaded then
+        if headerBar then
+            headerBar:ResetBreadcrumbs("Home", nil)
+        end
+        if mainFrame.SetReloadPromptVisible then
+            mainFrame:SetReloadPromptVisible(true, target.title)
+        end
+        mainFrame:SelectTabByPluginId(target.id)
+        return true
+    end
+
+    if mainFrame.SetReloadPromptVisible then
+        mainFrame:SetReloadPromptVisible(false)
+    end
+
+    if headerBar then
+        headerBar:ResetBreadcrumbs("Home", function()
+            safeInvokePlugin(target, "OnActivate", target.canvas, headerBar)
+        end)
+    end
 
     if not target.isInitialized then
         local parentCanvas = mainFrame:GetContentCanvas()

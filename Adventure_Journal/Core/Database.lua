@@ -48,15 +48,30 @@ local Database = {
 function Database:Init()
     _G.JournalBaseDB = copyDefaults(Constants.DB_DEFAULTS, _G.JournalBaseDB)
 
-    -- Schema migration: update worldMapDungeonIcons to "always" if upgrading from schemaVersion < 2
-    if _G.JournalBaseDB and (_G.JournalBaseDB.schemaVersion or 0) < 2 then
-        if _G.JournalBaseDB.dungeons and _G.JournalBaseDB.dungeons.worldMapDungeonIcons == "min_level" then
-            _G.JournalBaseDB.dungeons.worldMapDungeonIcons = "always"
+    -- Schema migration: ensure worldMapDungeonIcons defaults to "min_level" ("After minimum level")
+    if _G.JournalBaseDB and (_G.JournalBaseDB.schemaVersion or 0) < 3 then
+        if _G.JournalBaseDB.dungeons and _G.JournalBaseDB.dungeons.worldMapDungeonIcons == "always" then
+            _G.JournalBaseDB.dungeons.worldMapDungeonIcons = "min_level"
         end
-        if _G.JournalBaseDB.map_icons and _G.JournalBaseDB.map_icons.worldMapDungeonIcons == "min_level" then
-            _G.JournalBaseDB.map_icons.worldMapDungeonIcons = "always"
+        if _G.JournalBaseDB.map_icons and _G.JournalBaseDB.map_icons.worldMapDungeonIcons == "always" then
+            _G.JournalBaseDB.map_icons.worldMapDungeonIcons = "min_level"
         end
-        _G.JournalBaseDB.schemaVersion = 2
+        _G.JournalBaseDB.schemaVersion = 3
+    end
+
+    -- Schema migration: enforce a mandatory default landing tab ("dungeons" by default)
+    if _G.JournalBaseDB and (_G.JournalBaseDB.schemaVersion or 0) < 4 then
+        _G.JournalBaseDB.window = _G.JournalBaseDB.window or {}
+        if not _G.JournalBaseDB.window.defaultLandingPluginId or _G.JournalBaseDB.window.defaultLandingPluginId == "" then
+            _G.JournalBaseDB.window.defaultLandingPluginId = "dungeons"
+            _G.JournalBaseDB.window.homePluginId = "dungeons"
+        end
+        _G.JournalBaseDB.schemaVersion = 4
+    end
+
+    if _G.JournalBaseDB and _G.JournalBaseDB.window and (not _G.JournalBaseDB.window.defaultLandingPluginId or _G.JournalBaseDB.window.defaultLandingPluginId == "") then
+        _G.JournalBaseDB.window.defaultLandingPluginId = "dungeons"
+        _G.JournalBaseDB.window.homePluginId = "dungeons"
     end
 
     self.db = _G.JournalBaseDB
@@ -84,6 +99,21 @@ end
 function Database:SetAddonCompartmentShown(isShown)
     local store = self:GetStore()
     store.showInAddonCompartment = isShown and true or false
+end
+
+--- @return boolean
+function Database:IsAdvancedSearchEnabled()
+    local store = self:GetStore()
+    if store.enableAdvancedSearch ~= nil then
+        return store.enableAdvancedSearch == true
+    end
+    return false
+end
+
+--- @param isEnabled boolean
+function Database:SetAdvancedSearchEnabled(isEnabled)
+    local store = self:GetStore()
+    store.enableAdvancedSearch = isEnabled and true or false
 end
 
 --- @return boolean
@@ -189,21 +219,27 @@ function Database:SetPluginDisabled(pluginId, isDisabled)
     end
 end
 
---- Returns the user's configured default opening / landing plugin ID
---- (or `nil` if the window should restore the last-opened tab or first enabled tab).
---- @return string|nil
+--- Returns the user's configured default opening / landing plugin ID.
+--- Always returns a valid plugin ID (defaults to `"dungeons"`).
+--- @return string
 function Database:GetDefaultLandingPluginId()
     local store = self:GetStore()
-    return store.window and (store.window.defaultLandingPluginId or store.window.homePluginId)
+    local id = store.window and (store.window.defaultLandingPluginId or store.window.homePluginId)
+    if type(id) == "string" and id ~= "" then
+        return id
+    end
+    return "dungeons"
 end
 
---- Sets or clears the user's preferred default opening / landing plugin ID.
+--- Sets the user's preferred default opening / landing plugin ID.
+--- Radio semantics: always stores a non-empty plugin ID (falls back to `"dungeons"` if nil/empty).
 --- @param pluginId string|nil
 function Database:SetDefaultLandingPluginId(pluginId)
+    local resolved = (type(pluginId) == "string" and pluginId ~= "") and pluginId or "dungeons"
     local store = self:GetStore()
     store.window = store.window or {}
-    store.window.defaultLandingPluginId = pluginId
-    store.window.homePluginId = pluginId -- backwards compatibility
+    store.window.defaultLandingPluginId = resolved
+    store.window.homePluginId = resolved -- backwards compatibility
 end
 
 --- Backwards-compatibility wrapper for `GetDefaultLandingPluginId`.
@@ -323,4 +359,3 @@ end
 -- 4. Namespace Attachment
 -- ----------------------------------------------------------------------------
 ns.Database = Database
-

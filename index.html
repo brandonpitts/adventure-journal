@@ -93,6 +93,73 @@
       color: var(--gold-bright);
     }
 
+    /* Top Site Navigation Bar */
+    .site-nav {
+      background: rgba(14, 15, 20, 0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(198, 155, 58, 0.28);
+      position: sticky;
+      top: 0;
+      z-index: 95;
+    }
+
+    .site-nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .site-nav-brand {
+      font-family: 'Cinzel', serif;
+      font-weight: 800;
+      font-size: 1.05rem;
+      color: var(--gold-bright);
+      text-decoration: none;
+      letter-spacing: 0.05em;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+    }
+
+    .site-nav-brand span {
+      color: #fff;
+    }
+
+    .site-nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .site-nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 0.45rem 0.9rem;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .site-nav-link:hover {
+      color: #fff;
+      background: rgba(198, 155, 58, 0.1);
+      border-color: rgba(198, 155, 58, 0.3);
+    }
+
+    .site-nav-link.active {
+      color: var(--gold-bright);
+      background: rgba(198, 155, 58, 0.14);
+      border-color: rgba(198, 155, 58, 0.55);
+    }
+
     .badge-version {
       display: inline-flex;
       align-items: center;
@@ -588,20 +655,32 @@
     </div>
   </aside>
 
+  <!-- Primary Site Navigation -->
+  <nav class="site-nav" aria-label="Primary Navigation">
+    <div class="site-nav-inner">
+      <a href="index.html" class="site-nav-brand">⚔ <span>Adventure Journal</span></a>
+      <div class="site-nav-links">
+        <a href="index.html" class="site-nav-link active">Home</a>
+        <a href="architecture.html" class="site-nav-link">Architecture &amp; Data Engine</a>
+        <a href="catalog.html" class="site-nav-link">Catalog Telemetry</a>
+      </div>
+    </div>
+  </nav>
+
   <header>
     <a href="https://github.com/brandonpitts/adventure-journal" target="_blank" rel="noopener noreferrer" class="badge-version" title="View Source & Releases on GitHub">
-      Release v0.5.1 • WoW Forever Client <span class="badge-repo-arrow">↗</span>
+      Release v0.6.0 • WoW Forever Client <span class="badge-repo-arrow">↗</span>
     </a>
     <h1><span>Adventure Journal</span></h1>
     <p class="subtitle">A modular in-game journal framework for World of Warcraft Forever. Currently providing comprehensive dungeon encounter and item lists, with planned modules for raids, professions, attunements, class quests, and more.</p>
 
     <div class="cta-container">
-      <a href="Adventure_Journal-v0.5.1.zip" class="btn-download">
+      <a href="Adventure_Journal-v0.6.0.zip" class="btn-download">
         <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
         Download Adventure Journal
       </a>
       <div class="download-meta">
-        Version <code>0.5.1</code> • Extract directly to <code>Interface\AddOns\</code>
+        Version <code>0.6.0</code> • Extract directly to <code>Interface\AddOns\</code>
       </div>
     </div>
   </header>
@@ -663,21 +742,21 @@
 
     <div class="roadmap-grid">
       <div class="card roadmap-next">
-        <div class="card-tag">Priority 1 • In Active Design</div>
-        <h3>Backend Item Storage Engine</h3>
-        <p>A module-agnostic, lightweight central item database with dynamic search tagging and an interactive intake pipeline (collaborating with Argon) to power all future tabs and modules.</p>
+        <div class="card-tag">Priority 1 • Next Up</div>
+        <h3>Quest System &amp; Attunements</h3>
+        <p>Dungeon-attached vertical tabs displaying quest directories, coordinates, multi-step chains, and turn-ins, powered by a dedicated quest storage pipeline.</p>
       </div>
 
       <div class="card">
-        <div class="card-tag">Priority 2 • Planned Feature</div>
-        <h3>Quest System & Attunements</h3>
-        <p>Dungeon-attached vertical tabs displaying quest directories, coordinates, multi-step chains, and turn-ins, with a dedicated quest storage pipeline.</p>
+        <div class="card-tag">Priority 2 • Planned Module</div>
+        <h3>Raid Journal &amp; Confirmed Encounters</h3>
+        <p>10, 20, and 40-player raid progression built on the central item database foundation, targeting confirmed WoW Forever raids: The Barrow Deeps, Hyjal Summit, and Onyxia's Lair.</p>
       </div>
 
       <div class="card">
-        <div class="card-tag">Priority 3 • Planned Module</div>
-        <h3>Raid Journal & Confirmed Encounters</h3>
-        <p>10, 20, and 40-player raid progression built on post-refactor foundations, targeting confirmed WoW Forever raids: The Barrow Deeps, Hyjal Summit, and Onyxia's Lair.</p>
+        <div class="card-tag">Priority 3 • Planned Expansion</div>
+        <h3>Entity Storage &amp; World Transit Markers</h3>
+        <p>Extending the normalized central database architecture to dungeon and boss entities alongside boat and zeppelin world map transit indicators.</p>
       </div>
     </div>
 
@@ -689,7 +768,7 @@
         <li>
           <div class="step-content">
             <strong>Download the Addon Zip</strong>
-            <p>Click the download button above to grab <code>Adventure_Journal-v0.5.1.zip</code>.</p>
+            <p>Click the download button above to grab <code>Adventure_Journal-v0.6.0.zip</code>.</p>
           </div>
         </li>
         <li>
@@ -725,6 +804,9 @@
         <div class="accordion-content">
           <ul class="changelog-list">
             <li class="changelog-entry">
+              <span class="changelog-tag">v0.6.0</span> Added Central Item Storage Engine with opt-in multi-tag and level-range search, true memory unloading for disabled modules (/reload lifecycle), and default landing tab radio selection.
+            </li>
+            <li class="changelog-entry">
               <span class="changelog-tag">v0.5.1</span> Resolved custom keybinding reservation conflicts, added persistent agent automation rules, and verified clean fresh installs.
             </li>
             <li class="changelog-entry">
@@ -742,14 +824,16 @@
         <summary class="accordion-header">Completed Roadmap Features</summary>
         <div class="accordion-content">
           <ul class="completed-features-list">
-            <li class="completed-feature-item">Interactive Dungeon Catalog & Browser Grid across Classic and WoW Forever instances</li>
-            <li class="completed-feature-item">Open-Book Split View with Multi-Tier Boss Rosters & Encounter Drops</li>
-            <li class="completed-feature-item">World & Zone Map Entrance Indicators with level-bracket filtering</li>
+            <li class="completed-feature-item">Central Item Storage Engine with 8-dimension multi-tag &amp; level-range search</li>
+            <li class="completed-feature-item">True Module Memory Unloading with /reload-gated lifecycle</li>
+            <li class="completed-feature-item">Interactive Dungeon Catalog &amp; Browser Grid across Classic and WoW Forever instances</li>
+            <li class="completed-feature-item">Open-Book Split View with Multi-Tier Boss Rosters &amp; Encounter Drops</li>
+            <li class="completed-feature-item">World &amp; Zone Map Entrance Indicators with level-bracket filtering</li>
             <li class="completed-feature-item">Unified Breadcrumb Navigation (Home &gt; Dungeons &gt; Instance &gt; Boss)</li>
-            <li class="completed-feature-item">Native In-Game Settings Panel with Keybinding Recorder & Starred Landing Tab</li>
-            <li class="completed-feature-item">Minimap Shortcut Button with orbit positioning & visibility toggles</li>
+            <li class="completed-feature-item">Native In-Game Settings Panel with Keybinding Recorder &amp; Default Landing Tab Radio Selector</li>
+            <li class="completed-feature-item">Minimap Shortcut Button with orbit positioning &amp; visibility toggles</li>
             <li class="completed-feature-item">Live Real-Time Search across instances, bosses, and loot drops</li>
-            <li class="completed-feature-item">Dungeon Set 2 (Tier 0.5) Challenge Boss Rosters & Medallion Frames</li>
+            <li class="completed-feature-item">Dungeon Set 2 (Tier 0.5) Challenge Boss Rosters &amp; Medallion Frames</li>
           </ul>
         </div>
       </details>

@@ -206,6 +206,12 @@ function HeaderBarMixin:Init(parentFrame)
             ns.PluginRegistry:ShowCatalogHome()
         end
     end)
+
+    if parentFrame and parentFrame.HookScript then
+        parentFrame:HookScript("OnShow", function()
+            self:RefreshBreadcrumbs()
+        end)
+    end
 end
 
 --- Creates the positioning band across the top header zone (`y = -23`, height `33`).
@@ -269,6 +275,8 @@ function HeaderBarMixin:CreateSettingsButton(headerBand)
 end
 
 --- Creates the native `SearchBoxTemplate` directly on the header (no outer box container).
+--- Throttles / debounces live keystroke search dispatch (`0.18s`) so rapid typing does not lag the game,
+--- while dispatching immediately when the box is cleared or `Enter` is pressed.
 --- @param headerBand Frame
 function HeaderBarMixin:CreateSearchBox(headerBand)
     local searchBox = CreateFrame("EditBox", nil, headerBand, "SearchBoxTemplate")
@@ -276,11 +284,46 @@ function HeaderBarMixin:CreateSearchBox(headerBand)
     searchBox:SetPoint("RIGHT", headerBand, "RIGHT", Constants.WINDOW.SEARCH_OFFSET_X, 0)
     searchBox:SetAutoFocus(false)
 
+    local SEARCH_DEBOUNCE_SEC = 0.18
+    local pendingDelay = nil
+    local lastDispatchedText = ""
+
+    local function flushSearch(text)
+        pendingDelay = nil
+        searchBox:SetScript("OnUpdate", nil)
+        local normalized = text or ""
+        if normalized ~= lastDispatchedText then
+            lastDispatchedText = normalized
+            ns.PluginRegistry:DispatchSearch(normalized)
+        end
+    end
+
     searchBox:SetScript("OnTextChanged", function(editBox)
         if SearchBoxTemplate_OnTextChanged then
             SearchBoxTemplate_OnTextChanged(editBox)
         end
-        ns.PluginRegistry:DispatchSearch(editBox:GetText() or "")
+        local text = editBox:GetText() or ""
+        if text == "" then
+            -- Clearing the search box should feel instantaneous
+            flushSearch("")
+            return
+        end
+        if text == lastDispatchedText then
+            pendingDelay = nil
+            editBox:SetScript("OnUpdate", nil)
+            return
+        end
+        pendingDelay = SEARCH_DEBOUNCE_SEC
+        editBox:SetScript("OnUpdate", function(_, elapsed)
+            if not pendingDelay then
+                editBox:SetScript("OnUpdate", nil)
+                return
+            end
+            pendingDelay = pendingDelay - (elapsed or 0)
+            if pendingDelay <= 0 then
+                flushSearch(editBox:GetText() or "")
+            end
+        end)
     end)
 
     searchBox:SetScript("OnEscapePressed", function(editBox)
@@ -288,6 +331,7 @@ function HeaderBarMixin:CreateSearchBox(headerBand)
     end)
 
     searchBox:SetScript("OnEnterPressed", function(editBox)
+        flushSearch(editBox:GetText() or "")
         editBox:ClearFocus()
     end)
 
@@ -333,10 +377,8 @@ function HeaderBarMixin:CreateBreadcrumbTrack(headerBand)
                 navBar.home:SetPoint("LEFT", navBar, "LEFT", 0, 0)
             end
 
-            local active = ns.PluginRegistry and ns.PluginRegistry.GetActivePlugin and ns.PluginRegistry:GetActivePlugin()
-            local rootTitle = (active and active.title) or "Dungeons"
             local homeData = {
-                name = rootTitle,
+                name = "Home",
                 OnClick = function()
                     self:OnRootClicked()
                 end,
@@ -344,6 +386,10 @@ function HeaderBarMixin:CreateBreadcrumbTrack(headerBand)
             local initOk = pcall(NavBar_Initialize, navBar, "NavButtonTemplate", homeData, navBar.home, navBar.overflow)
             if initOk then
                 stripNavBarChrome(navBar)
+                if navBar.home then
+                    if navBar.home.SetText then navBar.home:SetText("Home") end
+                    if navBar.home.text and navBar.home.text.SetText then navBar.home.text:SetText("Home") end
+                end
                 self.NativeNavBar = navBar
                 self.usingNativeNavBar = true
             else
@@ -378,9 +424,7 @@ end
 --- @param crumbList table Array of `{ id, label, onClick }`
 function HeaderBarMixin:SetBreadcrumbs(crumbList)
     if not crumbList or #crumbList == 0 then
-        local active = ns.PluginRegistry and ns.PluginRegistry.GetActivePlugin and ns.PluginRegistry:GetActivePlugin()
-        local rootTitle = (active and active.title) or "Dungeons"
-        self:ResetBreadcrumbs(rootTitle, function()
+        self:ResetBreadcrumbs("Home", function()
             self:OnRootClicked()
         end)
         return
@@ -390,23 +434,21 @@ function HeaderBarMixin:SetBreadcrumbs(crumbList)
     for i, item in ipairs(crumbList) do
         self.steps[i] = {
             id = item.id or item.label,
-            label = item.label or "",
+            label = (i == 1) and "Home" or (item.label or ""),
             onClick = item.onClick,
         }
     end
     self:RefreshBreadcrumbs()
 end
 
---- Resets breadcrumbs to the root module state (1 step).
+--- Resets breadcrumbs to the root "Home" state (1 step).
 --- @param rootLabel string|nil
 --- @param onRootClick function|nil
 function HeaderBarMixin:ResetBreadcrumbs(rootLabel, onRootClick)
-    local active = ns.PluginRegistry and ns.PluginRegistry.GetActivePlugin and ns.PluginRegistry:GetActivePlugin()
-    local defaultLabel = rootLabel or (active and active.title) or "Dungeons"
     self.steps = {
         {
             id = "root",
-            label = defaultLabel,
+            label = "Home",
             onClick = onRootClick,
         },
     }
@@ -459,6 +501,19 @@ function HeaderBarMixin:RefreshBreadcrumbs()
     local homeBtn = navBar.home
 
     if homeBtn then
+        if homeBtn.SetText then
+            homeBtn:SetText("Home")
+        end
+        local homeFs = homeBtn.text or (homeBtn.GetFontString and homeBtn:GetFontString())
+        if homeFs and homeFs.SetText then
+            homeFs:SetText("Home")
+        end
+        for _, region in ipairs({ homeBtn:GetRegions() }) do
+            if region and region.GetObjectType and region:GetObjectType() == "FontString" then
+                region:SetText("Home")
+            end
+        end
+
         homeBtn:ClearAllPoints()
         homeBtn:SetPoint("LEFT", navBar, "LEFT", 0, 0)
         homeBtn:Show()

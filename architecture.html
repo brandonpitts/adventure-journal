@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture &amp; Data Engine — Adventure Journal</title>
+  <meta name="description" content="Technical architecture of the Adventure Journal Core Item Storage Engine, Inverted Tag Index, and 8-Dimension Query Evaluator for World of Warcraft Forever.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0c0d10;
+      --bg-panel: #13141a;
+      --bg-card: #181a24;
+      --border-gold: #c69b3a;
+      --border-dark: #2c2f3d;
+      --gold-bright: #ffd100;
+      --gold-soft: #d4af37;
+      --gold-dim: #9c834a;
+      --text-main: #e6e3da;
+      --text-muted: #9f9da6;
+      --accent-blue: #49c4ff;
+      --accent-green: #38ef7d;
+      --accent-purple: #b57cff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6;
+      background-image:
+        radial-gradient(circle at 50% 0%, rgba(198, 155, 58, 0.15) 0%, transparent 60%),
+        linear-gradient(to bottom, rgba(12, 13, 16, 0.8), #0c0d10);
+      background-attachment: fixed;
+      min-height: 100vh;
+    }
+
+    code {
+      white-space: nowrap;
+      font-family: Consolas, "Courier New", monospace;
+    }
+
+    /* Top Early Development Notice Banner */
+    .early-dev-banner {
+      background: linear-gradient(90deg, #2a1b08 0%, #3d260c 50%, #2a1b08 100%);
+      border-bottom: 2px solid var(--border-gold);
+      padding: 0.9rem 1.5rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+      position: relative;
+      z-index: 100;
+    }
+
+    .banner-inner {
+      max-width: 1050px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.85rem;
+      text-align: center;
+      font-size: 0.94rem;
+      color: #f5edd8;
+      line-height: 1.5;
+    }
+
+    .banner-badge {
+      background: #c69b3a;
+      color: #0c0d10;
+      font-weight: 800;
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .banner-text strong {
+      color: var(--gold-bright);
+    }
+
+    /* Top Site Navigation Bar */
+    .site-nav {
+      background: rgba(14, 15, 20, 0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(198, 155, 58, 0.28);
+      position: sticky;
+      top: 0;
+      z-index: 95;
+    }
+
+    .site-nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .site-nav-brand {
+      font-family: 'Cinzel', serif;
+      font-weight: 800;
+      font-size: 1.05rem;
+      color: var(--gold-bright);
+      text-decoration: none;
+      letter-spacing: 0.05em;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+    }
+
+    .site-nav-brand span {
+      color: #fff;
+    }
+
+    .site-nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .site-nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 0.45rem 0.9rem;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .site-nav-link:hover {
+      color: #fff;
+      background: rgba(198, 155, 58, 0.1);
+      border-color: rgba(198, 155, 58, 0.3);
+    }
+
+    .site-nav-link.active {
+      color: var(--gold-bright);
+      background: rgba(198, 155, 58, 0.14);
+      border-color: rgba(198, 155, 58, 0.55);
+    }
+
+    header {
+      padding: 3rem 1.5rem 2rem;
+      text-align: center;
+      max-width: 920px;
+      margin: 0 auto;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      background: rgba(198, 155, 58, 0.12);
+      border: 1px solid var(--border-gold);
+      color: var(--gold-bright);
+      padding: 0.3rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 1.2rem;
+    }
+
+    h1 {
+      font-family: 'Cinzel', serif;
+      font-size: 2.75rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: 0.03em;
+      text-shadow: 0 4px 18px rgba(0, 0, 0, 0.8), 0 0 30px rgba(198, 155, 58, 0.35);
+      margin-bottom: 1rem;
+    }
+
+    h1 span {
+      background: linear-gradient(135deg, #fff7d1 0%, #ffd100 50%, #b8860b 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      font-size: 1.12rem;
+      color: #bfbcc7;
+      max-width: 760px;
+      margin: 0 auto 1.5rem;
+      line-height: 1.65;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1.5rem 4rem;
+    }
+
+    .section-title {
+      font-family: 'Cinzel', serif;
+      font-size: 1.85rem;
+      text-align: center;
+      color: #fff;
+      margin: 3.5rem 0 0.5rem;
+    }
+
+    .section-title span {
+      color: var(--gold-bright);
+    }
+
+    .section-divider {
+      width: 140px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--border-gold), transparent);
+      margin: 0 auto 2.5rem;
+    }
+
+    /* Visual Architecture Map */
+    .arch-diagram {
+      background: var(--bg-panel);
+      border: 1px solid rgba(198, 155, 58, 0.45);
+      border-radius: 10px;
+      padding: 2rem;
+      margin-bottom: 3rem;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+    }
+
+    .arch-tiers {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .arch-tier {
+      background: rgba(12, 13, 16, 0.75);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      padding: 1.25rem 1.4rem;
+    }
+
+    .arch-tier-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 0.5rem;
+    }
+
+    .arch-tier-label {
+      font-family: 'Cinzel', serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--gold-bright);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .arch-tier-meta {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-family: Consolas, monospace;
+    }
+
+    .arch-nodes {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+
+    .arch-node {
+      background: var(--bg-card);
+      border: 1px solid rgba(198, 155, 58, 0.3);
+      border-radius: 6px;
+      padding: 1rem;
+    }
+
+    .arch-node-title {
+      font-weight: 700;
+      color: #fff;
+      font-size: 0.95rem;
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    .arch-node-title code {
+      color: var(--accent-blue);
+      font-size: 0.86rem;
+    }
+
+    .arch-node p {
+      font-size: 0.86rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .arch-arrow {
+      text-align: center;
+      color: var(--gold-soft);
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.15rem 0;
+    }
+
+    /* Two-Column Deep Dive Cards */
+    .grid-2col {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    @media (max-width: 540px) {
+      .grid-2col {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      padding: 1.8rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--border-gold), transparent);
+      opacity: 0.5;
+    }
+
+    .card-tag {
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--gold-bright);
+      margin-bottom: 0.45rem;
+    }
+
+    .card h3 {
+      font-family: 'Cinzel', serif;
+      font-size: 1.25rem;
+      color: #fff;
+      margin-bottom: 0.75rem;
+    }
+
+    .card p {
+      color: var(--text-muted);
+      font-size: 0.94rem;
+      line-height: 1.65;
+      margin-bottom: 0.85rem;
+    }
+
+    .card p:last-child {
+      margin-bottom: 0;
+    }
+
+    .code-block {
+      background: #08090c;
+      border: 1px solid #232634;
+      border-left: 3px solid var(--border-gold);
+      border-radius: 6px;
+      padding: 1.1rem 1.25rem;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.84rem;
+      color: #d7dae0;
+      overflow-x: auto;
+      line-height: 1.55;
+      margin-top: 0.85rem;
+      white-space: pre;
+    }
+
+    .code-comment { color: #676f7d; }
+    .code-key { color: #ffd100; }
+    .code-str { color: #98c379; }
+    .code-num { color: #d19a66; }
+    .code-kw { color: #c678dd; }
+
+    /* 8-Dimension Taxonomy Grid */
+    .taxonomy-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
+      gap: 1.2rem;
+      margin-bottom: 3rem;
+    }
+
+    .dim-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      padding: 1.35rem;
+    }
+
+    .dim-num {
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: var(--gold-bright);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.3rem;
+    }
+
+    .dim-card h4 {
+      font-family: 'Cinzel', serif;
+      font-size: 1.05rem;
+      color: #fff;
+      margin-bottom: 0.75rem;
+    }
+
+    .tag-pill-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .tag-pill {
+      background: rgba(73, 196, 255, 0.08);
+      border: 1px solid rgba(73, 196, 255, 0.28);
+      color: #9be0ff;
+      font-family: Consolas, monospace;
+      font-size: 0.76rem;
+      padding: 0.18rem 0.5rem;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    footer {
+      text-align: center;
+      padding: 3rem 1.5rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      color: #706e78;
+      font-size: 0.85rem;
+    }
+
+    footer p + p {
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Early Development Notice Banner -->
+  <aside class="early-dev-banner" aria-label="Development Notice">
+    <div class="banner-inner">
+      <span class="banner-badge">Early Development</span>
+      <span class="banner-text">Adventure Journal is an independent project created for personal, close friend, and friend-of-friend use. Anyone is welcome to use it with that understanding! Report any issues to <strong>Brandon (Endoria)</strong>.</span>
+      <span class="banner-badge">Early Development</span>
+    </div>
+  </aside>
+
+  <!-- Primary Site Navigation -->
+  <nav class="site-nav" aria-label="Primary Navigation">
+    <div class="site-nav-inner">
+      <a href="index.html" class="site-nav-brand">⚔ <span>Adventure Journal</span></a>
+      <div class="site-nav-links">
+        <a href="index.html" class="site-nav-link">Home</a>
+        <a href="architecture.html" class="site-nav-link active">Architecture &amp; Data Engine</a>
+        <a href="catalog.html" class="site-nav-link">Catalog Telemetry</a>
+      </div>
+    </div>
+  </nav>
+
+  <header>
+    <div class="eyebrow">System Architecture &amp; Data Engineering</div>
+    <h1><span>Core Item Storage Engine</span></h1>
+    <p class="subtitle">An under-the-hood look at how Adventure Journal normalizes item records, resolves multi-source drop graphs, and evaluates compound multi-tag and minimum-level queries in sub-millisecond time.</p>
+  </header>
+
+  <main>
+    <h2 class="section-title" style="margin-top: 1rem;">Data Pipeline &amp; <span>Runtime Topology</span></h2>
+    <div class="section-divider"></div>
+
+    <section class="arch-diagram" aria-label="System Architecture Diagram">
+      <div class="arch-tiers">
+        <!-- Tier 1: Static Normalized Data Layer -->
+        <div class="arch-tier">
+          <div class="arch-tier-header">
+            <span class="arch-tier-label">Tier 1 • Normalized Static Data Layer</span>
+            <span class="arch-tier-meta">Core/Data/</span>
+          </div>
+          <div class="arch-nodes">
+            <div class="arch-node">
+              <div class="arch-node-title"><code>Items_Catalog.lua</code></div>
+              <p>Master dictionary defining each unique <code>itemID</code> exactly once using an Elastic Progressive Record Schema (name, category, quality, slot, subtype, reqLevel, and canonical tags).</p>
+            </div>
+            <div class="arch-node">
+              <div class="arch-node-title"><code>Drops_Dungeons.lua</code></div>
+              <p>Domain association table mapping 35 Classic and WoW Forever dungeons and encounter keys to lightweight numeric <code>itemID</code> arrays without duplicating item metadata.</p>
+            </div>
+            <div class="arch-node">
+              <div class="arch-node-title"><code>Sources_Overrides.lua</code></div>
+              <p>Canonical encounter alias resolution (folding chests, coffers, and trash pools into unified keys), composite boss definitions, and explicit category overrides.</p>
+            </div>
+            <div class="arch-node">
+              <div class="arch-node-title"><code>TagTaxonomy.lua</code></div>
+              <p>Canonical 8-dimension tag registry, 120+ natural-language search synonyms, synchronous DBC classifiers, and live tooltip line parsers.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="arch-arrow">▼ Load-Time Bi-Directional Indexing &amp; Client DBC Hydration ▼</div>
+
+        <!-- Tier 2: Central ItemDatabase Engine -->
+        <div class="arch-tier">
+          <div class="arch-tier-header">
+            <span class="arch-tier-label">Tier 2 • Central Indexing &amp; Query Engine</span>
+            <span class="arch-tier-meta">Core/ItemDatabase.lua</span>
+          </div>
+          <div class="arch-nodes">
+            <div class="arch-node">
+              <div class="arch-node-title">Inverted Tag Index <code>TagIndex[tag]</code></div>
+              <p>O(1) hash-set buckets mapping every canonical tag (e.g. <code>"one-hand"</code>, <code>"sword"</code>, <code>"spell-power"</code>) to matching item IDs for instant set intersection.</p>
+            </div>
+            <div class="arch-node">
+              <div class="arch-node-title">Reverse Source Graph <code>ItemSources[id]</code></div>
+              <p>Links every item back to all bosses, zone drop tables, quests, and seasonal events that award it—enabling cross-module provenance lookups.</p>
+            </div>
+            <div class="arch-node">
+              <div class="arch-node-title">Hybrid Cache &amp; Tooltip Hydrator</div>
+              <p>Combines static catalog fields with synchronous <code>C_Item.GetItemInfoInstant</code> DBC lookups and asynchronous <code>GET_ITEM_INFO_RECEIVED</code> tooltip parsing.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="arch-arrow">▼ Unified Public API (JournalBase.Items) ▼</div>
+
+        <!-- Tier 3: Module Consumers -->
+        <div class="arch-tier">
+          <div class="arch-tier-header">
+            <span class="arch-tier-label">Tier 3 • Cross-Module Consumers</span>
+            <span class="arch-tier-meta">Modules/</span>
+          </div>
+          <div class="arch-nodes">
+            <div class="arch-node">
+              <div class="arch-node-title">Dungeons Module</div>
+              <p>Filters the 35-dungeon grid, left-hand encounter list, and right-hand categorized loot rows simultaneously using compound tag and level queries.</p>
+            </div>
+            <div class="arch-node">
+              <div class="arch-node-title">World &amp; Zone Map Pins</div>
+              <p>Connects entrance portal markers directly to instance encounter books and level-bracket metadata.</p>
+            </div>
+            <div class="arch-node">
+              <div class="arch-node-title">Planned Raid &amp; Quest Modules</div>
+              <p>Attach new domain source tables (<code>Drops_Raids.lua</code>, <code>Rewards_Quests.lua</code>) that reference the same master item store with zero schema changes.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <h2 class="section-title">Architectural <span>Design Decisions</span></h2>
+    <div class="section-divider"></div>
+
+    <div class="grid-2col">
+      <div class="card">
+        <div class="card-tag">Normalization vs. Duplication</div>
+        <h3>Master Item Store + Domain Source Tables</h3>
+        <p>In World of Warcraft, a single item can be acquired from multiple distinct sources: shared dungeon boss pools, zone-wide trash drops, seasonal holiday bosses, or quest rewards. Storing item metadata inline inside individual dungeon or quest files either causes data drift or slows down global searches.</p>
+        <p>Adventure Journal solves this with a relational split: every item is defined <strong>once</strong> in <code>Items_Catalog.lua</code>, while domain source files store only compact arrays of numeric <code>itemID</code>s. At load time, <code>ItemDatabase:Init()</code> links both directions in memory in under 2 milliseconds.</p>
+        <div class="code-block"><span class="code-comment">-- Core/Data/Items_Catalog.lua (Defined Once)</span>
+[<span class="code-num">1482</span>] = {
+  <span class="code-key">name</span> = <span class="code-str">"Shadowfang"</span>, <span class="code-key">cat</span> = <span class="code-str">"LOOT"</span>, <span class="code-key">q</span> = <span class="code-num">3</span>, <span class="code-key">reqLevel</span> = <span class="code-num">19</span>,
+  <span class="code-key">slot</span> = <span class="code-str">"Main Hand"</span>, <span class="code-key">subType</span> = <span class="code-str">"Sword"</span>,
+  <span class="code-key">tags</span> = { <span class="code-str">"agility"</span>, <span class="code-str">"boe"</span>, <span class="code-str">"chance-on-hit"</span>, <span class="code-str">"dungeon"</span>,
+           <span class="code-str">"loot"</span>, <span class="code-str">"main-hand"</span>, <span class="code-str">"one-hand"</span>, <span class="code-str">"shadow-damage"</span>,
+           <span class="code-str">"sword"</span>, <span class="code-str">"weapon"</span>, <span class="code-str">"zone-drop"</span> },
+  <span class="code-key">verified</span> = <span class="code-kw">true</span>
+}</div>
+      </div>
+
+      <div class="card">
+        <div class="card-tag">Client Cache Constraints</div>
+        <h3>Cold-Cache Resilience in WoW 16001</h3>
+        <p>The WoW client splits item APIs into two tiers: <code>C_Item.GetItemInfoInstant(itemID)</code> reads local client DBC tables synchronously (returning class, subclass, equip location, and icon), whereas <code>C_Item.GetItemInfo(itemID)</code> and tooltip scanning require the item to exist in the player's local <code>WDB</code> cache.</p>
+        <p>If an addon relies solely on runtime client queries, searching for an item or stat on a fresh install fails for any uncached item. By pre-hydrating English item names, quality tiers, slots, and canonical tags in <code>Items_Catalog.lua</code>, multi-tag searches work immediately on a cold cache while asynchronous server requests hydrate live localized tooltips in the background.</p>
+        <div class="code-block"><span class="code-comment">-- Compound Query Parser Examples</span>
+<span class="code-str">"one handed, sword, dungeon"</span>  <span class="code-comment">--&gt; tags: {"one-hand", "sword", "dungeon"}</span>
+<span class="code-str">"cloth, intellect, lvl 30-40"</span> <span class="code-comment">--&gt; tags: {"cloth", "intellect"}, min: 30, max: 40</span>
+<span class="code-str">"1h mace &gt;=45"</span>                <span class="code-comment">--&gt; tags: {"one-hand", "mace"}, min: 45</span>
+<span class="code-str">"sp, crit, trinket"</span>           <span class="code-comment">--&gt; tags: {"spell-power", "crit", "trinket"}</span></div>
+      </div>
+    </div>
+
+    <h2 class="section-title">8-Dimension <span>Tag Taxonomy</span></h2>
+    <div class="section-divider"></div>
+
+    <div class="taxonomy-grid">
+      <div class="dim-card">
+        <div class="dim-num">Dimension 01</div>
+        <h4>Category &amp; Source</h4>
+        <div class="tag-pill-list">
+          <span class="tag-pill">loot</span>
+          <span class="tag-pill">quest</span>
+          <span class="tag-pill">recipe</span>
+          <span class="tag-pill">key</span>
+          <span class="tag-pill">mount</span>
+          <span class="tag-pill">pet</span>
+          <span class="tag-pill">dungeon</span>
+          <span class="tag-pill">raid</span>
+          <span class="tag-pill">zone-drop</span>
+          <span class="tag-pill">boss-drop</span>
+          <span class="tag-pill">quest-reward</span>
+          <span class="tag-pill">event</span>
+        </div>
+      </div>
+
+      <div class="dim-card">
+        <div class="dim-num">Dimension 02</div>
+        <h4>Slot &amp; Handedness</h4>
+        <div class="tag-pill-list">
+          <span class="tag-pill">one-hand</span>
+          <span class="tag-pill">two-hand</span>
+          <span class="tag-pill">main-hand</span>
+          <span class="tag-pill">off-hand</span>
+          <span class="tag-pill">held-in-off-hand</span>
+          <span class="tag-pill">ranged</span>
+          <span class="tag-pill">head</span>
+          <span class="tag-pill">neck</span>
+          <span class="tag-pill">shoulder</span>
+          <span class="tag-pill">back</span>
+          <span class="tag-pill">chest</span>
+          <span class="tag-pill">wrist</span>
+          <span class="tag-pill">hands</span>
+          <span class="tag-pill">waist</span>
+          <span class="tag-pill">legs</span>
+          <span class="tag-pill">feet</span>
+          <span class="tag-pill">finger</span>
+          <span class="tag-pill">trinket</span>
+        </div>
+      </div>
+
+      <div class="dim-card">
+        <div class="dim-num">Dimension 03</div>
+        <h4>Weapon &amp; Armor Subtype</h4>
+        <div class="tag-pill-list">
+          <span class="tag-pill">cloth</span>
+          <span class="tag-pill">leather</span>
+          <span class="tag-pill">mail</span>
+          <span class="tag-pill">plate</span>
+          <span class="tag-pill">shield</span>
+          <span class="tag-pill">sword</span>
+          <span class="tag-pill">axe</span>
+          <span class="tag-pill">mace</span>
+          <span class="tag-pill">dagger</span>
+          <span class="tag-pill">fist-weapon</span>
+          <span class="tag-pill">polearm</span>
+          <span class="tag-pill">staff</span>
+          <span class="tag-pill">bow</span>
+          <span class="tag-pill">gun</span>
+          <span class="tag-pill">crossbow</span>
+          <span class="tag-pill">wand</span>
+        </div>
+      </div>
+
+      <div class="dim-card">
+        <div class="dim-num">Dimension 04</div>
+        <h4>Primary Attributes</h4>
+        <div class="tag-pill-list">
+          <span class="tag-pill">strength</span>
+          <span class="tag-pill">agility</span>
+          <span class="tag-pill">stamina</span>
+          <span class="tag-pill">intellect</span>
+          <span class="tag-pill">spirit</span>
+        </div>
+      </div>
+
+      <div class="dim-card">
+        <div class="dim-num">Dimension 05</div>
+        <h4>Physical &amp; Defensive</h4>
+        <div class="tag-pill-list">
+          <span class="tag-pill">attack-power</span>
+          <span class="tag-pill">ranged-attack-power</span>
+          <span class="tag-pill">feral-attack-power</span>
+          <span class="tag-pill">crit</span>
+          <span class="tag-pill">hit</span>
+          <span class="tag-pill">defense</span>
+          <span class="tag-pill">dodge</span>
+          <span class="tag-pill">parry</span>
+          <span class="tag-pill">block-value</span>
+          <span class="tag-pill">block-rating</span>
+        </div>
+      </div>
+
+      <div class="dim-card">
+        <div class="dim-num">Dimension 06</div>
+        <h4>Caster &amp; Regeneration</h4>
+        <div class="tag-pill-list">
+          <span class="tag-pill">spell-power</span>
+          <span class="tag-pill">healing</span>
+          <span class="tag-pill">spell-crit</span>
+          <span class="tag-pill">spell-hit</span>
+          <span class="tag-pill">spell-penetration</span>
+          <span class="tag-pill">mp5</span>
+          <span class="tag-pill">hp5</span>
+        </div>
+      </div>
+
+      <div class="dim-card">
+        <div class="dim-num">Dimension 07</div>
+        <h4>Elemental Schools</h4>
+        <div class="tag-pill-list">
+          <span class="tag-pill">fire-damage</span>
+          <span class="tag-pill">frost-damage</span>
+          <span class="tag-pill">nature-damage</span>
+          <span class="tag-pill">shadow-damage</span>
+          <span class="tag-pill">arcane-damage</span>
+          <span class="tag-pill">holy-damage</span>
+          <span class="tag-pill">fire-resist</span>
+          <span class="tag-pill">frost-resist</span>
+          <span class="tag-pill">nature-resist</span>
+          <span class="tag-pill">shadow-resist</span>
+          <span class="tag-pill">arcane-resist</span>
+          <span class="tag-pill">all-resist</span>
+        </div>
+      </div>
+
+      <div class="dim-card">
+        <div class="dim-num">Dimension 08</div>
+        <h4>Mechanics &amp; Context</h4>
+        <div class="tag-pill-list">
+          <span class="tag-pill">on-use</span>
+          <span class="tag-pill">chance-on-hit</span>
+          <span class="tag-pill">equip-effect</span>
+          <span class="tag-pill">set-item</span>
+          <span class="tag-pill">starts-quest</span>
+          <span class="tag-pill">unique</span>
+          <span class="tag-pill">bop</span>
+          <span class="tag-pill">boe</span>
+          <span class="tag-pill">tank</span>
+          <span class="tag-pill">healer</span>
+          <span class="tag-pill">caster</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>Adventure Journal is an open-source community project developed for the World of Warcraft Forever client.</p>
+    <p>World of Warcraft and Blizzard Entertainment are registered trademarks of Blizzard Entertainment, Inc.</p>
+  </footer>
+
+</body>
+</html>

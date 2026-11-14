@@ -28,6 +28,32 @@ local MapIconsPlugin = {
     isUtility = true,
 }
 
+local eventFrame = CreateFrame("Frame")
+
+--- Unloads all Map Icons coordinate tables, World Map pins, and event listeners from memory
+--- when the module is disabled, requiring a UI `/reload` to restore.
+function MapIconsPlugin:OnUnload()
+    if eventFrame then
+        eventFrame:UnregisterAllEvents()
+        eventFrame:SetScript("OnEvent", nil)
+    end
+    if ns.MapPinProvider then
+        if ns.MapPinProvider.ReleaseAllPins then
+            ns.MapPinProvider:ReleaseAllPins()
+        end
+        table.wipe(ns.MapPinProvider)
+        ns.MapPinProvider = nil
+    end
+    if ns.EntranceCoordinates and type(ns.EntranceCoordinates) == "table" then
+        table.wipe(ns.EntranceCoordinates)
+        ns.EntranceCoordinates = nil
+    end
+    ns.MapIconsConstants = nil
+    ns.OpenDungeon = nil
+    ns.GetDungeonMapLocation = nil
+    _G.AdventureJournal_GetDungeonMapLocation = nil
+end
+
 if _G.JournalBase and _G.JournalBase.RegisterPlugin then
     _G.JournalBase:RegisterPlugin(MapIconsPlugin)
 end
@@ -116,7 +142,6 @@ end
 -- ----------------------------------------------------------------------------
 -- 3. Event Listener Frame
 -- ----------------------------------------------------------------------------
-local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("PLAYER_LEVEL_UP")
 

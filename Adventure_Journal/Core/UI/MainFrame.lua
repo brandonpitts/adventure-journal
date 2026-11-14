@@ -88,6 +88,7 @@ function MainFrame:Init()
     self:SetupDragAndLifecycle(frame)
     self:SetupHeaderAndCanvas(frame)
     self:SetupEmptyState(frame.ContentCanvas)
+    self:SetupReloadPromptState(frame.ContentCanvas)
 
     ns.UI.TabBar:Init(frame)
 
@@ -172,9 +173,10 @@ function MainFrame:SetupDragAndLifecycle(frame)
         if PlaySound then
             PlaySound(Constants.SOUNDS.OPEN)
         end
-        local defaultLandingId = ns.Database:GetDefaultLandingPluginId()
+        local defaultLandingId = (ns.PluginRegistry and ns.PluginRegistry.GetEffectiveDefaultLandingPluginId and ns.PluginRegistry:GetEffectiveDefaultLandingPluginId())
+            or ns.Database:GetDefaultLandingPluginId()
         if defaultLandingId and ns.PluginRegistry:GetPlugin(defaultLandingId) and not ns.Database:IsPluginDisabled(defaultLandingId) then
-            -- Open directly to the configured default landing tab whenever the window opens
+            -- Open directly to the selected default landing tab whenever the window opens
             ns.PluginRegistry:ActivatePlugin(defaultLandingId)
         elseif not self.hasOpenedOnce then
             self.hasOpenedOnce = true
@@ -286,6 +288,64 @@ function MainFrame:SetEmptyStateVisible(isVisible)
     self.frame.EmptyState:SetShown(isVisible)
 end
 
+--- Initializes the reload-required prompt shown when a user enables an unloaded module tab before `/reload`.
+--- @param parentCanvas Frame
+function MainFrame:SetupReloadPromptState(parentCanvas)
+    local prompt = CreateFrame("Frame", nil, parentCanvas)
+    prompt:SetAllPoints(parentCanvas)
+
+    local title = prompt:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    title:SetPoint("CENTER", prompt, "CENTER", 0, 22)
+    title:SetTextColor(1.0, 0.82, 0.0)
+    title:SetText("Required reload to enable this")
+    prompt.title = title
+
+    local subText = prompt:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    subText:SetPoint("TOP", title, "BOTTOM", 0, -10)
+    subText:SetWidth(420)
+    subText:SetJustifyH("CENTER")
+    subText:SetTextColor(0.75, 0.75, 0.75)
+    subText:SetText("This module's data is currently unloaded from memory.\nReload your UI to load it and activate this tab.")
+    prompt.subText = subText
+
+    local reloadBtn = CreateFrame("Button", nil, prompt, "UIPanelButtonTemplate")
+    reloadBtn:SetSize(120, 26)
+    reloadBtn:SetPoint("TOP", subText, "BOTTOM", 0, -18)
+    reloadBtn:SetText("Reload UI")
+    reloadBtn:SetScript("OnClick", function()
+        if PlaySound then
+            PlaySound(Constants.SOUNDS.CLICK)
+        end
+        local reload = _G.ReloadUI or (_G.C_UI and _G.C_UI.Reload)
+        if reload then
+            reload()
+        end
+    end)
+    prompt.reloadBtn = reloadBtn
+
+    prompt:Hide()
+    self.frame.ReloadPromptState = prompt
+end
+
+--- Shows or hides the reload-required prompt on the active module page.
+--- @param isVisible boolean
+--- @param pluginTitle string|nil
+function MainFrame:SetReloadPromptVisible(isVisible, pluginTitle)
+    if not self.frame or not self.frame.ReloadPromptState then
+        return
+    end
+    local prompt = self.frame.ReloadPromptState
+    if isVisible then
+        prompt.title:SetText("Required reload to enable this")
+        if pluginTitle and pluginTitle ~= "" then
+            prompt.subText:SetText(pluginTitle .. " is currently unloaded from memory.\nReload your UI (/rl) to load this module.")
+        else
+            prompt.subText:SetText("This module's data is currently unloaded from memory.\nReload your UI (/rl) to load this module.")
+        end
+    end
+    prompt:SetShown(isVisible)
+end
+
 --- @return Frame|nil
 function MainFrame:GetHeaderBar()
     return self.frame and self.frame.HeaderBar
@@ -305,10 +365,13 @@ function MainFrame:OnPluginsChanged()
     ns.UI.TabBar:RefreshTabs(plugins)
 
     local activePlugin = ns.PluginRegistry:GetActivePlugin()
-    self:SetEmptyStateVisible(activePlugin == nil)
     if activePlugin then
+        self:SetEmptyStateVisible(false)
+        self:SetReloadPromptVisible(activePlugin.isUnloaded == true, activePlugin.title)
         self:SelectTabByPluginId(activePlugin.id)
     else
+        self:SetReloadPromptVisible(false)
+        self:SetEmptyStateVisible(true)
         self:ClearTabSelection()
     end
 end

@@ -71,80 +71,72 @@ local function stylePluginRow(row)
     bRight:SetVertexColor(0.36, 0.29, 0.17, 0.78)
 end
 
---- Builds a crisp Default Landing Tab icon button (24x24) to the left of the plugin icon.
---- Uses Blizzard's favorite gold star icon so players can designate which tab opens
---- automatically whenever the Journal window is opened.
+--- Builds a native WoW Radio Button (`22x22`) to the left of the plugin icon.
+--- Enforces exclusive "there always must be one" selection for the Default Landing Tab
+--- (with Dungeons selected by default).
 local function createDefaultLandingButton(parentRow)
-    local white = Constants.ASSETS.WHITE_8X8
-    local btn = CreateFrame("Button", nil, parentRow)
-    btn:SetSize(24, 24)
+    local btn = CreateFrame("CheckButton", nil, parentRow)
+    btn:SetSize(22, 22)
 
-    -- Button socket background & border
-    local socketBg = btn:CreateTexture(nil, "BACKGROUND")
-    socketBg:SetAllPoints(btn)
-    socketBg:SetTexture(white)
-    socketBg:SetVertexColor(0.08, 0.07, 0.06, 0.90)
-    btn.socketBg = socketBg
+    local normalTex = btn:CreateTexture(nil, "BACKGROUND")
+    normalTex:SetSize(20, 20)
+    normalTex:SetPoint("CENTER", btn, "CENTER", 0, 0)
+    normalTex:SetTexture("Interface\\Buttons\\UI-RadioButton")
+    normalTex:SetTexCoord(0, 0.25, 0, 1)
+    btn:SetNormalTexture(normalTex)
+    btn.normalTex = normalTex
 
-    local socketBorder = btn:CreateTexture(nil, "BORDER")
-    socketBorder:SetPoint("TOPLEFT", btn, "TOPLEFT", 0, 0)
-    socketBorder:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 0, 0)
-    socketBorder:SetTexture(white)
-    socketBorder:SetVertexColor(0.35, 0.28, 0.16, 0.45)
-    btn.socketBorder = socketBorder
+    local checkedTex = btn:CreateTexture(nil, "ARTWORK")
+    checkedTex:SetSize(20, 20)
+    checkedTex:SetPoint("CENTER", btn, "CENTER", 0, 0)
+    checkedTex:SetTexture("Interface\\Buttons\\UI-RadioButton")
+    checkedTex:SetTexCoord(0.25, 0.5, 0, 1)
+    btn:SetCheckedTexture(checkedTex)
+    btn.checkedTex = checkedTex
 
-    local star = btn:CreateTexture(nil, "ARTWORK")
-    star:SetSize(16, 16)
-    star:SetPoint("CENTER", btn, "CENTER", 0, 0)
-
-    local hasAtlas = false
-    if star.SetAtlas then
-        for _, atlasName in ipairs({ "PetJournal-FavoritesIcon", "common-icon-star", "auctionhouse-icon-favorite" }) do
-            local ok = pcall(star.SetAtlas, star, atlasName, false)
-            if ok and star:GetAtlas() then
-                hasAtlas = true
-                break
-            end
-        end
-    end
-
-    if not hasAtlas then
-        star:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcons")
-        star:SetTexCoord(0, 0.25, 0, 0.5)
-    end
-    btn.star = star
-
-    local hover = btn:CreateTexture(nil, "HIGHLIGHT")
-    hover:SetAllPoints(btn)
-    hover:SetTexture(white)
-    hover:SetVertexColor(1.0, 0.85, 0.35, 0.18)
+    local highlightTex = btn:CreateTexture(nil, "HIGHLIGHT")
+    highlightTex:SetSize(20, 20)
+    highlightTex:SetPoint("CENTER", btn, "CENTER", 0, 0)
+    highlightTex:SetTexture("Interface\\Buttons\\UI-RadioButton")
+    highlightTex:SetTexCoord(0.5, 0.75, 0, 1)
+    highlightTex:SetBlendMode("ADD")
+    btn:SetHighlightTexture(highlightTex)
+    btn.highlightTex = highlightTex
 
     return btn
 end
 
---- Updates the visual highlight state of the Default Landing Tab star button.
+--- Updates the checked and enabled visual state of the Default Landing Tab radio button.
 local function setDefaultLandingButtonState(btn, isDefault, isEnabled)
+    btn:SetChecked(isDefault and true or false)
     if isDefault then
-        btn.socketBg:SetVertexColor(0.28, 0.20, 0.08, 0.96)
-        btn.socketBorder:SetVertexColor(0.95, 0.78, 0.25, 0.85)
-        if btn.star.SetDesaturated then
-            btn.star:SetDesaturated(false)
+        btn:Enable()
+        btn:SetAlpha(1.0)
+        if btn.normalTex and btn.normalTex.SetDesaturated then
+            btn.normalTex:SetDesaturated(false)
         end
-        btn.star:SetVertexColor(1.0, 0.85, 0.15, 1.0)
+        if btn.checkedTex then
+            btn.checkedTex:Show()
+        end
     elseif isEnabled then
-        btn.socketBg:SetVertexColor(0.09, 0.08, 0.07, 0.85)
-        btn.socketBorder:SetVertexColor(0.32, 0.26, 0.16, 0.45)
-        if btn.star.SetDesaturated then
-            btn.star:SetDesaturated(true)
+        btn:Enable()
+        btn:SetAlpha(0.95)
+        if btn.normalTex and btn.normalTex.SetDesaturated then
+            btn.normalTex:SetDesaturated(false)
         end
-        btn.star:SetVertexColor(0.50, 0.46, 0.38, 0.75)
+        if btn.checkedTex then
+            btn.checkedTex:Hide()
+        end
     else
-        btn.socketBg:SetVertexColor(0.07, 0.06, 0.06, 0.60)
-        btn.socketBorder:SetVertexColor(0.22, 0.19, 0.14, 0.30)
-        if btn.star.SetDesaturated then
-            btn.star:SetDesaturated(true)
+        btn:SetChecked(false)
+        btn:Disable()
+        btn:SetAlpha(0.40)
+        if btn.normalTex and btn.normalTex.SetDesaturated then
+            btn.normalTex:SetDesaturated(true)
         end
-        btn.star:SetVertexColor(0.30, 0.28, 0.26, 0.40)
+        if btn.checkedTex then
+            btn.checkedTex:Hide()
+        end
     end
 end
 
@@ -202,6 +194,7 @@ function SettingsPanel:Init()
     self:CreateMinimapToggleRow(scrollChild)
     self:CreateAddonCompartmentToggleRow(scrollChild)
     self:CreateCompareItemsToggleRow(scrollChild)
+    self:CreateAdvancedSearchSection(scrollChild)
     self:CreateInstalledPluginsSection(scrollChild)
     self:CreateDungeonModuleSection(scrollChild)
     self:CreateMapIconsModuleSection(scrollChild)
@@ -505,17 +498,134 @@ function SettingsPanel:CreateCompareItemsToggleRow(panel)
     self.CompareItemsCheckbox = checkbox
 end
 
+--- Builds the compartmentalized "Advanced Searching" section with definition help text
+--- and a performance/memory usage warning.
+--- @param panel Frame
+function SettingsPanel:CreateAdvancedSearchSection(panel)
+    local sectionHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    sectionHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 18, -184)
+    sectionHeader:SetText("Advanced Searching")
+    self.AdvancedSearchHeader = sectionHeader
+
+    local subNote = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    subNote:SetPoint("LEFT", sectionHeader, "RIGHT", 12, 0)
+    subNote:SetText("Multi-tag item filtering, stat indexing, and level requirement queries.")
+    subNote:SetTextColor(0.68, 0.64, 0.56)
+
+    local divider = panel:CreateTexture(nil, "ARTWORK")
+    divider:SetHeight(1)
+    divider:SetPoint("TOPLEFT", sectionHeader, "BOTTOMLEFT", 0, -6)
+    divider:SetPoint("RIGHT", panel, "RIGHT", -18, 0)
+    divider:SetTexture(Constants.ASSETS.WHITE_8X8)
+    divider:SetVertexColor(0.68, 0.52, 0.20, 0.35)
+
+    local container = CreateFrame("Frame", nil, panel)
+    container:SetPoint("TOPLEFT", divider, "BOTTOMLEFT", 0, -10)
+    container:SetPoint("RIGHT", panel, "RIGHT", -18, 0)
+    container:SetHeight(98)
+    self.AdvancedSearchContainer = container
+
+    -- Subtle bronze-framed compartment box
+    local bg = container:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints(container)
+    bg:SetTexture(Constants.ASSETS.WHITE_8X8)
+    bg:SetVertexColor(0.11, 0.09, 0.07, 0.85)
+
+    local borderTop = container:CreateTexture(nil, "BORDER")
+    borderTop:SetHeight(1)
+    borderTop:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
+    borderTop:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, 0)
+    borderTop:SetTexture(Constants.ASSETS.WHITE_8X8)
+    borderTop:SetVertexColor(0.45, 0.36, 0.21, 0.70)
+
+    local borderBottom = container:CreateTexture(nil, "BORDER")
+    borderBottom:SetHeight(1)
+    borderBottom:SetPoint("BOTTOMLEFT", container, "BOTTOMLEFT", 0, 0)
+    borderBottom:SetPoint("BOTTOMRIGHT", container, "BOTTOMRIGHT", 0, 0)
+    borderBottom:SetTexture(Constants.ASSETS.WHITE_8X8)
+    borderBottom:SetVertexColor(0.28, 0.22, 0.13, 0.70)
+
+    local label = container:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetPoint("TOPLEFT", container, "TOPLEFT", 12, -10)
+    label:SetText("Enable Advanced Searching")
+    self.AdvancedSearchLabel = label
+
+    local checkbox = CreateFrame("CheckButton", nil, container, "UICheckButtonTemplate")
+    checkbox:SetSize(28, 28)
+    checkbox:SetPoint("RIGHT", container, "RIGHT", -10, 0)
+    checkbox:SetPoint("CENTER", label, "CENTER", 0, 0)
+
+    local helpText = container:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    helpText:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -6)
+    helpText:SetPoint("RIGHT", container, "RIGHT", -46, 0)
+    helpText:SetJustifyH("LEFT")
+    if helpText.SetWordWrap then
+        helpText:SetWordWrap(true)
+    end
+    helpText:SetTextColor(0.82, 0.79, 0.72)
+    helpText:SetText("What is Advanced Searching? Standard search matches dungeon, boss, and item names only. Advanced Searching indexes the full item catalog so you can filter by multiple tags, equipment slots, weapon/armor types, stats, and required levels (e.g. |cffffd200\"one-hand, sword\"|r, |cffffd200\"cloth, intellect\"|r, or |cffffd200\"lvl 30-40\"|r).")
+
+    local warnIcon = container:CreateTexture(nil, "ARTWORK")
+    warnIcon:SetSize(14, 14)
+    warnIcon:SetPoint("BOTTOMLEFT", container, "BOTTOMLEFT", 12, 8)
+    warnIcon:SetTexture("Interface\\DialogFrame\\UI-Dialog-Icon-AlertNew")
+
+    local warnText = container:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    warnText:SetPoint("LEFT", warnIcon, "RIGHT", 6, 0)
+    warnText:SetPoint("RIGHT", container, "RIGHT", -12, 0)
+    warnText:SetJustifyH("LEFT")
+    warnText:SetText("|cffff6060Warning:|r Increases addon memory usage and can cause brief stuttering when searching.")
+
+    checkbox:SetScript("OnEnter", function(cb)
+        if GameTooltip then
+            GameTooltip:SetOwner(cb, "ANCHOR_RIGHT")
+            GameTooltip:AddLine("Enable Advanced Searching", 1.0, 0.82, 0.0)
+            GameTooltip:AddLine("Unlocks multi-tag and level requirement queries across the item catalog:\n\n• Equipment Slots & Types: \"one-hand, sword\", \"cloth, head\", \"2h, axe\"\n• Combat & Caster Stats: \"intellect\", \"spell power\", \"healing\", \"crit\"\n• Categories & Professions: \"recipe, blacksmithing\", \"quest, key\"\n• Required Character Level: \"lvl 30-40\", \">=45\", \"<=35\"", 1.0, 1.0, 1.0, true)
+            GameTooltip:AddLine(" ")
+            GameTooltip:AddLine("Performance & Memory Warning: Building the inverted tag index and scanning item tooltips increases memory usage and may cause brief stuttering while typing in the search bar.", 1.0, 0.40, 0.40, true)
+            GameTooltip:Show()
+        end
+    end)
+    checkbox:SetScript("OnLeave", function()
+        if GameTooltip then
+            GameTooltip:Hide()
+        end
+    end)
+
+    checkbox:SetScript("OnClick", function(cb)
+        local isChecked = cb:GetChecked() and true or false
+        if PlaySound then
+            PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
+        end
+        ns.Database:SetAdvancedSearchEnabled(isChecked)
+        if isChecked and ns.ItemDatabase and ns.ItemDatabase.EnsureAdvancedIndex then
+            ns.ItemDatabase:EnsureAdvancedIndex()
+        end
+        local mainFrame = ns.UI and ns.UI.MainFrame
+        local headerBar = mainFrame and mainFrame.GetHeaderBar and mainFrame:GetHeaderBar()
+        local searchBox = headerBar and headerBar.SearchBox
+        if searchBox and ns.PluginRegistry and ns.PluginRegistry.DispatchSearch then
+            local curText = searchBox:GetText() or ""
+            if curText ~= "" then
+                ns.PluginRegistry:DispatchSearch(curText)
+            end
+        end
+    end)
+
+    self.AdvancedSearchCheckbox = checkbox
+end
+
 --- Builds the "Installed Modules" section header, instructions, and drag-and-drop list container.
 --- @param panel Frame
 function SettingsPanel:CreateInstalledPluginsSection(panel)
     local sectionHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    sectionHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 18, -184)
+    sectionHeader:SetPoint("TOPLEFT", self.AdvancedSearchContainer, "BOTTOMLEFT", 0, -22)
     sectionHeader:SetText("Installed Modules")
     self.PluginSectionHeader = sectionHeader
 
     local subNote = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     subNote:SetPoint("LEFT", sectionHeader, "RIGHT", 12, 0)
-    subNote:SetText("Click the star to set a default tab when opening the Journal, or drag rows to reorder tabs.")
+    subNote:SetText("Select a default tab, drag to reorder, or disable modules to unload them (/reload to re-enable).")
     subNote:SetTextColor(0.68, 0.64, 0.56)
 
     local divider = panel:CreateTexture(nil, "ARTWORK")
@@ -921,9 +1031,9 @@ function SettingsPanel:CreateMapIconsModuleSection(panel)
     }
 
     local function initializeDropdown(selfDD, level)
-        local selectedValue = (ns.Database and ns.Database.GetMapIconsSetting and ns.Database:GetMapIconsSetting("worldMapDungeonIcons", "always"))
-            or (ns.Database and ns.Database.GetDungeonSetting and ns.Database:GetDungeonSetting("worldMapDungeonIcons", "always"))
-            or "always"
+        local selectedValue = (ns.Database and ns.Database.GetMapIconsSetting and ns.Database:GetMapIconsSetting("worldMapDungeonIcons", "min_level"))
+            or (ns.Database and ns.Database.GetDungeonSetting and ns.Database:GetDungeonSetting("worldMapDungeonIcons", "min_level"))
+            or "min_level"
         for _, opt in ipairs(MAP_ICON_OPTIONS) do
             local info = UIDropDownMenu_CreateInfo and UIDropDownMenu_CreateInfo() or {}
             info.text = opt.text
@@ -962,7 +1072,7 @@ function SettingsPanel:CreateMapIconsModuleSection(panel)
         if GameTooltip then
             GameTooltip:SetOwner(dd, "ANCHOR_RIGHT")
             GameTooltip:AddLine("Dungeon Icons on World Map", 1.0, 0.82, 0.0)
-            GameTooltip:AddLine("Controls when dungeon entrance icons (blue swirl portals) appear on the World Map.\n\n• Always show: Always visible regardless of your character's level (Default).\n• After minimum level: Visible once your character reaches the dungeon's minimum level.\n• Only during level bracket: Only visible while within the recommended level range.\n• Disabled: Hides all dungeon entrance markers.", 1.0, 1.0, 1.0, true)
+            GameTooltip:AddLine("Controls when dungeon entrance icons (blue swirl portals) appear on the World Map.\n\n• After minimum level: Visible once your character reaches the dungeon's minimum level (Default).\n• Only during level bracket: Only visible while within the recommended level range.\n• Always show: Always visible regardless of your character's level.\n• Disabled: Hides all dungeon entrance markers.", 1.0, 1.0, 1.0, true)
             GameTooltip:Show()
         end
     end)
@@ -1091,7 +1201,7 @@ function SettingsPanel:AcquirePluginRow(index)
     grip:SetText("::")
     row.grip = grip
 
-    -- 2. Default Landing Tab Button (star icon to the left of the plugin icon)
+    -- 2. Default Landing Tab Radio Button (to the left of the plugin icon)
     local defaultBtn = createDefaultLandingButton(row)
     defaultBtn:SetPoint("LEFT", row, "LEFT", 24, 0)
     row.defaultBtn = defaultBtn
@@ -1101,14 +1211,19 @@ function SettingsPanel:AcquirePluginRow(index)
             return
         end
         GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
-        local isCurrentDefault = (ns.Database:GetDefaultLandingPluginId() == row.pluginId)
+        local effectiveDefault = (ns.PluginRegistry and ns.PluginRegistry.GetEffectiveDefaultLandingPluginId and ns.PluginRegistry:GetEffectiveDefaultLandingPluginId())
+            or ns.Database:GetDefaultLandingPluginId()
+        local isCurrentDefault = (effectiveDefault == row.pluginId)
         if isCurrentDefault then
-            GameTooltip:AddLine("Default Landing Tab (Active)", 1.0, 0.82, 0.0)
+            GameTooltip:AddLine("Default Landing Tab (Selected)", 1.0, 0.82, 0.0)
             GameTooltip:AddLine("The Journal opens directly to this tab whenever the window is opened.", 0.9, 0.9, 0.9, true)
-            GameTooltip:AddLine("Click to clear (will remember last-viewed tab instead).", 0.65, 0.65, 0.65, true)
-        else
+            GameTooltip:AddLine("Select another enabled module's radio button to change the default landing tab.", 0.65, 0.65, 0.65, true)
+        elseif row.isInstalled and not row.isDisabled then
             GameTooltip:AddLine("Set as Default Landing Tab", 1.0, 0.82, 0.0)
-            GameTooltip:AddLine("Click to make the Journal open directly to " .. tostring(row.pluginTitle or "this tab") .. " whenever the window is opened.", 0.9, 0.9, 0.9, true)
+            GameTooltip:AddLine("Select to make the Journal open directly to " .. tostring(row.pluginTitle or "this tab") .. " whenever the window is opened.", 0.9, 0.9, 0.9, true)
+        else
+            GameTooltip:AddLine("Default Landing Tab (Unavailable)", 0.65, 0.65, 0.65)
+            GameTooltip:AddLine("This module must be installed and enabled to be selected as the default landing tab.", 0.8, 0.8, 0.8, true)
         end
         GameTooltip:Show()
     end)
@@ -1119,14 +1234,15 @@ function SettingsPanel:AcquirePluginRow(index)
         end
     end)
 
-    defaultBtn:SetScript("OnClick", function()
+    defaultBtn:SetScript("OnClick", function(btn)
         if not row.pluginId or not row.isInstalled or row.isDisabled then
+            btn:SetChecked(false)
             return
         end
         if PlaySound then
-            PlaySound(Constants.SOUNDS.CLICK)
+            PlaySound(Constants.SOUNDS.CHECKBOX_ON)
         end
-        ns.PluginRegistry:ToggleDefaultLandingPlugin(row.pluginId)
+        ns.PluginRegistry:SetDefaultLandingPlugin(row.pluginId)
     end)
 
     -- 3. Plugin Icon (`24x24`, to the right of the Default Landing button)
@@ -1157,26 +1273,25 @@ function SettingsPanel:AcquirePluginRow(index)
         if PlaySound then
             PlaySound(Constants.SOUNDS.CLICK)
         end
+
+        if row.pendingReload then
+            local reload = _G.ReloadUI or (_G.C_UI and _G.C_UI.Reload)
+            if reload then
+                reload()
+            end
+            return
+        end
+
         local currentlyDisabled = ns.Database:IsPluginDisabled(row.pluginId)
-        local shouldEnable = (not row.isLoaded) or currentlyDisabled
+        local shouldEnable = currentlyDisabled
         ns.PluginRegistry:SetPluginEnabled(row.pluginId, shouldEnable)
 
-        if row.addonName and row.addonName ~= "Journal_Base" then
+        if row.addonName and row.addonName ~= "Journal_Base" and row.addonName ~= "Adventure_Journal" then
             if shouldEnable then
                 if C_AddOns and C_AddOns.EnableAddOn then
                     pcall(C_AddOns.EnableAddOn, row.addonName)
                 elseif _G.EnableAddOn then
                     pcall(_G.EnableAddOn, row.addonName)
-                end
-
-                if not row.isLoaded then
-                    if C_AddOns and C_AddOns.LoadAddOn then
-                        pcall(C_AddOns.LoadAddOn, row.addonName)
-                    elseif _G.UIParentLoadAddOn then
-                        pcall(_G.UIParentLoadAddOn, row.addonName)
-                    elseif _G.LoadAddOn then
-                        pcall(_G.LoadAddOn, row.addonName)
-                    end
                 end
             else
                 if C_AddOns and C_AddOns.DisableAddOn then
@@ -1187,15 +1302,40 @@ function SettingsPanel:AcquirePluginRow(index)
             end
         end
 
-        if row.pluginId == "map_icons" and ns.MapPinProvider then
-            if shouldEnable then
-                ns.MapPinProvider:Refresh()
-            else
-                ns.MapPinProvider:ReleaseAllPins()
-            end
-        end
-
         self:RefreshPluginRows()
+    end)
+
+    toggleBtn:SetScript("OnEnter", function(btn)
+        if not GameTooltip or not row.pluginId then
+            return
+        end
+        GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
+        if row.pendingReload then
+            GameTooltip:SetText("Reload UI Required", 1.0, 0.82, 0.0)
+            GameTooltip:AddLine(
+                (row.pluginTitle or "This module") .. " is enabled and staged to load. Because disabled modules are completely unloaded from memory, click here (or type /rl) to reload your UI and activate it.",
+                0.85, 0.85, 0.85, true
+            )
+        elseif row.isDisabled or row.isUnloaded then
+            GameTooltip:SetText("Enable " .. (row.pluginTitle or "Module"), 1.0, 0.82, 0.0)
+            GameTooltip:AddLine(
+                "This module is currently unloaded from memory to conserve resources. Enabling it will stage it to load on your next UI /reload.",
+                0.85, 0.85, 0.85, true
+            )
+        else
+            GameTooltip:SetText("Disable & Unload " .. (row.pluginTitle or "Module"), 1.0, 0.82, 0.0)
+            GameTooltip:AddLine(
+                "Disables this module and immediately purges its data tables and UI frames from memory. Re-enabling it later will require a UI /reload.",
+                0.85, 0.85, 0.85, true
+            )
+        end
+        GameTooltip:Show()
+    end)
+
+    toggleBtn:SetScript("OnLeave", function()
+        if GameTooltip then
+            GameTooltip:Hide()
+        end
     end)
 
     -- 5. Click-and-Drag Row Reordering Scripts
@@ -1262,7 +1402,8 @@ function SettingsPanel:RefreshPluginRows()
     local containerHeight = math.max(60, totalRows * (PLUGIN_ROW_HEIGHT + PLUGIN_ROW_GAP) - PLUGIN_ROW_GAP)
     self.PluginListContainer:SetHeight(containerHeight)
 
-    local defaultLandingId = ns.Database:GetDefaultLandingPluginId()
+    local defaultLandingId = (ns.PluginRegistry and ns.PluginRegistry.GetEffectiveDefaultLandingPluginId and ns.PluginRegistry:GetEffectiveDefaultLandingPluginId())
+        or ns.Database:GetDefaultLandingPluginId()
 
     for index, entry in ipairs(catalog) do
         local row = self:AcquirePluginRow(index)
@@ -1280,6 +1421,8 @@ function SettingsPanel:RefreshPluginRows()
         row.addonName = entry.addonName
         row.isInstalled = isInstalled
         row.isLoaded = entry.isLoaded
+        row.isUnloaded = entry.isUnloaded
+        row.pendingReload = entry.pendingReload
         row.isDisabled = isDisabled
         row.isUtility = entry.isUtility
 
@@ -1294,7 +1437,7 @@ function SettingsPanel:RefreshPluginRows()
         end
 
         -- Utility modules are pinned to the bottom:
-        -- They cannot have drag handles or default landing tab stars.
+        -- They cannot have drag handles or default landing tab radio buttons.
         if entry.isUtility then
             row.grip:Hide()
             row.defaultBtn:Hide()
@@ -1316,12 +1459,12 @@ function SettingsPanel:RefreshPluginRows()
             row.statusText:SetText("|cffff4040Out of Date (API v" .. tostring(entry.apiVersion) .. ")|r")
             row.toggleBtn:Enable()
             row.toggleBtn:SetText(isDisabled and "Enable" or "Disable")
-        elseif not entry.isLoaded then
-            row.statusText:SetText("|cff808080Disabled|r")
+        elseif entry.pendingReload then
+            row.statusText:SetText("|cffffcc00Reload Required|r")
             row.toggleBtn:Enable()
-            row.toggleBtn:SetText("Enable")
-        elseif isDisabled then
-            row.statusText:SetText("|cff808080Disabled|r")
+            row.toggleBtn:SetText("Reload UI")
+        elseif entry.isUnloaded or not entry.isLoaded or isDisabled then
+            row.statusText:SetText("|cff808080Unloaded|r")
             row.toggleBtn:Enable()
             row.toggleBtn:SetText("Enable")
         elseif isDefault then
@@ -1366,14 +1509,14 @@ function SettingsPanel:Refresh()
         if self.MinimapLabel then self.MinimapLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -118) end
         if self.AddonCompartmentLabel then self.AddonCompartmentLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -146) end
         if self.CompareItemsLabel then self.CompareItemsLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -174) end
-        if self.PluginSectionHeader then self.PluginSectionHeader:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 18, -218) end
+        if self.AdvancedSearchHeader then self.AdvancedSearchHeader:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 18, -218) end
     else
         if self.AlertBanner then self.AlertBanner:Hide() end
         if self.KeybindLabel then self.KeybindLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -56) end
         if self.MinimapLabel then self.MinimapLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -84) end
         if self.AddonCompartmentLabel then self.AddonCompartmentLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -112) end
         if self.CompareItemsLabel then self.CompareItemsLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -140) end
-        if self.PluginSectionHeader then self.PluginSectionHeader:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 18, -184) end
+        if self.AdvancedSearchHeader then self.AdvancedSearchHeader:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 18, -184) end
     end
 
     if self.KeybindButton then
@@ -1395,6 +1538,9 @@ function SettingsPanel:Refresh()
     end
     if self.AddonCompartmentCheckbox then
         self.AddonCompartmentCheckbox:SetChecked(ns.Database:IsAddonCompartmentShown())
+    end
+    if self.AdvancedSearchCheckbox then
+        self.AdvancedSearchCheckbox:SetChecked(ns.Database:IsAdvancedSearchEnabled())
     end
     if self.BossLevelCheckbox then
         self.BossLevelCheckbox:SetChecked(ns.Database:GetDungeonSetting("showBossLevel", true) == true)
@@ -1441,15 +1587,15 @@ function SettingsPanel:Refresh()
         end
     end
     if self.WorldMapIconsDropdown then
-        local val = (ns.Database and ns.Database.GetMapIconsSetting and ns.Database:GetMapIconsSetting("worldMapDungeonIcons", "always"))
-            or (ns.Database and ns.Database.GetDungeonSetting and ns.Database:GetDungeonSetting("worldMapDungeonIcons", "always"))
-            or "always"
+        local val = (ns.Database and ns.Database.GetMapIconsSetting and ns.Database:GetMapIconsSetting("worldMapDungeonIcons", "min_level"))
+            or (ns.Database and ns.Database.GetDungeonSetting and ns.Database:GetDungeonSetting("worldMapDungeonIcons", "min_level"))
+            or "min_level"
         if UIDropDownMenu_SetSelectedValue then
             UIDropDownMenu_SetSelectedValue(self.WorldMapIconsDropdown, val)
         end
-        local labelText = "Always show"
-        if val == "min_level" then
-            labelText = "After minimum level"
+        local labelText = "After minimum level"
+        if val == "always" then
+            labelText = "Always show"
         elseif val == "bracket" then
             labelText = "Only during level bracket"
         elseif val == "disabled" then
@@ -1464,9 +1610,9 @@ function SettingsPanel:Refresh()
     end
     self:RefreshPluginRows()
 
-    local totalH = 820
+    local totalH = 970
     if status and status.isMismatch then
-        totalH = 860
+        totalH = 1010
     end
     if self.scrollChild and self.scrollFrame then
         local w = self.scrollFrame:GetWidth()

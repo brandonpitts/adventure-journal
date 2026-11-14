@@ -7,7 +7,9 @@ local addonName, ns = ...
 -- ----------------------------------------------------------------------------
 -- 1. Upvalued Globals & Constants
 -- ----------------------------------------------------------------------------
+local _G = _G
 local ipairs = ipairs
+local math = math
 local CreateFrame = CreateFrame
 local PlaySound = PlaySound
 local PanelTemplates_SetNumTabs = PanelTemplates_SetNumTabs
@@ -20,10 +22,50 @@ local Constants = ns.Constants
 -- 2. Private Helper Functions
 -- ----------------------------------------------------------------------------
 
---- Applies native Blizzard tab sizing if `PanelTemplates_TabResize` is present.
+--- Applies native Blizzard tab sizing strictly fitted to the tab's text string width
+--- so right-aligned or detached tabs never stretch across empty space.
 local function resizeTabButton(tabButton)
+    local tabName = tabButton:GetName()
+    local fs = tabButton:GetFontString()
+        or tabButton.Text
+        or (tabName and _G[tabName .. "Text"])
+
+    local textWidth = nil
+    if fs then
+        fs:SetWidth(0)
+        if fs.GetStringWidth then
+            local w = fs:GetStringWidth()
+            if w and w > 0 then
+                textWidth = math.ceil(w)
+            end
+        end
+    end
+
     if PanelTemplates_TabResize then
-        PanelTemplates_TabResize(tabButton, 0)
+        PanelTemplates_TabResize(tabButton, 0, nil, nil, nil, textWidth)
+    end
+
+    -- Enforce compact width based on actual string measurement
+    if textWidth and textWidth > 0 then
+        local leftTex = tabButton.Left or (tabName and _G[tabName .. "Left"])
+        local sideWidths = (leftTex and leftTex.GetWidth and leftTex:GetWidth() and (2 * leftTex:GetWidth())) or 40
+        local middleWidth = textWidth + 24
+        local totalWidth = middleWidth + sideWidths
+
+        local middleTex = tabButton.Middle or (tabName and _G[tabName .. "Middle"])
+        local middleDisabledTex = tabButton.MiddleDisabled or (tabName and _G[tabName .. "MiddleDisabled"])
+        local highlightTex = tabButton.HighlightTexture or (tabName and _G[tabName .. "HighlightTexture"])
+
+        if middleTex and middleTex.SetWidth then
+            middleTex:SetWidth(middleWidth)
+        end
+        if middleDisabledTex and middleDisabledTex.SetWidth then
+            middleDisabledTex:SetWidth(middleWidth)
+        end
+        if highlightTex and highlightTex.SetWidth then
+            highlightTex:SetWidth(totalWidth)
+        end
+        tabButton:SetWidth(totalWidth)
     end
 end
 
@@ -40,6 +82,46 @@ local TabBar = {
 function TabBar:Init(parentFrame)
     self.parentFrame = parentFrame
     self.tabs = {}
+
+    if parentFrame and parentFrame.HookScript then
+        parentFrame:HookScript("OnShow", function()
+            self:PositionTabs()
+        end)
+    end
+end
+
+--- Positions all active tabs, clearing any points injected by Blizzard's PanelTemplates
+--- so that `alignRight` tabs remain compact and detached on the far right.
+function TabBar:PositionTabs()
+    if not self.parentFrame then
+        return
+    end
+
+    local prevLeftTab = nil
+    local prevRightTab = nil
+
+    for _, tab in ipairs(self.tabs) do
+        if tab:IsShown() and tab.pluginId then
+            tab:ClearAllPoints()
+            resizeTabButton(tab)
+
+            if tab.alignRight then
+                if not prevRightTab then
+                    tab:SetPoint("TOPRIGHT", self.parentFrame, "BOTTOMRIGHT", -11, 2)
+                else
+                    tab:SetPoint("RIGHT", prevRightTab, "LEFT", 14, 0)
+                end
+                prevRightTab = tab
+            else
+                if not prevLeftTab then
+                    tab:SetPoint("TOPLEFT", self.parentFrame, "BOTTOMLEFT", 11, 2)
+                else
+                    tab:SetPoint("LEFT", prevLeftTab, "RIGHT", -14, 0)
+                end
+                prevLeftTab = tab
+            end
+        end
+    end
 end
 
 --- Acquires or creates the `index`-th bottom tab button on `JournalBaseMainFrame`.
@@ -56,12 +138,6 @@ function TabBar:AcquireTab(index)
     local tabName = parentName .. "Tab" .. index
     tab = CreateFrame("Button", tabName, self.parentFrame, "PanelTabButtonTemplate", index)
 
-    if index == 1 then
-        tab:SetPoint("TOPLEFT", self.parentFrame, "BOTTOMLEFT", 11, 2)
-    else
-        tab:SetPoint("LEFT", self.tabs[index - 1], "RIGHT", -14, 0)
-    end
-
     tab:SetScript("OnClick", function(btn)
         if PlaySound then
             PlaySound(Constants.SOUNDS.TAB)
@@ -71,11 +147,20 @@ function TabBar:AcquireTab(index)
         end
     end)
 
+    if tab.HookScript then
+        tab:HookScript("OnShow", function(btn)
+            resizeTabButton(btn)
+            self:PositionTabs()
+        end)
+    end
+
     self.tabs[index] = tab
     return tab
 end
 
 --- Rebuilds and positions bottom tabs to match the currently registered plugins.
+--- Standard tabs anchor left-to-right from `BOTTOMLEFT`; plugins with `alignRight = true`
+--- break from the group and anchor to the far right (`BOTTOMRIGHT`).
 --- @param orderedPlugins table[]
 function TabBar:RefreshTabs(orderedPlugins)
     if not self.parentFrame then
@@ -85,6 +170,7 @@ function TabBar:RefreshTabs(orderedPlugins)
     for _, tab in ipairs(self.tabs) do
         tab:Hide()
         tab.pluginId = nil
+        tab.alignRight = false
     end
 
     local count = #orderedPlugins
@@ -95,14 +181,16 @@ function TabBar:RefreshTabs(orderedPlugins)
     for index, plugin in ipairs(orderedPlugins) do
         local tab = self:AcquireTab(index)
         tab.pluginId = plugin.id
+        tab.alignRight = (plugin.alignRight == true)
         tab:SetText(plugin.title)
-        resizeTabButton(tab)
         tab:Show()
     end
 
     if PanelTemplates_SetNumTabs then
         PanelTemplates_SetNumTabs(self.parentFrame, count)
     end
+
+    self:PositionTabs()
 end
 
 --- Visually selects the bottom tab corresponding to `pluginId`.
@@ -117,6 +205,7 @@ function TabBar:SelectPlugin(pluginId)
             if PanelTemplates_SetTab then
                 PanelTemplates_SetTab(self.parentFrame, index)
             end
+            self:PositionTabs()
             return
         end
     end
@@ -133,10 +222,10 @@ function TabBar:ClearSelection()
             PanelTemplates_DeselectTab(tab)
         end
     end
+    self:PositionTabs()
 end
 
 -- ----------------------------------------------------------------------------
 -- 4. Namespace Attachment
 -- ----------------------------------------------------------------------------
 ns.UI.TabBar = TabBar
-

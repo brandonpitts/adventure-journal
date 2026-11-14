@@ -72,9 +72,13 @@ function MainView:ShowRoot(headerBar)
     self.selectedBoss = nil
 
     if self.headerBar and self.headerBar.ResetBreadcrumbs then
-        self.headerBar:ResetBreadcrumbs("Dungeons", function()
+        self.headerBar:ResetBreadcrumbs("Home", function()
             self:ShowRoot()
         end)
+    end
+
+    if ns.UI.DungeonGridView and ns.UI.DungeonGridView.SetSearchQuery then
+        ns.UI.DungeonGridView:SetSearchQuery(self.searchQuery or "")
     end
 
     self.rootFrame:Show()
@@ -82,7 +86,7 @@ function MainView:ShowRoot(headerBar)
     ns.UI.DungeonGridView:Show()
 end
 
---- Transitions to the Open-Book Instance View (`Dungeons > <Dungeon Name>`).
+--- Transitions to the Open-Book Instance View (`Home > <Dungeon Name>`).
 --- @param dungeon table
 function MainView:SelectDungeon(dungeon)
     if not dungeon then
@@ -96,7 +100,7 @@ function MainView:SelectDungeon(dungeon)
     end
 
     if self.headerBar and self.headerBar.ResetBreadcrumbs and self.headerBar.PushStep then
-        self.headerBar:ResetBreadcrumbs("Dungeons", function()
+        self.headerBar:ResetBreadcrumbs("Home", function()
             self:ShowRoot()
         end)
         self.headerBar:PushStep(dungeon.name, function()
@@ -156,11 +160,10 @@ function MainView:SelectBoss(boss)
     ns.UI.DungeonBookView:SetSelectedBoss(boss)
 end
 
---- Forwards live search box queries to both the Dungeon Browser Grid and Book View.
+--- Forwards live search box queries to the active Dungeon view (Grid or Book).
 --- @param queryText string
 function MainView:OnSearch(queryText)
     self.searchQuery = queryText or ""
-    ns.UI.DungeonGridView:SetSearchQuery(queryText or "")
     if self.currentDungeon and ns.UI.DungeonBookView and ns.UI.DungeonBookView.SetSearchQuery then
         ns.UI.DungeonBookView:SetSearchQuery(queryText or "")
         local selected = ns.UI.DungeonBookView.selectedBoss
@@ -178,6 +181,8 @@ function MainView:OnSearch(queryText)
                 self.headerBar:PopToIndex(2)
             end
         end
+    else
+        ns.UI.DungeonGridView:SetSearchQuery(queryText or "")
     end
 end
 

@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catalog Telemetry — Adventure Journal</title>
+  <meta name="description" content="Item catalog telemetry, progressive hydration metrics, and multi-tag search coverage for the Adventure Journal World of Warcraft Forever addon.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0c0d10;
+      --bg-panel: #13141a;
+      --bg-card: #181a24;
+      --border-gold: #c69b3a;
+      --border-dark: #2c2f3d;
+      --gold-bright: #ffd100;
+      --gold-soft: #d4af37;
+      --gold-dim: #9c834a;
+      --text-main: #e6e3da;
+      --text-muted: #9f9da6;
+      --accent-blue: #49c4ff;
+      --accent-green: #38ef7d;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6;
+      background-image:
+        radial-gradient(circle at 50% 0%, rgba(198, 155, 58, 0.15) 0%, transparent 60%),
+        linear-gradient(to bottom, rgba(12, 13, 16, 0.8), #0c0d10);
+      background-attachment: fixed;
+      min-height: 100vh;
+    }
+
+    code {
+      white-space: nowrap;
+      font-family: Consolas, "Courier New", monospace;
+    }
+
+    /* Top Early Development Notice Banner */
+    .early-dev-banner {
+      background: linear-gradient(90deg, #2a1b08 0%, #3d260c 50%, #2a1b08 100%);
+      border-bottom: 2px solid var(--border-gold);
+      padding: 0.9rem 1.5rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+      position: relative;
+      z-index: 100;
+    }
+
+    .banner-inner {
+      max-width: 1050px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.85rem;
+      text-align: center;
+      font-size: 0.94rem;
+      color: #f5edd8;
+      line-height: 1.5;
+    }
+
+    .banner-badge {
+      background: #c69b3a;
+      color: #0c0d10;
+      font-weight: 800;
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .banner-text strong {
+      color: var(--gold-bright);
+    }
+
+    /* Top Site Navigation Bar */
+    .site-nav {
+      background: rgba(14, 15, 20, 0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(198, 155, 58, 0.28);
+      position: sticky;
+      top: 0;
+      z-index: 95;
+    }
+
+    .site-nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .site-nav-brand {
+      font-family: 'Cinzel', serif;
+      font-weight: 800;
+      font-size: 1.05rem;
+      color: var(--gold-bright);
+      text-decoration: none;
+      letter-spacing: 0.05em;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+    }
+
+    .site-nav-brand span {
+      color: #fff;
+    }
+
+    .site-nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .site-nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 0.45rem 0.9rem;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .site-nav-link:hover {
+      color: #fff;
+      background: rgba(198, 155, 58, 0.1);
+      border-color: rgba(198, 155, 58, 0.3);
+    }
+
+    .site-nav-link.active {
+      color: var(--gold-bright);
+      background: rgba(198, 155, 58, 0.14);
+      border-color: rgba(198, 155, 58, 0.55);
+    }
+
+    header {
+      padding: 3rem 1.5rem 2rem;
+      text-align: center;
+      max-width: 920px;
+      margin: 0 auto;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      background: rgba(198, 155, 58, 0.12);
+      border: 1px solid var(--border-gold);
+      color: var(--gold-bright);
+      padding: 0.3rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 1.2rem;
+    }
+
+    h1 {
+      font-family: 'Cinzel', serif;
+      font-size: 2.75rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: 0.03em;
+      text-shadow: 0 4px 18px rgba(0, 0, 0, 0.8), 0 0 30px rgba(198, 155, 58, 0.35);
+      margin-bottom: 1rem;
+    }
+
+    h1 span {
+      background: linear-gradient(135deg, #fff7d1 0%, #ffd100 50%, #b8860b 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      font-size: 1.12rem;
+      color: #bfbcc7;
+      max-width: 760px;
+      margin: 0 auto 1.5rem;
+      line-height: 1.65;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1.5rem 4rem;
+    }
+
+    .section-title {
+      font-family: 'Cinzel', serif;
+      font-size: 1.85rem;
+      text-align: center;
+      color: #fff;
+      margin: 3.5rem 0 0.5rem;
+    }
+
+    .section-title span {
+      color: var(--gold-bright);
+    }
+
+    .section-divider {
+      width: 140px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--border-gold), transparent);
+      margin: 0 auto 2.5rem;
+    }
+
+    /* Telemetry KPI Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 3rem;
+    }
+
+    .kpi-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--border-gold), transparent);
+      opacity: 0.55;
+    }
+
+    .kpi-label {
+      font-size: 0.76rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .kpi-value {
+      font-family: 'Cinzel', serif;
+      font-size: 2.1rem;
+      font-weight: 800;
+      color: var(--gold-bright);
+      line-height: 1.15;
+      margin-bottom: 0.35rem;
+    }
+
+    .kpi-sub {
+      font-size: 0.85rem;
+      color: #b5b2be;
+    }
+
+    /* Coverage Progress Panel */
+    .coverage-panel {
+      background: var(--bg-panel);
+      border: 1px solid rgba(198, 155, 58, 0.4);
+      border-radius: 10px;
+      padding: 2rem;
+      margin-bottom: 3rem;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+    }
+
+    .coverage-row {
+      margin-bottom: 1.4rem;
+    }
+
+    .coverage-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .coverage-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.45rem;
+      gap: 1rem;
+    }
+
+    .coverage-title {
+      font-weight: 600;
+      color: #fff;
+      font-size: 0.96rem;
+    }
+
+    .coverage-stats {
+      font-family: Consolas, monospace;
+      font-size: 0.88rem;
+      color: var(--gold-bright);
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 12px;
+      background: #08090c;
+      border: 1px solid #252836;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #b8860b 0%, #ffd100 100%);
+      border-radius: 999px;
+    }
+
+    .progress-fill.green {
+      background: linear-gradient(90deg, #1f9d55 0%, #38ef7d 100%);
+    }
+
+    .progress-fill.blue {
+      background: linear-gradient(90deg, #1d70b8 0%, #49c4ff 100%);
+    }
+
+    /* Query Showcase Table */
+    .query-table-wrap {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-dark);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 3rem;
+    }
+
+    table.query-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+
+    table.query-table th {
+      background: rgba(198, 155, 58, 0.1);
+      color: var(--gold-bright);
+      font-family: 'Cinzel', serif;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0.95rem 1.2rem;
+      border-bottom: 1px solid rgba(198, 155, 58, 0.3);
+    }
+
+    table.query-table td {
+      padding: 0.95rem 1.2rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+      vertical-align: top;
+    }
+
+    table.query-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .query-input {
+      background: #090a0d;
+      border: 1px solid #262938;
+      color: #49c4ff;
+      padding: 0.22rem 0.55rem;
+      border-radius: 4px;
+      font-family: Consolas, monospace;
+      font-size: 0.84rem;
+    }
+
+    .tag-badge {
+      display: inline-block;
+      background: rgba(198, 155, 58, 0.14);
+      border: 1px solid rgba(198, 155, 58, 0.4);
+      color: var(--gold-bright);
+      font-family: Consolas, monospace;
+      font-size: 0.76rem;
+      padding: 0.12rem 0.45rem;
+      border-radius: 4px;
+      margin: 0.1rem 0.2rem 0.1rem 0;
+    }
+
+    footer {
+      text-align: center;
+      padding: 3rem 1.5rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      color: #706e78;
+      font-size: 0.85rem;
+    }
+
+    footer p + p {
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Early Development Notice Banner -->
+  <aside class="early-dev-banner" aria-label="Development Notice">
+    <div class="banner-inner">
+      <span class="banner-badge">Early Development</span>
+      <span class="banner-text">Adventure Journal is an independent project created for personal, close friend, and friend-of-friend use. Anyone is welcome to use it with that understanding! Report any issues to <strong>Brandon (Endoria)</strong>.</span>
+      <span class="banner-badge">Early Development</span>
+    </div>
+  </aside>
+
+  <!-- Primary Site Navigation -->
+  <nav class="site-nav" aria-label="Primary Navigation">
+    <div class="site-nav-inner">
+      <a href="index.html" class="site-nav-brand">⚔ <span>Adventure Journal</span></a>
+      <div class="site-nav-links">
+        <a href="index.html" class="site-nav-link">Home</a>
+        <a href="architecture.html" class="site-nav-link">Architecture &amp; Data Engine</a>
+        <a href="catalog.html" class="site-nav-link active">Catalog Telemetry</a>
+      </div>
+    </div>
+  </nav>
+
+  <header>
+    <div class="eyebrow">Catalog Telemetry &amp; Coverage Matrix</div>
+    <h1><span>Item Catalog Telemetry</span></h1>
+    <p class="subtitle">Live coverage metrics across the normalized 1,602-item dungeon catalog, tracking static cold-cache metadata hydration, category distribution, and multi-tag query readiness.</p>
+  </header>
+
+  <main>
+    <h2 class="section-title" style="margin-top: 1rem;">Catalog <span>Key Metrics</span></h2>
+    <div class="section-divider"></div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Master Item Store</div>
+        <div class="kpi-value">1,602</div>
+        <div class="kpi-sub">Unique item records indexed by numeric <code>itemID</code></div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Instance Coverage</div>
+        <div class="kpi-value">35</div>
+        <div class="kpi-sub">Classic &amp; custom WoW Forever 5-player dungeons</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Static Cold-Cache Names</div>
+        <div class="kpi-value">77.6%</div>
+        <div class="kpi-sub"><code>1,243 / 1,602</code> items searchable prior to server cache</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Taxonomy &amp; Aliases</div>
+        <div class="kpi-value">120+</div>
+        <div class="kpi-sub">Natural-language synonyms mapped across 8 dimensions</div>
+      </div>
+    </div>
+
+    <h2 class="section-title">Progressive Hydration <span>Coverage</span></h2>
+    <div class="section-divider"></div>
+
+    <section class="coverage-panel" aria-label="Catalog Field Completeness">
+      <div class="coverage-row">
+        <div class="coverage-header">
+          <span class="coverage-title">Bi-Directional Source &amp; Domain Tag Indexing (<code>dungeon</code>, <code>boss-drop</code>, <code>zone-drop</code>)</span>
+          <span class="coverage-stats">1,602 / 1,602 (100.0%)</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill green" style="width: 100%;"></div>
+        </div>
+      </div>
+
+      <div class="coverage-row">
+        <div class="coverage-header">
+          <span class="coverage-title">Synchronous Client DBC Classification (<code>C_Item.GetItemInfoInstant</code> Slot &amp; Subtype)</span>
+          <span class="coverage-stats">1,602 / 1,602 (100.0% In-Client)</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill green" style="width: 100%;"></div>
+        </div>
+      </div>
+
+      <div class="coverage-row">
+        <div class="coverage-header">
+          <span class="coverage-title">Pre-Hydrated Static English Item Names (<code>name</code>)</span>
+          <span class="coverage-stats">1,243 / 1,602 (77.6%)</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" style="width: 77.6%;"></div>
+        </div>
+      </div>
+
+      <div class="coverage-row">
+        <div class="coverage-header">
+          <span class="coverage-title">Pre-Hydrated Static Quality Tiers (<code>q</code>)</span>
+          <span class="coverage-stats">1,216 / 1,602 (75.9%)</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" style="width: 75.9%;"></div>
+        </div>
+      </div>
+
+      <div class="coverage-row">
+        <div class="coverage-header">
+          <span class="coverage-title">Pre-Hydrated Static Slot &amp; Subtype Tags (<code>slot</code>, <code>subType</code>)</span>
+          <span class="coverage-stats">1,154 / 1,602 (72.0%)</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill blue" style="width: 72.0%;"></div>
+        </div>
+      </div>
+    </section>
+
+    <h2 class="section-title">Multi-Tag &amp; Level <span>Query Examples</span></h2>
+    <div class="section-divider"></div>
+
+    <div class="query-table-wrap">
+      <table class="query-table">
+        <thead>
+          <tr>
+            <th>Search Bar Input</th>
+            <th>Normalized Query AST</th>
+            <th>Evaluation Behavior</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="query-input">one handed, sword</span></td>
+            <td>
+              <span class="tag-badge">tag: one-hand</span>
+              <span class="tag-badge">tag: sword</span>
+            </td>
+            <td>Intersects the <code>one-hand</code> and <code>sword</code> inverted index buckets, filtering dungeons, bosses, and encounter item lists to 1H swords.</td>
+          </tr>
+          <tr>
+            <td><span class="query-input">cloth, chest, intellect</span></td>
+            <td>
+              <span class="tag-badge">tag: cloth</span>
+              <span class="tag-badge">tag: chest</span>
+              <span class="tag-badge">tag: intellect</span>
+            </td>
+            <td>Matches cloth chestpieces and robes carrying <code>+Intellect</code> primary stat tags.</td>
+          </tr>
+          <tr>
+            <td><span class="query-input">2h axe &gt;=40</span></td>
+            <td>
+              <span class="tag-badge">tag: two-hand</span>
+              <span class="tag-badge">tag: axe</span>
+              <span class="tag-badge">minLevel: 40</span>
+            </td>
+            <td>Parses space-separated shorthand tokens and enforces <code>reqLevel &gt;= 40</code> on all candidate two-handed axes.</td>
+          </tr>
+          <tr>
+            <td><span class="query-input">sp, crit, lvl 30-45</span></td>
+            <td>
+              <span class="tag-badge">tag: spell-power</span>
+              <span class="tag-badge">tag: crit</span>
+              <span class="tag-badge">level: 30–45</span>
+            </td>
+            <td>Expands aliases (<code>sp</code> &rarr; <code>spell-power</code>) and filters to caster gear usable between character levels 30 and 45.</td>
+          </tr>
+          <tr>
+            <td><span class="query-input">recipe, blacksmithing</span></td>
+            <td>
+              <span class="tag-badge">tag: recipe</span>
+              <span class="tag-badge">tag: blacksmithing</span>
+            </td>
+            <td>Surfaces bosses and zone drop tables that drop Blacksmithing plans across all 35 dungeons.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer>
+    <p>Adventure Journal is an open-source community project developed for the World of Warcraft Forever client.</p>
+    <p>World of Warcraft and Blizzard Entertainment are registered trademarks of Blizzard Entertainment, Inc.</p>
+  </footer>
+
+</body>
+</html>

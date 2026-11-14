@@ -217,11 +217,11 @@ local function shouldShowPin(pinData)
         return false
     end
 
-    local setting = "always"
+    local setting = "min_level"
     if ns.Database and ns.Database.GetMapIconsSetting then
-        setting = ns.Database:GetMapIconsSetting("worldMapDungeonIcons", "always")
+        setting = ns.Database:GetMapIconsSetting("worldMapDungeonIcons", "min_level")
     elseif ns.Database and ns.Database.GetDungeonSetting then
-        setting = ns.Database:GetDungeonSetting("worldMapDungeonIcons", "always")
+        setting = ns.Database:GetDungeonSetting("worldMapDungeonIcons", "min_level")
     end
 
     if setting == "disabled" then

@@ -41,6 +41,8 @@ local JournalBase = {
     VERSION = Constants.VERSION,
     PLUGIN_API_VERSION = Constants.PLUGIN_API_VERSION,
     HolidayManager = ns.HolidayManager,
+    ItemDatabase = ns.ItemDatabase,
+    Items = ns.ItemDatabase,
 }
 
 --- Standardized chat message helper prefixed with `[Journal]`.
@@ -251,6 +253,10 @@ function EventDispatcher:ADDON_LOADED(loadedAddonName)
     self:UnregisterEvent("ADDON_LOADED")
 
     ns.Database:Init()
+    ns.PluginRegistry:PurgeDisabledModules()
+    if ns.ItemDatabase then
+        ns.ItemDatabase:Init()
+    end
     ns.PluginRegistry:RegisterBuiltInPlugins()
     ns.UI.MainFrame:Init()
     ns.UI.MinimapButton:Init()
