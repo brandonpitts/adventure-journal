@@ -1,17 +1,20 @@
 # Adventure Journal (WoW Forever Client)
 
-**Adventure Journal** is a modular in-game journal framework for the *World of Warcraft Forever* client. It currently provides a comprehensive dungeon encounter and item drop catalog, with planned modules for raid item tables, primary and secondary professions, attunements, class quests, and more.
+**Adventure Journal** is a modular in-game journal framework for the *World of Warcraft Forever* client. It currently provides comprehensive dungeon encounter and item drop catalogs, with planned modules for raid tier progression, primary and secondary professions, questlines, attunements, and more.
+
+> [!NOTE]
+> **Project Scope & Notice:** Adventure Journal is an independent project created for personal, close friend, and friend-of-friend use. Anyone is welcome to use it with that understanding! Please report any issues directly to **Brandon (Endoria)**. We apologize to players outside our direct circles who may not have a direct way to reach out—there are currently no plans to establish a public Discord or community channel at this time.
 
 ---
 
 ## Feature Highlights
 
-* **Modular Addon Framework**: Built from the ground up as an extensible architecture. Adventure Journal acts as a lightweight core shell hosting dedicated, plug-and-play modules for dungeon item lists, utilities, and future gameplay catalogs.
+* **Modular Architecture & Cross-Module Synergy**: Engineered for deep cross-module integration—connecting map markers, encounter catalogs, global search, and future questlines into a unified reference tool—while maintaining a lightweight, intentional footprint that allows players to enable only the exact modules they need.
 * **Planned Ecosystem Modules**: Active development roadmap includes dedicated modules for Raid loot tables, Primary & Secondary Professions (recipes, reagents, and trainer sources), and Questlines (dungeon attunements and class quest chains).
-* **Dungeon Item Lists & Encounters**: Detailed directories across 35 Classic and custom WoW Forever dungeons, featuring full boss rosters, lore backgrounds, and encounter item drop catalogs.
-* **World Map Entrance Indicators**: Retail-style blue swirl portal markers directly on world and zone maps showing dungeon locations, featuring level-bracket visibility and one-click navigation directly into the journal.
-* **Real-Time Live Search**: Fast, responsive search filtering across dungeons, boss encounters, aliases, and specific item drops, with automatic cross-grid encounter discovery.
-* **Tier 0.5 Challenge Bosses**: Dedicated encounter section for summonable Dungeon Set 2 (Tier 0.5) challenge encounters, complete with elite medallion borders and challenge boss rosters.
+* **Dungeon Item Lists & Encounters**: Comprehensive directories across Classic Dungeons and WoW Forever Dungeons, with an extensible catalog built to seamlessly incorporate any future added instances, boss rosters, lore backgrounds, and encounter item drops.
+* **Game Enhancements**: Adventure-focused game enhancements with cross-module integration: native Blizzard map pin system integration for dungeon entrance portals, planned travel lane markers for zeppelins and boats, and more.
+* **Real-Time Live Search**: Fast, responsive search filtering across dungeons, boss encounters, aliases, and specific item drops, with automatic cross-module encounter discovery.
+* **Raid Encounters & Tier Sets**: 10, 20, and 40-player raid progression references covering Classic raids and confirmed WoW Forever endgame raids—engineered to adapt to future raid additions as they release, complete with boss mechanics, role notes, and tier set catalogs.
 
 ---
 
@@ -21,16 +24,25 @@ Adventure Journal was developed through agentic AI workflows to assist, explore,
 
 ---
 
-## Installation
+## Quick Installation
 
-1. Download **[`Adventure_Journal-v0.4.0.zip`](Adventure_Journal-v0.4.0.zip)**.
+1. Download **[`Adventure_Journal-v0.5.1.zip`](Adventure_Journal-v0.5.1.zip)**.
 2. Extract the archive into your WoW Forever AddOns directory:
    ```text
    World of Warcraft\_forever_\Interface\AddOns\
    ```
-3. Confirm that the folder is named `Adventure_Journal` (not `Adventure_Journal-v0.4.0` or a nested folder).
+   > **Tip:** You can easily locate your game folder by clicking the gear icon next to the Play button in the Battle.net launcher for your WoW Forever client and selecting **"Show in Explorer"**.
+3. Confirm that the folder is named `Adventure_Journal` (not `Adventure_Journal-v0.5.1` or a nested folder).
 4. Launch or `/reload` in World of Warcraft.
-5. Open your journal with `/aj`, `/journal`, or via the gold Minimap button!
+5. Open your journal with `/aj`, `/journal`, or by clicking the gold Minimap button!
+
+---
+
+## Changelog & Release History
+
+* **`v0.5.1`**: Resolved custom keybinding reservation conflicts, added persistent agent automation rules, and verified clean fresh installs.
+* **`v0.5.0`**: Consolidated unified addon versioning across all modules, shortened default landing tab selector, and added catalog notice.
+* **`v0.4.0`**: Initial public release with Classic and WoW Forever dungeons, open-book split view, and world map entrance markers.
 
 ---
 
