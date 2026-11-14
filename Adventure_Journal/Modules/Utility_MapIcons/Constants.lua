@@ -16,7 +16,7 @@ local Constants = {
     ADDON_NAME = addonName,
     MODULE_ID = "map_icons",
     TITLE = "Map Icons",
-    VERSION = "0.4.0",
+    VERSION = "0.5.0",
 
     -- Native Blizzard Atlas Identifiers
     ATLAS = {
