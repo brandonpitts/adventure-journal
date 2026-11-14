@@ -20,7 +20,7 @@ local SOUNDKIT = SOUNDKIT
 local Constants = {
     ADDON_NAME = addonName,
     TITLE = "Adventure Journal",
-    VERSION = "0.5.0",
+    VERSION = "0.5.1",
     AUTHOR = "Brandon (Endoria)",
     PLUGIN_API_VERSION = 1,
 
@@ -95,7 +95,7 @@ local Constants = {
             defaultOrder = 10,
             icon = "Interface\\Icons\\INV_Misc_Key_03",
             description = "Explore 5-player dungeons across Classic and WoW Forever, including level brackets, boss encounters, role notes, and loot drops.",
-            version = "0.5.0",
+            version = "0.5.1",
             lastUpdated = "2026-11-14",
         },
         {
@@ -135,7 +135,7 @@ local Constants = {
             defaultOrder = 900,
             icon = "Interface\\Icons\\INV_Misc_Map02",
             description = "Provides world and zone map indicators for dungeon and raid entrances, with level-bracket filtering.",
-            version = "0.5.0",
+            version = "0.5.1",
             lastUpdated = "2026-11-14",
             isUtility = true,
         },
