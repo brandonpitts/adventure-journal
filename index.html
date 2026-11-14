@@ -400,11 +400,18 @@
       margin-top: 2px;
     }
 
-    .step-content strong {
+    .step-content > strong:first-child {
       display: block;
       color: #fff;
       font-size: 1.05rem;
       margin-bottom: 0.25rem;
+    }
+
+    .step-content p strong {
+      display: inline;
+      color: #fff;
+      font-size: inherit;
+      margin-bottom: 0;
     }
 
     .step-content p {
@@ -690,7 +697,7 @@
             <strong>Extract to your WoW Forever AddOns Folder</strong>
             <p>Unzip the archive directly into your installation directory:</p>
             <p style="margin-top: 0.4rem;"><code>World of Warcraft\_forever_\Interface\AddOns\Adventure_Journal\</code></p>
-            <p style="margin-top: 0.45rem; font-size: 0.88rem; color: #bfbcc7;"><em>Tip: You can easily locate your game folder by clicking the gear icon next to the Play button in the Battle.net launcher for your WoW Forever client and <span style="white-space: nowrap;">selecting <strong>"Show in Explorer"</strong>.</span></em></p>
+            <p style="margin-top: 0.45rem; font-size: 0.88rem; color: #bfbcc7;"><em>Tip: You can easily locate your game folder by clicking the gear icon next to the Play button in the Battle.net launcher for your WoW Forever client and selecting <strong>"Show in Explorer"</strong>.</em></p>
           </div>
         </li>
         <li>
