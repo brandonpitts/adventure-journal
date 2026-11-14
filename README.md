@@ -34,6 +34,12 @@ Adventure Journal was developed through agentic AI workflows to assist, explore,
 
 ---
 
+## Feedback & Support
+
+Please send bug reports and feature requests to **Brandon (Endoria)**.
+
+---
+
 ## Public Website
 Visit the official GitHub Pages landing site:  
 👉 **[https://brandonpitts.github.io/adventure-journal/](https://brandonpitts.github.io/adventure-journal/)**
