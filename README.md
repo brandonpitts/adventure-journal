@@ -3,7 +3,7 @@
 **Adventure Journal** is a modular in-game journal framework for the *World of Warcraft Forever* client. It currently provides comprehensive dungeon encounter and item drop catalogs, with planned modules for raid tier progression, primary and secondary professions, questlines, attunements, and more.
 
 > [!NOTE]
-> **Project Scope & Notice:** Adventure Journal is an independent project created for personal, close friend, and friend-of-friend use. Anyone is welcome to use it with that understanding! Please report any issues directly to **Brandon (Endoria)**. We apologize to players outside our direct circles who may not have a direct way to reach out—there are currently no plans to establish a public Discord or community channel at this time.
+> **Project Scope & Notice:** Adventure Journal is an independent project created for personal, close friend, and friend-of-friend use. Anyone is welcome to use it with that understanding! Please report any issues directly to **Brandon (Endoria)**.
 
 ---
 
@@ -49,6 +49,8 @@ Adventure Journal was developed through agentic AI workflows to assist, explore,
 ## Feedback & Support
 
 Please send bug reports and feature requests to **Brandon (Endoria)**.
+
+We apologize to players outside our direct circles who may not have a direct way to reach out—there are currently no plans to establish a public Discord or community channel at this time.
 
 ---
 
