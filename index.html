@@ -49,6 +49,45 @@
       margin: 0 auto;
     }
 
+    /* Top Early Development Notice Banner */
+    .early-dev-banner {
+      background: linear-gradient(90deg, #2a1b08 0%, #3d260c 50%, #2a1b08 100%);
+      border-bottom: 2px solid var(--border-gold);
+      padding: 0.9rem 1.5rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+      position: relative;
+      z-index: 100;
+    }
+
+    .banner-inner {
+      max-width: 1050px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.85rem;
+      text-align: center;
+      font-size: 0.94rem;
+      color: #f5edd8;
+      line-height: 1.5;
+    }
+
+    .banner-badge {
+      background: #c69b3a;
+      color: #0c0d10;
+      font-weight: 800;
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .banner-text strong {
+      color: var(--gold-bright);
+    }
+
     .badge-version {
       display: inline-flex;
       align-items: center;
@@ -62,7 +101,23 @@
       font-weight: 600;
       letter-spacing: 0.05em;
       text-transform: uppercase;
+      text-decoration: none;
       margin-bottom: 1.5rem;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .badge-version:hover {
+      background: rgba(198, 155, 58, 0.25);
+      border-color: #ffd866;
+      transform: translateY(-1px);
+      box-shadow: 0 0 14px rgba(255, 209, 0, 0.35);
+    }
+
+    .badge-repo-arrow {
+      font-size: 0.85rem;
+      color: var(--gold-soft);
+      margin-left: 0.15rem;
     }
 
     .badge-version::before {
@@ -392,8 +447,18 @@
 </head>
 <body>
 
+  <!-- Top Early Development Notice Banner -->
+  <aside class="early-dev-banner" aria-label="Development Notice">
+    <div class="banner-inner">
+      <span class="banner-badge">Early Development</span>
+      <span class="banner-text">Adventure Journal is currently in active, early development. You may encounter bugs or incomplete data — please report any issues to <strong>Brandon (Endoria)</strong>!</span>
+    </div>
+  </aside>
+
   <header>
-    <div class="badge-version">Release v0.4.0 • WoW Forever Client</div>
+    <a href="https://github.com/brandonpitts/adventure-journal" target="_blank" rel="noopener noreferrer" class="badge-version" title="View Source & Releases on GitHub">
+      Release v0.4.0 • WoW Forever Client <span class="badge-repo-arrow">↗</span>
+    </a>
     <h1><span>Adventure Journal</span></h1>
     <p class="subtitle">A modular in-game journal framework for World of Warcraft Forever. Currently providing comprehensive dungeon encounter and item lists, with planned modules for raids, professions, attunements, class quests, and more.</p>
 
