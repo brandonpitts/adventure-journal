@@ -127,16 +127,6 @@ function KeybindButtonMixin:OnKeyDown(key)
     end
 
     local combo = ns.KeybindManager:BuildKeyCombo(key)
-    local conflict = ns.KeybindManager:GetConflictingAction(combo)
-    if conflict then
-        local pretty = ns.KeybindManager:FormatKeyCombo(combo) or combo
-        if _G.JournalBase then
-            _G.JournalBase:Print(pretty .. " is already bound to '" .. conflict .. "'.")
-        end
-        self:StopCapture()
-        return
-    end
-
     self.pendingBind = { combo = combo, key = key }
 end
 

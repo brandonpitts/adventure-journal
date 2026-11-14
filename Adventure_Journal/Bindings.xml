@@ -1,0 +1,7 @@
+<Bindings>
+    <Binding name="JOURNALBASE_TOGGLE" header="JOURNALBASE" runOnUp="false">
+        if JournalBase then
+            JournalBase:Toggle()
+        end
+    </Binding>
+</Bindings>

@@ -167,14 +167,22 @@ function KeybindManager:BindKey(combo)
     end
 
     local conflict = self:GetConflictingAction(combo)
-    if conflict then
-        local readableKey = self:FormatKeyCombo(combo) or combo
-        return false, readableKey .. " is already bound to another action (" .. conflict .. ")."
-    end
 
+    -- Unbind combo from any conflicting action
+    SetBinding(combo)
+
+    -- Unbind any old keys currently assigned to Journal toggle
     unbindAllCurrentKeys()
+
+    -- Bind combo to Journal toggle
     SetBinding(combo, BINDING_ACTION)
     saveActiveBindingSet()
+
+    if conflict and _G.JournalBase then
+        local readableKey = self:FormatKeyCombo(combo) or combo
+        _G.JournalBase:Print(readableKey .. " bound to Adventure Journal (rebound from '" .. conflict .. "').")
+    end
+
     return true, nil
 end
 
