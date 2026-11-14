@@ -1,0 +1,57 @@
+﻿## Interface: 16001
+## Title: Adventure Journal
+## Notes: Complete in-game adventure guide, dungeon and raid reference for WoW Forever.
+## Author: Brand
+## Version: 0.4.0
+## IconTexture: Interface\Icons\INV_Misc_Book_09
+## SavedVariables: JournalBaseDB
+## OptionalDeps: AtlasLoot, AtlasLootClassic
+
+# Core Framework
+Core\Constants.lua
+Core\Database.lua
+Core\KeybindManager.lua
+Core\PluginRegistry.lua
+Core\HolidayManager.lua
+Core\UI\HeaderBar.lua
+Core\UI\TabBar.lua
+Core\UI\HomeView.lua
+Core\UI\MainFrame.lua
+Core\UI\MinimapButton.lua
+Core\UI\KeybindButton.lua
+Core\UI\SettingsPanel.lua
+Core\Core.lua
+
+# Modules: Dungeons
+Modules\Journal_Dungeons\Constants.lua
+Modules\Journal_Dungeons\Data\DungeonsData.lua
+Modules\Journal_Dungeons\Data\Items\Items_Metadata.lua
+Modules\Journal_Dungeons\Data\Items\Items_Overrides.lua
+Modules\Journal_Dungeons\Data\Items\Items_Classic.lua
+Modules\Journal_Dungeons\Data\Items\ItemsManager.lua
+Modules\Journal_Dungeons\UI\SharedWidgets.lua
+Modules\Journal_Dungeons\UI\DungeonGridView.lua
+Modules\Journal_Dungeons\UI\DungeonBookView.lua
+Modules\Journal_Dungeons\UI\MainView.lua
+Modules\Journal_Dungeons\Core.lua
+
+# Modules: Utility - Map Icons
+Modules\Utility_MapIcons\Constants.lua
+Modules\Utility_MapIcons\Data\EntranceCoordinates.lua
+Modules\Utility_MapIcons\UI\MapPinProvider.lua
+Modules\Utility_MapIcons\Core.lua
+
+# Modules: Raids
+# (In Development) Modules\Journal_Raids\Constants.lua
+# (In Development) Modules\Journal_Raids\UI\MainView.lua
+# (In Development) Modules\Journal_Raids\Core.lua
+
+# Modules: Professions
+# (In Development) Modules\Journal_Professions\Constants.lua
+# (In Development) Modules\Journal_Professions\UI\MainView.lua
+# (In Development) Modules\Journal_Professions\Core.lua
+
+# Modules: Quests
+# (In Development) Modules\Journal_Quests\Constants.lua
+# (In Development) Modules\Journal_Quests\UI\MainView.lua
+# (In Development) Modules\Journal_Quests\Core.lua

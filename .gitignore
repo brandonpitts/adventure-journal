@@ -1,0 +1,25 @@
+# OS & System artifacts
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor & IDE artifacts
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Temporary & build files
+*.tmp
+*.bak
+*.swp
+
+# ==============================================================================
+# UNFINISHED MODULE BOUNDARY - DO NOT COMMIT TO PUBLIC REPOSITORY
+# Only Core, Journal_Dungeons, and Utility_MapIcons are currently public.
+# When a module reaches release parity (v1.0.0+), remove it from this list
+# as documented in _designs/task-list.md.
+# ==============================================================================
+Adventure_Journal/Modules/Journal_Raids/
+Adventure_Journal/Modules/Journal_Professions/
+Adventure_Journal/Modules/Journal_Quests/

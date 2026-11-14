@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Adventure Journal — World of Warcraft Addon</title>
+  <meta name="description" content="An authentic, Retail-inspired Adventure Guide and Encounter Atlas for World of Warcraft Forever.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0c0d10;
+      --bg-panel: #13141a;
+      --bg-card: #181a24;
+      --border-gold: #c69b3a;
+      --border-dark: #2c2f3d;
+      --gold-bright: #ffd100;
+      --gold-soft: #d4af37;
+      --gold-dim: #9c834a;
+      --text-main: #e6e3da;
+      --text-muted: #9f9da6;
+      --btn-red: #6d1b1b;
+      --btn-red-hover: #8f2323;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(198, 155, 58, 0.15) 0%, transparent 60%),
+        linear-gradient(to bottom, rgba(12, 13, 16, 0.8), #0c0d10);
+      background-attachment: fixed;
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 3rem 1.5rem 2rem;
+      text-align: center;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .badge-version {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(198, 155, 58, 0.12);
+      border: 1px solid var(--border-gold);
+      color: var(--gold-bright);
+      padding: 0.35rem 0.9rem;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+
+    .badge-version::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      background: #38ef7d;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #38ef7d;
+    }
+
+    h1 {
+      font-family: 'Cinzel', serif;
+      font-size: 3.2rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: 0.04em;
+      text-shadow: 0 4px 18px rgba(0, 0, 0, 0.8), 0 0 30px rgba(198, 155, 58, 0.35);
+      margin-bottom: 1rem;
+    }
+
+    h1 span {
+      background: linear-gradient(135deg, #fff7d1 0%, #ffd100 50%, #b8860b 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      font-size: 1.25rem;
+      color: #bfbcc7;
+      max-width: 650px;
+      margin: 0 auto 2.2rem;
+      font-weight: 400;
+    }
+
+    .cta-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 3.5rem;
+    }
+
+    .btn-download {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.85rem;
+      background: linear-gradient(180deg, #9b2828 0%, #681515 100%);
+      color: #fff;
+      text-decoration: none;
+      font-family: 'Cinzel', serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      padding: 1.1rem 2.6rem;
+      border-radius: 6px;
+      border: 2px solid #dfa13d;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.25), 0 0 25px rgba(223, 161, 61, 0.35);
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .btn-download:hover {
+      background: linear-gradient(180deg, #b83232 0%, #7d1a1a 100%);
+      box-shadow: 0 8px 26px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.4), 0 0 35px rgba(223, 161, 61, 0.6);
+      transform: translateY(-2px);
+      border-color: #ffd866;
+    }
+
+    .btn-download svg {
+      width: 24px;
+      height: 24px;
+      fill: currentColor;
+    }
+
+    .download-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .download-meta code {
+      color: var(--gold-bright);
+      background: rgba(255, 255, 255, 0.06);
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1.5rem 4rem;
+    }
+
+    .section-title {
+      font-family: 'Cinzel', serif;
+      font-size: 1.9rem;
+      text-align: center;
+      color: #fff;
+      margin-bottom: 0.5rem;
+      position: relative;
+    }
+
+    .section-title span {
+      color: var(--gold-bright);
+    }
+
+    .section-divider {
+      width: 140px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--border-gold), transparent);
+      margin: 0 auto 3rem;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 5rem;
+    }
+
+    .card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      padding: 1.8rem;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.25s ease, transform 0.25s ease;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--border-gold), transparent);
+      opacity: 0.4;
+    }
+
+    .card:hover {
+      border-color: rgba(198, 155, 58, 0.6);
+      transform: translateY(-3px);
+    }
+
+    .card-icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      display: inline-block;
+    }
+
+    .card h3 {
+      font-family: 'Cinzel', serif;
+      font-size: 1.25rem;
+      color: #fff;
+      margin-bottom: 0.6rem;
+    }
+
+    .card p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .install-box {
+      background: var(--bg-panel);
+      border: 1px solid rgba(198, 155, 58, 0.4);
+      border-radius: 8px;
+      padding: 2.5rem;
+      max-width: 800px;
+      margin: 0 auto;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .steps-list {
+      list-style: none;
+      counter-reset: install-counter;
+      display: flex;
+      flex-direction: column;
+      gap: 1.4rem;
+      margin-top: 1.5rem;
+    }
+
+    .steps-list li {
+      counter-increment: install-counter;
+      display: flex;
+      align-items: flex-start;
+      gap: 1.2rem;
+    }
+
+    .steps-list li::before {
+      content: counter(install-counter);
+      background: var(--border-gold);
+      color: #0c0d10;
+      font-weight: 800;
+      font-family: 'Cinzel', serif;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .step-content strong {
+      display: block;
+      color: #fff;
+      font-size: 1.05rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .step-content p {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+    }
+
+    .step-content code {
+      background: #090a0d;
+      border: 1px solid #232634;
+      padding: 0.25rem 0.55rem;
+      border-radius: 4px;
+      color: #49c4ff;
+      font-family: Consolas, monospace;
+      font-size: 0.88rem;
+    }
+
+    footer {
+      text-align: center;
+      padding: 3rem 1.5rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      color: #706e78;
+      font-size: 0.85rem;
+    }
+
+    footer p + p {
+      margin-top: 0.5rem;
+    }
+
+    footer a {
+      color: var(--gold-soft);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="badge-version">Release v0.4.0 • WoW Forever Client</div>
+    <h1><span>Adventure Journal</span></h1>
+    <p class="subtitle">An authentic, Retail-inspired Adventure Guide and Encounter Atlas built exclusively for World of Warcraft Forever.</p>
+
+    <div class="cta-container">
+      <a href="Adventure_Journal-v0.4.0.zip" class="btn-download">
+        <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+        Download Adventure Journal
+      </a>
+      <div class="download-meta">
+        Version <code>0.4.0</code> • Extract directly to <code>Interface\AddOns\</code>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <h2 class="section-title">Encounter <span>Guide Highlights</span></h2>
+    <div class="section-divider"></div>
+
+    <div class="features-grid">
+      <div class="card">
+        <div class="card-icon">🗺️</div>
+        <h3>World Map Entrance Pins</h3>
+        <p>Interactive Retail-style blue swirl indicators right on zone and world maps. Filter pins by minimum level or bracket, and click to jump straight to that dungeon's journal entry.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">🎨</div>
+        <h3>Official LFG Brackets & Difficulty</h3>
+        <p>Level badges color-code in real time (Grey, Green, Yellow, Orange, Red) against your character level using authentic Blizzard relative difficulty algorithms.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">🛡️</div>
+        <h3>Capital City Faction Crests</h3>
+        <p>Prominent, authentic Horde and Alliance crests on instance headers for capital city dungeons, including Ragefire Chasm, Ruins of Lordaeron, Hall of Thanes, and The Stockade.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">⚔️</div>
+        <h3>Tier 0.5 Dungeon Set Challenges</h3>
+        <p>Dedicated encounter section for summonable Dungeon Set 2 (Tier 0.5) challenge bosses (Lord Valthalak, Mor Grayhoof, Jarien and Sothos, Kormok, Theldren, Isalien).</p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">🔍</div>
+        <h3>Real-Time Live Search</h3>
+        <p>Instant responsive filtering across all 35 classic dungeons, bosses, rare spawns, aliases, and encounter loot, with synchronized cross-grid item discovery.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">⚙️</div>
+        <h3>Granular In-Game Settings</h3>
+        <p>Full settings suite accessible via the minimap button or game options. Toggle level badges, difficulty colors, minor quest encounters, holiday schedules, and grid sorting.</p>
+      </div>
+    </div>
+
+    <h2 class="section-title">Quick <span>Installation</span></h2>
+    <div class="section-divider"></div>
+
+    <div class="install-box">
+      <ol class="steps-list">
+        <li>
+          <div class="step-content">
+            <strong>Download the Addon Zip</strong>
+            <p>Click the download button above to grab <code>Adventure_Journal-v0.4.0.zip</code>.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-content">
+            <strong>Extract to your WoW Forever AddOns Folder</strong>
+            <p>Unzip the archive directly into your installation directory:</p>
+            <p style="margin-top: 0.4rem;"><code>World of Warcraft\_forever_\Interface\AddOns\Adventure_Journal\</code></p>
+          </div>
+        </li>
+        <li>
+          <div class="step-content">
+            <strong>Open the Journal In-Game</strong>
+            <p>Launch the game or type <code>/reload</code> if already logged in. Open your journal with <code>/aj</code>, <code>/journal</code>, or by clicking the gold minimap button.</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </main>
+
+  <footer>
+    <p>Adventure Journal is an open-source community project developed for the World of Warcraft Forever client.</p>
+    <p>World of Warcraft and Blizzard Entertainment are registered trademarks of Blizzard Entertainment, Inc.</p>
+  </footer>
+
+</body>
+</html>
