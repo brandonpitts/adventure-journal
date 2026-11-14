@@ -258,6 +258,44 @@ function DungeonBookView:Init(parent, callbacks)
     eventDivider:Hide()
     self.eventDivider = eventDivider
 
+    -- Dedicated Section Header for Rare Encounters
+    local rareHeader = CreateFrame("Frame", nil, bossScrollChild)
+    rareHeader:SetHeight(26)
+    rareHeader:Hide()
+
+    local rareTitle = rareHeader:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    rareTitle:SetPoint("TOPLEFT", rareHeader, "TOPLEFT", 6, 0)
+    rareTitle:SetPoint("TOPRIGHT", rareHeader, "TOPRIGHT", -6, 0)
+    rareTitle:SetJustifyH("LEFT")
+    rareTitle:SetTextColor(0.85, 0.90, 1.0)
+    rareTitle:SetText("Rare Encounters")
+    rareHeader.title = rareTitle
+
+    local rareDivider = SharedWidgets:CreateHorizontalDividerBar(rareHeader, 4)
+    rareDivider:SetPoint("BOTTOMLEFT", rareHeader, "BOTTOMLEFT", 4, 0)
+    rareDivider:SetPoint("BOTTOMRIGHT", rareHeader, "BOTTOMRIGHT", -8, 0)
+    rareHeader.divider = rareDivider
+    self.rareHeader = rareHeader
+
+    -- Dedicated Section Header for Minor & Quest Encounters
+    local minorHeader = CreateFrame("Frame", nil, bossScrollChild)
+    minorHeader:SetHeight(26)
+    minorHeader:Hide()
+
+    local minorTitle = minorHeader:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    minorTitle:SetPoint("TOPLEFT", minorHeader, "TOPLEFT", 6, 0)
+    minorTitle:SetPoint("TOPRIGHT", minorHeader, "TOPRIGHT", -6, 0)
+    minorTitle:SetJustifyH("LEFT")
+    minorTitle:SetTextColor(0.75, 0.70, 0.60)
+    minorTitle:SetText("Minor & Quest Encounters")
+    minorHeader.title = minorTitle
+
+    local minorDivider = SharedWidgets:CreateHorizontalDividerBar(minorHeader, 4)
+    minorDivider:SetPoint("BOTTOMLEFT", minorHeader, "BOTTOMLEFT", 4, 0)
+    minorDivider:SetPoint("BOTTOMRIGHT", minorHeader, "BOTTOMRIGHT", -8, 0)
+    minorHeader.divider = minorDivider
+    self.minorHeader = minorHeader
+
     -- Dedicated Section Header for Dungeon Set Challenges (Tier 0.5)
     local challengeHeader = CreateFrame("Frame", nil, bossScrollChild)
     challengeHeader:SetHeight(26)
@@ -359,10 +397,22 @@ function DungeonBookView:Init(parent, callbacks)
     noDropsText:Hide()
     self.noDropsText = noDropsText
 
+    local dropUpdateTimer = nil
     if ns.ItemsManager and ns.ItemsManager.RegisterUpdateListener then
         ns.ItemsManager:RegisterUpdateListener(function()
             if self.frame and self.frame:IsShown() and self.selectedBoss and self.currentDungeon then
-                self:RenderItemDrops(self.currentDungeon, self.selectedBoss)
+                if dropUpdateTimer and dropUpdateTimer.Cancel then
+                    dropUpdateTimer:Cancel()
+                end
+                if C_Timer and C_Timer.NewTimer then
+                    dropUpdateTimer = C_Timer.NewTimer(0.08, function()
+                        if self.frame and self.frame:IsShown() and self.selectedBoss and self.currentDungeon then
+                            self:RenderItemDrops(self.currentDungeon, self.selectedBoss)
+                        end
+                    end)
+                else
+                    self:RenderItemDrops(self.currentDungeon, self.selectedBoss)
+                end
             end
         end)
     end
@@ -372,6 +422,15 @@ function DungeonBookView:Init(parent, callbacks)
         SharedWidgets:SyncQuestDividerBar(self.rightDivider)
         if self.eventDivider and self.eventDivider:IsShown() then
             SharedWidgets:SyncQuestDividerBar(self.eventDivider)
+        end
+        if self.rareHeader and self.rareHeader:IsShown() and self.rareHeader.divider then
+            SharedWidgets:SyncQuestDividerBar(self.rareHeader.divider)
+        end
+        if self.minorHeader and self.minorHeader:IsShown() and self.minorHeader.divider then
+            SharedWidgets:SyncQuestDividerBar(self.minorHeader.divider)
+        end
+        if self.challengeHeader and self.challengeHeader:IsShown() and self.challengeHeader.divider then
+            SharedWidgets:SyncQuestDividerBar(self.challengeHeader.divider)
         end
         if self.trashDivider and self.trashDivider:IsShown() then
             SharedWidgets:SyncQuestDividerBar(self.trashDivider)
@@ -741,10 +800,12 @@ function DungeonBookView:AcquireItemRow(index)
     row:SetScript("OnEnter", function(r)
         if not GameTooltip or not r.itemID then return end
         GameTooltip:SetOwner(r, "ANCHOR_RIGHT")
-        if r.itemLink then
+        if r.itemLink and r.itemLink:find("|Hitem:") then
             GameTooltip:SetHyperlink(r.itemLink)
-        else
+        elseif GameTooltip.SetItemByID then
             GameTooltip:SetItemByID(r.itemID)
+        else
+            GameTooltip:SetHyperlink("item:" .. tostring(r.itemID))
         end
         GameTooltip:Show()
     end)
@@ -907,7 +968,9 @@ function DungeonBookView:RefreshLeftPage()
     end
 
     local eventBosses = {}
-    local regularBosses = {}
+    local mainBosses = {}
+    local rareBosses = {}
+    local minorBosses = {}
     local challengeBosses = {}
     local firstMatchingBoss = nil
     local selectedBossMatches = false
@@ -937,9 +1000,16 @@ function DungeonBookView:RefreshLeftPage()
                     challengeBosses[#challengeBosses + 1] = boss
                 end
             else
-                local isMinor = boss.isMinor or (boss.classification == "minor") or (boss.classification == "quest")
-                if not isMinor or showMinor then
-                    regularBosses[#regularBosses + 1] = boss
+                local isRare = (boss.rare == true) or (boss.isRare == true) or (boss.classification == "rare") or (boss.classification == "rareelite")
+                local isMinor = (boss.isMinor == true) or (boss.classification == "minor") or (boss.classification == "quest")
+                if isRare then
+                    rareBosses[#rareBosses + 1] = boss
+                elseif isMinor then
+                    if showMinor then
+                        minorBosses[#minorBosses + 1] = boss
+                    end
+                else
+                    mainBosses[#mainBosses + 1] = boss
                 end
             end
         end
@@ -1058,27 +1128,91 @@ function DungeonBookView:RefreshLeftPage()
         end
     end
 
-    -- 2. REGULAR DUNGEON BOSSES
-    for _, boss in ipairs(regularBosses) do
+    -- 2. MAIN DUNGEON BOSSES
+    for _, boss in ipairs(mainBosses) do
         btnIndex = btnIndex + 1
         local btn = self:AcquireBossButton(btnIndex)
         renderBossButton(btn, boss, currentY)
         currentY = currentY - (bookCfg.BOSS_BTN_HEIGHT + bookCfg.BOSS_BTN_GAP)
     end
 
-    -- 3. DUNGEON SET CHALLENGES (Tier 0.5)
+    -- 3. RARE ENCOUNTERS
+    if #rareBosses > 0 then
+        local rareY = currentY - 14
+        if self.rareHeader then
+            self.rareHeader:ClearAllPoints()
+            self.rareHeader:SetPoint("TOPLEFT", self.bossScrollChild, "TOPLEFT", 10, rareY)
+            self.rareHeader:SetPoint("TOPRIGHT", self.bossScrollChild, "TOPRIGHT", -14, rareY)
+            if self.rareHeader.title then
+                self.rareHeader.title:SetText("Rare Encounters")
+            end
+            self.rareHeader:Show()
+            if self.rareHeader.divider then
+                SharedWidgets:SyncQuestDividerBar(self.rareHeader.divider)
+            end
+        end
+        currentY = rareY - 44
+
+        for _, boss in ipairs(rareBosses) do
+            btnIndex = btnIndex + 1
+            local btn = self:AcquireBossButton(btnIndex)
+            renderBossButton(btn, boss, currentY)
+            currentY = currentY - (bookCfg.BOSS_BTN_HEIGHT + bookCfg.BOSS_BTN_GAP)
+        end
+    else
+        if self.rareHeader then
+            self.rareHeader:Hide()
+        end
+    end
+
+    -- 4. MINOR & QUEST ENCOUNTERS
+    if #minorBosses > 0 then
+        local minorY = currentY - 14
+        if self.minorHeader then
+            self.minorHeader:ClearAllPoints()
+            self.minorHeader:SetPoint("TOPLEFT", self.bossScrollChild, "TOPLEFT", 10, minorY)
+            self.minorHeader:SetPoint("TOPRIGHT", self.bossScrollChild, "TOPRIGHT", -14, minorY)
+            if self.minorHeader.title then
+                self.minorHeader.title:SetText("Minor & Quest Encounters")
+            end
+            self.minorHeader:Show()
+            if self.minorHeader.divider then
+                SharedWidgets:SyncQuestDividerBar(self.minorHeader.divider)
+            end
+        end
+        currentY = minorY - 44
+
+        for _, boss in ipairs(minorBosses) do
+            btnIndex = btnIndex + 1
+            local btn = self:AcquireBossButton(btnIndex)
+            renderBossButton(btn, boss, currentY)
+            currentY = currentY - (bookCfg.BOSS_BTN_HEIGHT + bookCfg.BOSS_BTN_GAP)
+        end
+    else
+        if self.minorHeader then
+            self.minorHeader:Hide()
+        end
+        if self.selectedBoss and (self.selectedBoss.isMinor or self.selectedBoss.classification == "minor" or self.selectedBoss.classification == "quest") and not showMinor then
+            self.selectedBoss = nil
+        end
+    end
+
+    -- 5. DUNGEON SET CHALLENGES (Tier 0.5)
     if #challengeBosses > 0 then
         local chY = currentY - 14
         if self.challengeHeader then
             self.challengeHeader:ClearAllPoints()
             self.challengeHeader:SetPoint("TOPLEFT", self.bossScrollChild, "TOPLEFT", 10, chY)
             self.challengeHeader:SetPoint("TOPRIGHT", self.bossScrollChild, "TOPRIGHT", -14, chY)
+            if self.challengeHeader.title then
+                self.challengeHeader.title:SetText("Dungeon Set Challenges (Tier 0.5)")
+            end
             self.challengeHeader:Show()
             if self.challengeHeader.divider then
                 SharedWidgets:SyncQuestDividerBar(self.challengeHeader.divider)
             end
         end
-        currentY = chY - 48
+        currentY = chY - 44
 
         for _, boss in ipairs(challengeBosses) do
             btnIndex = btnIndex + 1
@@ -1095,7 +1229,7 @@ function DungeonBookView:RefreshLeftPage()
         end
     end
 
-    -- 4. ZONE DROPS AT THE BOTTOM
+    -- 6. ZONE DROPS AT THE BOTTOM
     local zoneDrops = ns.ItemsManager and ns.ItemsManager:GetEncounterDrops(d.id, "Zone Drops") or {}
     local hasZoneDrops = (#zoneDrops > 0)
     if hasZoneDrops and q ~= "" then
@@ -1247,30 +1381,51 @@ function DungeonBookView:RenderItemDrops(d, boss)
 
     for _, itemID in ipairs(dropIDs) do
         local itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, _, classID, subclassID = safeGetItemInfo(itemID)
-        if itemName and itemName ~= "" then
-            local matchesQuery = true
-            if filterByItem then
-                matchesQuery = strfind(strlower(itemName), q, 1, true) ~= nil
+        
+        -- Fallback and async cache loading for items not yet in local client cache
+        if not itemName or itemName == "" then
+            if C_Item and C_Item.RequestLoadItemDataByID then
+                pcall(C_Item.RequestLoadItemDataByID, itemID)
             end
+            local getInstant = (C_Item and C_Item.GetItemInfoInstant) or _G.GetItemInfoInstant
+            if getInstant then
+                local _, instType, instSubType, instEquipLoc, instIcon, instClassID, instSubclassID = getInstant(itemID)
+                itemType = itemType or instType
+                itemSubType = itemSubType or instSubType
+                itemEquipLoc = itemEquipLoc or instEquipLoc
+                itemTexture = itemTexture or instIcon
+                classID = classID or instClassID
+                subclassID = subclassID or instSubclassID
+            end
+            local cachedName = ns.ItemsManager and ns.ItemsManager:GetItemName(itemID)
+            if cachedName and cachedName ~= "" then
+                itemName = cachedName
+            end
+        end
 
-            if matchesQuery then
-                local cat = ns.ItemsManager:GetItemCategory(itemType, itemSubType, itemEquipLoc, itemID, itemName, classID, subclassID)
-                local isGreyEquipment = (cat == "EQUIPMENT" and (itemQuality == 0 or itemQuality == "0"))
-                if not isGreyEquipment then
-                    local itemData = {
-                        id = itemID,
-                        name = itemName,
-                        link = itemLink,
-                        quality = itemQuality or 1,
-                        itemType = itemType,
-                        itemSubType = itemSubType,
-                        equipLoc = itemEquipLoc,
-                        texture = itemTexture,
-                        classID = classID,
-                        subclassID = subclassID,
-                    }
-                    grouped[cat][#grouped[cat] + 1] = itemData
-                end
+        local displayName = (itemName and itemName ~= "") and itemName or ("Item #" .. tostring(itemID))
+        local matchesQuery = true
+        if filterByItem then
+            matchesQuery = strfind(strlower(displayName), q, 1, true) ~= nil
+        end
+
+        if matchesQuery then
+            local cat = (ns.ItemsManager and ns.ItemsManager:GetItemCategory(itemType, itemSubType, itemEquipLoc, itemID, itemName, classID, subclassID)) or "MISC"
+            local isGreyEquipment = (cat == "EQUIPMENT" and (itemQuality == 0 or itemQuality == "0"))
+            if not isGreyEquipment then
+                local itemData = {
+                    id = itemID,
+                    name = displayName,
+                    link = itemLink or ("item:" .. tostring(itemID)),
+                    quality = itemQuality or 1,
+                    itemType = itemType,
+                    itemSubType = itemSubType,
+                    equipLoc = itemEquipLoc,
+                    texture = itemTexture or "Interface\\Icons\\INV_Misc_QuestionMark",
+                    classID = classID,
+                    subclassID = subclassID,
+                }
+                grouped[cat][#grouped[cat] + 1] = itemData
             end
         end
     end

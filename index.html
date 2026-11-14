@@ -240,6 +240,22 @@
       margin-bottom: 3.5rem;
     }
 
+    .roadmap-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 4rem;
+    }
+
+    .roadmap-next {
+      border-color: rgba(198, 155, 58, 0.7);
+      background: linear-gradient(180deg, rgba(198, 155, 58, 0.08) 0%, var(--bg-panel) 100%);
+    }
+
+    .roadmap-next .card-tag {
+      color: #55e670;
+    }
+
     .card {
       background: var(--bg-panel);
       border: 1px solid var(--border-dark);
@@ -522,6 +538,30 @@
         <h3>Built with Agentic Coding</h3>
       </div>
       <p>Adventure Journal was developed through agentic AI workflows to explore, test, and refine agent-driven software engineering workflows, skills, and practices using Google models, including <strong>Flash 3.8</strong>, <strong>Hydrogen</strong>, and <strong>Argon</strong>.</p>
+    </div>
+
+    <!-- Development Roadmap -->
+    <h2 class="section-title">Development <span>Roadmap</span></h2>
+    <div class="section-divider"></div>
+
+    <div class="roadmap-grid">
+      <div class="card roadmap-next">
+        <div class="card-tag">Up Next • In Active Development</div>
+        <h3>Quests Tab & Attunements</h3>
+        <p>The next major expansion for Adventure Journal introduces the comprehensive Quests tab: tracking dungeon & raid attunements, class quest chains (totems, shapeshift forms, class mounts, and epic weapons), and dungeon quest guides with turn-ins and rewards.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-tag">Future Module</div>
+        <h3>Raids & World Bosses</h3>
+        <p>Full 10, 20, and 40-player raid tier guides with multi-phase encounter breakdowns, boss abilities, and complete tier set item drop catalogs.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-tag">Future Module</div>
+        <h3>Professions Reference</h3>
+        <p>Comprehensive tradeskill catalogs covering recipe drops, material requirements, skill level thresholds, and trainer / vendor coordinates.</p>
+      </div>
     </div>
 
     <h2 class="section-title">Quick <span>Installation</span></h2>

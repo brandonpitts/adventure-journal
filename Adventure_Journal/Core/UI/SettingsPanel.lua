@@ -192,7 +192,7 @@ function SettingsPanel:Init()
     self.scrollFrame = scrollFrame
 
     local scrollChild = CreateFrame("Frame", nil, scrollFrame)
-    scrollChild:SetSize(580, 660)
+    scrollChild:SetSize(580, 720)
     scrollFrame:SetScrollChild(scrollChild)
     self.scrollChild = scrollChild
 
@@ -200,6 +200,7 @@ function SettingsPanel:Init()
     self:CreateKeybindRow(scrollChild)
     self:CreateMinimapToggleRow(scrollChild)
     self:CreateCompareItemsToggleRow(scrollChild)
+    self:CreateAddonCompartmentToggleRow(scrollChild)
     self:CreateInstalledPluginsSection(scrollChild)
     self:CreateDungeonModuleSection(scrollChild)
     self:CreateMapIconsModuleSection(scrollChild)
@@ -390,11 +391,49 @@ function SettingsPanel:CreateCompareItemsToggleRow(panel)
     self.CompareItemsCheckbox = checkbox
 end
 
+--- Builds the "Show in Blizzard Addon Compartment" checkbox row.
+--- @param panel Frame
+function SettingsPanel:CreateAddonCompartmentToggleRow(panel)
+    local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -100)
+    label:SetText("Show in Blizzard Addon Compartment")
+    self.AddonCompartmentLabel = label
+
+    local checkbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+    checkbox:SetSize(28, 28)
+    checkbox:SetPoint("RIGHT", panel, "RIGHT", -24, 0)
+    checkbox:SetPoint("CENTER", label, "CENTER", 0, 0)
+
+    checkbox:SetScript("OnEnter", function(cb)
+        if GameTooltip then
+            GameTooltip:SetOwner(cb, "ANCHOR_RIGHT")
+            GameTooltip:AddLine("Blizzard Addon Compartment", 1.0, 0.82, 0.0)
+            GameTooltip:AddLine("When enabled on modern WoW clients, Adventure Journal is listed in the Blizzard Addon Compartment dropdown next to the Minimap.", 1.0, 1.0, 1.0, true)
+            GameTooltip:Show()
+        end
+    end)
+    checkbox:SetScript("OnLeave", function()
+        if GameTooltip then
+            GameTooltip:Hide()
+        end
+    end)
+
+    checkbox:SetScript("OnClick", function(cb)
+        local isChecked = cb:GetChecked() and true or false
+        if PlaySound then
+            PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
+        end
+        ns.Database:SetAddonCompartmentShown(isChecked)
+    end)
+
+    self.AddonCompartmentCheckbox = checkbox
+end
+
 --- Builds the "Installed Modules" section header, instructions, and drag-and-drop list container.
 --- @param panel Frame
 function SettingsPanel:CreateInstalledPluginsSection(panel)
     local sectionHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    sectionHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 18, -116)
+    sectionHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 18, -144)
     sectionHeader:SetText("Installed Modules")
     self.PluginSectionHeader = sectionHeader
 
@@ -1255,13 +1294,15 @@ function SettingsPanel:Refresh()
         if self.KeybindLabel then self.KeybindLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -46) end
         if self.MinimapLabel then self.MinimapLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -74) end
         if self.CompareItemsLabel then self.CompareItemsLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -102) end
-        if self.PluginSectionHeader then self.PluginSectionHeader:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 18, -146) end
+        if self.AddonCompartmentLabel then self.AddonCompartmentLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -130) end
+        if self.PluginSectionHeader then self.PluginSectionHeader:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 18, -174) end
     else
         if self.AlertBanner then self.AlertBanner:Hide() end
         if self.KeybindLabel then self.KeybindLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -16) end
         if self.MinimapLabel then self.MinimapLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -44) end
         if self.CompareItemsLabel then self.CompareItemsLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -72) end
-        if self.PluginSectionHeader then self.PluginSectionHeader:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 18, -116) end
+        if self.AddonCompartmentLabel then self.AddonCompartmentLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -100) end
+        if self.PluginSectionHeader then self.PluginSectionHeader:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 18, -144) end
     end
 
     if self.KeybindButton then
@@ -1280,6 +1321,9 @@ function SettingsPanel:Refresh()
             isAutoCompare = (GetCVar("alwaysCompareItems") == "1")
         end
         self.CompareItemsCheckbox:SetChecked(isAutoCompare == true)
+    end
+    if self.AddonCompartmentCheckbox then
+        self.AddonCompartmentCheckbox:SetChecked(ns.Database:IsAddonCompartmentShown())
     end
     if self.BossLevelCheckbox then
         self.BossLevelCheckbox:SetChecked(ns.Database:GetDungeonSetting("showBossLevel", true) == true)

@@ -244,9 +244,8 @@ function DungeonGridView:AcquireTile(index)
             GameTooltip:AddLine(" ")
             GameTooltip:AddLine(d.description, 0.85, 0.85, 0.85, true)
         end
-        local bossCount = (d.bosses and #d.bosses) or 0
         GameTooltip:AddLine(" ")
-        GameTooltip:AddLine(string.format("%d Boss Encounters — Click to open", bossCount), 0.25, 0.92, 0.32)
+        GameTooltip:AddLine("Click to open", 0.25, 0.92, 0.32)
         GameTooltip:Show()
     end)
 

@@ -13,6 +13,7 @@ local pcall = pcall
 local type = type
 local CreateFrame = CreateFrame
 local SetPortraitToTexture = SetPortraitToTexture
+local SetPortraitTextureFromCreatureDisplayID = SetPortraitTextureFromCreatureDisplayID
 local GetFileIDFromPath = GetFileIDFromPath
 local Constants = ns.Constants
 
@@ -766,8 +767,19 @@ function SharedWidgets:SetBossMedallionPortrait(medallion, boss, dungeon)
         return
     end
 
-    -- 2. Pre-baked creature portrait from ForeverDungeonJournal if loaded/installed
-    local displayID = boss and boss.displayID
+    -- 2. Native engine creature display portrait (2D render of creature model)
+    local displayID = boss and (boss.displayID or boss.displayId)
+    if displayID and type(displayID) == "number" and displayID > 0 then
+        if type(SetPortraitTextureFromCreatureDisplayID) == "function" then
+            local ok = pcall(SetPortraitTextureFromCreatureDisplayID, tex, displayID)
+            if ok then
+                tex:SetTexCoord(0, 1, 0, 1)
+                return
+            end
+        end
+    end
+
+    -- 3. Legacy ForeverDungeonJournal baked portrait fallback if loaded
     local fdj = _G.ForeverDungeonJournal_NS
     if displayID and fdj and fdj.BAKED_PORTRAITS and fdj.BAKED_PORTRAITS[displayID] then
         local pPath = FDJ_PORTRAIT_PATH .. displayID
@@ -782,7 +794,6 @@ function SharedWidgets:SetBossMedallionPortrait(medallion, boss, dungeon)
         return
     end
 
-    -- 3. Check if baked portrait file exists on disk via GetFileIDFromPath
     if displayID and type(GetFileIDFromPath) == "function" then
         local candidate = FDJ_PORTRAIT_PATH .. displayID .. ".tga"
         local ok, fid = pcall(GetFileIDFromPath, candidate)
@@ -811,66 +822,71 @@ function SharedWidgets:SetBossMedallionPortrait(medallion, boss, dungeon)
     end
 end
 
---- Sets cropped dungeon artwork or icon on medallion.icon.
+
+local KNOWN_VALID_FILE_IDS = {
+    [131865] = true, -- LoadScreenRazorfen
+    [131870] = true, -- LoadScreenStockade
+    [131871] = true, -- LoadScreenStratholme living
+    [131872] = true, -- LoadScreenStratholme undead
+    [7963734] = true, -- Alcaz Prison
+    [7963741] = true, -- The Drowned City
+    [7963775] = true, -- City of Dalaran
+    [7963777] = true, -- Excavation Site: Wetlands
+    [7963780] = true, -- Krol'dok Stronghold
+    [7963781] = true, -- Hall of Thanes
+    [7963782] = true, -- Ruins of Lordaeron
+    [7963783] = true, -- Shaper's Terrace
+    [7963784] = true, -- Blackmaw Hold
+}
+
+--- Helper function to resolve the best valid loading screen texture for a dungeon.
+--- Returns the resolved texture path or FileDataID.
+local function ResolveDungeonArtTexture(dungeon)
+    if not dungeon then return "Interface\\Glues\\LoadingScreens\\LoadScreenDungeon" end
+    for _, candidate in ipairs(dungeon.art or {}) do
+        if candidate and candidate ~= "" then
+            local isExternal = (type(candidate) == "string" and candidate:find("ForeverDungeonJournal"))
+            if not isExternal then
+                if type(candidate) == "number" and (KNOWN_VALID_FILE_IDS[candidate] or candidate > 0) then
+                    return candidate
+                elseif type(candidate) == "string" then
+                    return candidate
+                end
+            end
+        end
+    end
+    return "Interface\\Glues\\LoadingScreens\\LoadScreenDungeon"
+end
+
+--- Sets the dungeon circular medallion portrait on the left page header.
+--- Standardized to pull from the dungeon's loading screen image cropped in a circle,
+--- matching the right-page artwork with clean fallback to dungeon.icon.
 --- @param medallion Frame
 --- @param dungeon table
 function SharedWidgets:SetDungeonMedallionArt(medallion, dungeon)
     if not medallion or not medallion.icon or not dungeon then
         return
     end
+
     local tex = medallion.icon
+    local art = ResolveDungeonArtTexture(dungeon)
 
-    if medallion.CreateMaskTexture and not medallion.mask then
-        local mask = medallion:CreateMaskTexture()
-        mask:SetAllPoints(tex)
-        mask:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-        tex:AddMaskTexture(mask)
-        medallion.mask = mask
+    if art then
+        tex:SetTexture(art)
+        -- Standardized square center crop of the loading screen:
+        -- Horizontal center: 0.32 to 0.68 (center 36% of width)
+        -- Vertical center: 0.25 to 0.81 (crops out top header and bottom footer)
+        -- Masked into a clean circle by medallion.mask (TempPortraitAlphaMask)!
+        tex:SetTexCoord(0.32, 0.68, 0.25, 0.81)
+        tex:Show()
+    else
+        self:SetMedallionIcon(medallion, dungeon.icon)
     end
-
-    -- 1. Try candidate art paths / FileDataIDs from dungeon definition
-    local artTexture = nil
-    local tc = dungeon.texCoord or { 0.02, 0.98, 0.24, 0.82 }
-    if dungeon.art then
-        for _, candidate in ipairs(dungeon.art) do
-            if (type(candidate) == "number" and candidate > 0) or (type(candidate) == "string" and candidate ~= "") then
-                artTexture = candidate
-                break
-            end
-        end
-    end
-
-    -- 2. Fallback to ForeverDungeonJournal resolved home art if not set on dungeon
-    if not artTexture then
-        local fdj = _G.ForeverDungeonJournal_NS
-        if fdj and fdj.DUNGEON_HOME_ART and fdj.DUNGEON_HOME_ART[dungeon.name] then
-            artTexture = fdj.DUNGEON_HOME_ART[dungeon.name]
-            if fdj.DUNGEON_HOME_TEXCOORD and fdj.DUNGEON_HOME_TEXCOORD[dungeon.name] then
-                tc = fdj.DUNGEON_HOME_TEXCOORD[dungeon.name]
-            end
-        end
-    end
-
-    if artTexture then
-        tex:SetTexture(artTexture)
-        -- Take a clean circular center-cutout from the middle of the loading-screen artwork
-        local left, right = tc[1], tc[2]
-        local top, bottom = tc[3], tc[4]
-        local midX = (left + right) * 0.5
-        local midY = (top + bottom) * 0.5
-        -- Loading screens are typically 1024x512 (2:1 aspect ratio)
-        local vSpan = (bottom - top) * 0.38
-        local uSpan = vSpan * 0.55
-        tex:SetTexCoord(midX - uSpan, midX + uSpan, midY - vSpan, midY + vSpan)
-        return
-    end
-
-    -- 3. Fallback to dungeon icon if artwork is unavailable
-    self:SetMedallionIcon(medallion, dungeon.icon)
 end
 
 --- Applies the best available dungeon artwork to `artTexture` and returns whether
 --- a full loading-screen / card image was found.
+--- Standardized zoom cuts off top header and bottom footer across all dungeons.
 --- @param artTexture Texture
 --- @param dungeon table
 --- @return boolean hasFullArt
@@ -879,48 +895,13 @@ function SharedWidgets:ApplyDungeonArtwork(artTexture, dungeon)
         return false
     end
 
-    -- 1. Try candidate paths / FileDataIDs from dungeon definition
-    for _, candidate in ipairs(dungeon.art or {}) do
-        if type(candidate) == "number" then
-            artTexture:SetTexture(candidate)
-            local tc = dungeon.texCoord or { 0.02, 0.98, 0.24, 0.82 }
-            artTexture:SetTexCoord(tc[1], tc[2], tc[3], tc[4])
-            artTexture:Show()
-            return true
-        elseif type(candidate) == "string" then
-            local canUse = true
-            if type(GetFileIDFromPath) == "function" then
-                local ok, fid = pcall(GetFileIDFromPath, candidate)
-                if not ok or not fid or fid == 0 then
-                    -- Also try with .blp or .tga suffix if bare path
-                    local okTga, fidTga = pcall(GetFileIDFromPath, candidate .. ".tga")
-                    local okBlp, fidBlp = pcall(GetFileIDFromPath, candidate .. ".blp")
-                    canUse = (okTga and fidTga and fidTga > 0) or (okBlp and fidBlp and fidBlp > 0)
-                end
-            end
-            if canUse then
-                artTexture:SetTexture(candidate)
-                local tc = dungeon.texCoord or { 0.02, 0.98, 0.24, 0.82 }
-                artTexture:SetTexCoord(tc[1], tc[2], tc[3], tc[4])
-                artTexture:Show()
-                return true
-            end
-        end
-    end
+    local tc = dungeon.texCoord or { 0.02, 0.98, 0.25, 0.81 }
+    local art = ResolveDungeonArtTexture(dungeon)
 
-    -- 2. Fallback: check if ForeverDungeonJournal has resolved home art in memory
-    local fdj = _G.ForeverDungeonJournal_NS
-    if fdj and fdj.DUNGEON_HOME_ART and fdj.DUNGEON_HOME_ART[dungeon.name] then
-        local art = fdj.DUNGEON_HOME_ART[dungeon.name]
-        local tc = (fdj.DUNGEON_HOME_TEXCOORD and fdj.DUNGEON_HOME_TEXCOORD[dungeon.name]) or dungeon.texCoord or { 0.02, 0.98, 0.24, 0.82 }
-        artTexture:SetTexture(art)
-        artTexture:SetTexCoord(tc[1], tc[2], tc[3], tc[4])
-        artTexture:Show()
-        return true
-    end
-
-    artTexture:Hide()
-    return false
+    artTexture:SetTexture(art)
+    artTexture:SetTexCoord(tc[1], tc[2], tc[3], tc[4])
+    artTexture:Show()
+    return true
 end
 
 --- Parses a level number or range string (e.g. 45, "45", "18-20") into (minLvl, maxLvl).

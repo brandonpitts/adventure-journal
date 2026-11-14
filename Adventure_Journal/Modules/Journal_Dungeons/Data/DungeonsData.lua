@@ -17,7 +17,6 @@ local sort = table.sort
 local strlower = string.lower
 local strfind = string.find
 
-local FDJ_MEDIA = "Interface\\AddOns\\ForeverDungeonJournal\\Media\\"
 local LOAD_SCREEN = "Interface\\Glues\\LoadingScreens\\"
 
 -- ----------------------------------------------------------------------------
@@ -40,8 +39,12 @@ local DUNGEONS = {
         location = "Beneath Ironforge, Dun Morogh",
         description = "Someone has broken into the royal dwarven burial chamber beneath Ironforge. Restless spirits of ancient thanes and Dark Iron intruders now stalk the Reliquary of Kings.",
         icon = "Interface\\Icons\\INV_Hammer_04",
-        art = { FDJ_MEDIA .. "HallOfThanes.tga", LOAD_SCREEN .. "LoadScreenDungeon" },
-        texCoord = { 0.03, 0.97, 0.05, 0.95 },
+        art = {
+            7963781,
+            LOAD_SCREEN .. "LoadScreenIronforge",
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "hot", "thanes", "ironforge" },
         bosses = {
             {
@@ -86,7 +89,7 @@ local DUNGEONS = {
         description = "Ragefire Chasm consists of a network of volcanic caverns that lie below Orgrimmar. Lately, followers of the demonic Shadow Council have nestled into the Chasm's fiery depths.",
         icon = "Interface\\Icons\\Spell_Fire_Fire",
         art = { LOAD_SCREEN .. "LoadScreenRagefireChasm" },
-        texCoord = { 0.02, 0.98, 0.25, 0.82 },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "rfc", "ragefire" },
         bosses = {
             {
@@ -131,8 +134,12 @@ local DUNGEONS = {
         location = "Capital City, Tirisfal Glades",
         description = "Scourge forces still haunt the ruined capital above the Undercity while the necromancer Rath'mael gathers dark power within the fallen courtyards.",
         icon = "Interface\\Icons\\INV_Misc_Bone_HumanSkull_01",
-        art = { FDJ_MEDIA .. "RuinsOfLordaeron.tga", LOAD_SCREEN .. "LoadScreenUndercity" },
-        texCoord = { 0.03, 0.97, 0.05, 0.95 },
+        art = {
+            7963782,
+            LOAD_SCREEN .. "LoadScreenUndercity",
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "rol", "lordaeron", "ruins" },
         bosses = {
             {
@@ -174,7 +181,7 @@ local DUNGEONS = {
                 name = "Lordaeron Captain",
                 level = "19",
                 rare = true,
-                icon = FDJ_MEDIA .. "LordaeronCaptainPortrait.tga",
+                icon = "Interface\\Icons\\INV_Helmet_03",
                 description = "Rare spawn. A spectral captain of the old royal guard still patrolling the battlements.",
             },
             {
@@ -199,7 +206,7 @@ local DUNGEONS = {
         description = "Deep beneath the Barrens, corrupted Druids of the Fang guard the sleeping archdruid Naralex while nightmare beasts prowl the subterranean springs.",
         icon = "Interface\\Icons\\Spell_Nature_Purge",
         art = { LOAD_SCREEN .. "LoadScreenWailingCaverns" },
-        texCoord = { 0.02, 0.98, 0.25, 0.82 },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "wc", "wailing" },
         bosses = {
             { name = "Lord Cobrahn", level = "20", npcID = 3669, displayID = 4213, description = "One of the four Fanglords whose Nightmare energy imprisons Naralex." },
@@ -226,7 +233,7 @@ local DUNGEONS = {
         description = "Beneath the abandoned town of Moonbrook, Edwin VanCleef and the Defias Brotherhood have constructed a massive subterranean drydock and juggernaut warship.",
         icon = "Interface\\Icons\\INV_Pick_02",
         art = { LOAD_SCREEN .. "LoadScreenDeadmines" },
-        texCoord = { 0.02, 0.98, 0.25, 0.82 },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "dm", "vc", "deadmines", "vancleef" },
         bosses = {
             { name = "Rhahk'Zor", level = "19", npcID = 644, displayID = 14403, description = "Ogre foreman guarding the first heavy iron door of the mines." },
@@ -253,7 +260,7 @@ local DUNGEONS = {
         description = "Once the fortress of Baron Silverlaine, Shadowfang Keep has fallen under the curse of Archmage Arugal and his ferocious worgen pack.",
         icon = "Interface\\Icons\\Spell_Shadow_ChillTouch",
         art = { LOAD_SCREEN .. "LoadScreenShadowFangKeep" },
-        texCoord = { 0.02, 0.98, 0.24, 0.82 },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "sfk", "shadowfang", "arugal" },
         bosses = {
             { name = "Rethilgore", level = "20", npcID = 3914, displayID = 524, description = "Worgen jailer holding the keys to the courtyard prisoners." },
@@ -283,7 +290,7 @@ local DUNGEONS = {
         description = "Once dedicated to the night elves' goddess Elune, Blackfathom Deeps was thought to have been destroyed during the Sundering. Millennia later, Twilight's Hammer cultists and naga have claimed the sunken temple to guard the ancient hydra Aku'mai.",
         icon = "Interface\\Icons\\Spell_Frost_Stun",
         art = { LOAD_SCREEN .. "LoadScreenBlackFathomDeeps" },
-        texCoord = { 0.02, 0.98, 0.25, 0.82 },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "bfd", "blackfathom" },
         bosses = {
             {
@@ -318,8 +325,11 @@ local DUNGEONS = {
         location = "Canals, Stormwind City",
         description = "A high-security prison complex beneath Stormwind's canal district, overrun by a prisoner uprising led by the Defias agitator Bazil Thredd.",
         icon = "Interface\\Icons\\INV_Misc_Key_04",
-        art = { 131870 },
-        texCoord = { 0.02, 0.98, 0.24, 0.82 },
+        art = {
+            131870,
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "stocks", "stockade", "stormwind stockade" },
         bosses = {
             { name = "Kam Deepfury", level = "27", npcID = 1666, displayID = 825, description = "Dark Iron dwarf conspirator held in the northern hall." },
@@ -342,8 +352,8 @@ local DUNGEONS = {
         location = "Whelgar's Excavation Site, Wetlands",
         description = "Explorers' League diggers in the Wetlands have broken into a sealed subterranean complex teeming with prehistoric beasts and ancient titanic relics.",
         icon = "Interface\\Icons\\INV_Misc_Bone_DwarfSkull_01",
-        art = { 7963777 },
-        texCoord = { 0.00, 1.00, 0.12, 0.88 },
+        art = { 7963777, LOAD_SCREEN .. "LoadScreenDungeon" },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "esw", "excavation", "wetlands", "whelgar" },
         bosses = {
             { name = "Saltspine", level = "28", npcID = 260322, displayID = 144209, description = "An armored subterranean beast prowling the flooded dig tunnels." },
@@ -363,8 +373,8 @@ local DUNGEONS = {
         location = "Alterac Mountains",
         description = "Behind Dalaran's arcane wards, unstable ley-line rifts, rogue constructs, and remnants of the Scourge assault threaten the wizards' sanctum.",
         icon = "Interface\\Icons\\Spell_Holy_MagicalSentry",
-        art = { 7963775 },
-        texCoord = { 0.00, 1.00, 0.12, 0.88 },
+        art = { 7963775, LOAD_SCREEN .. "LoadScreenDungeon" },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "dal", "dalaran" },
         bosses = {
             { name = "Atrexis the Grave Knight", level = "29", npcID = 247126, displayID = 145787, description = "An undead death-knight commander haunting the outer streets." },
@@ -390,7 +400,7 @@ local DUNGEONS = {
         description = "The irradiated techno-city of the gnomes, betrayed from within by Mekgineer Thermaplugg and overrun by troggs, leper gnomes, and haywire mechanostriders.",
         icon = "Interface\\Icons\\INV_Gizmo_02",
         art = { LOAD_SCREEN .. "LoadScreenGnomeregan" },
-        texCoord = { 0.02, 0.98, 0.24, 0.82 },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "gnomer", "gnomeregan", "thermaplugg" },
         bosses = {
             { name = "Techbot", level = "26", npcID = 6231, displayID = 7288, isMinor = true, description = "Rogue security robot guarding the exterior entrance." },
@@ -414,8 +424,11 @@ local DUNGEONS = {
         location = "Southern Barrens",
         description = "A sprawling tangle of giant thorns in the Southern Barrens serving as the stronghold of the Death's Head quilboar tribe under Charlga Razorflank.",
         icon = "Interface\\Icons\\INV_Misc_Head_Quillboar_01",
-        art = { 131865 },
-        texCoord = { 0.02, 0.98, 0.24, 0.82 },
+        art = {
+            131865,
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "rfk", "kraul" },
         bosses = {
             { name = "Aggem Thorncurse", level = "30", npcID = 4424, displayID = 6097, description = "Death's Head summoner channeling boar spirits." },
@@ -441,8 +454,12 @@ local DUNGEONS = {
         location = "Tirisfal Glades",
         description = "The torture chambers and haunted burial grounds of the Scarlet Monastery, where Interrogator Vishas extracts confessions and the undead Bloodmage Thalnos guards the crypts.",
         icon = "Interface\\Icons\\Spell_Shadow_Haunting",
-        art = { FDJ_MEDIA .. "ScarletMonasteryGraveyardHome", LOAD_SCREEN .. "LoadScreenScarletMonastery2", LOAD_SCREEN .. "LoadScreenScarletMonastery" },
-        texCoord = { 0.02, 0.98, 0.24, 0.82 },
+        art = {
+            LOAD_SCREEN .. "LoadScreenMonastery",
+            LOAD_SCREEN .. "LoadScreenScarletMonastery",
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "sm gy", "sm graveyard", "graveyard" },
         bosses = {
             { name = "Interrogator Vishas", level = "32", npcID = 3983, displayID = 2044, description = "Scarlet torturer in the entry prison chamber." },
@@ -465,8 +482,12 @@ local DUNGEONS = {
         location = "Tirisfal Glades",
         description = "The Athenaeum and galleries of the Scarlet Crusade, housing ancient tomes, war hounds, and the Scarlet Key inside Arcanist Doan's strongbox.",
         icon = "Interface\\Icons\\INV_Misc_Book_11",
-        art = { FDJ_MEDIA .. "ScarletMonasteryLibraryHome", LOAD_SCREEN .. "LoadScreenScarletMonastery2", LOAD_SCREEN .. "LoadScreenScarletMonastery" },
-        texCoord = { 0.02, 0.98, 0.24, 0.82 },
+        art = {
+            LOAD_SCREEN .. "LoadScreenMonastery",
+            LOAD_SCREEN .. "LoadScreenScarletMonastery",
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "sm lib", "sm library", "library", "doan" },
         bosses = {
             { name = "Houndmaster Loksey", level = "34", npcID = 3974, displayID = 2040, description = "Keeper of the Scarlet tracking hounds in the courtyard kennels." },
@@ -485,8 +506,12 @@ local DUNGEONS = {
         location = "Tirisfal Glades",
         description = "The training barracks and Hall of Champions of the Scarlet Crusade, presided over by the Scarlet champion Herod.",
         icon = "Interface\\Icons\\INV_Helmet_03",
-        art = { FDJ_MEDIA .. "ScarletMonasteryArmoryHome", LOAD_SCREEN .. "LoadScreenScarletMonastery", LOAD_SCREEN .. "LoadScreenScarletMonastery2" },
-        texCoord = { 0.02, 0.98, 0.24, 0.82 },
+        art = {
+            LOAD_SCREEN .. "LoadScreenMonastery",
+            LOAD_SCREEN .. "LoadScreenScarletMonastery",
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "sm arm", "sm armory", "armory", "herod" },
         bosses = {
             { name = "Herod", level = "40", npcID = 3975, displayID = 2041, description = "The Scarlet Champion who unleashes devastating Blades of Light whirlwinds." },
@@ -504,8 +529,11 @@ local DUNGEONS = {
         location = "Stranglethorn Vale",
         description = "I'lalai, a lost Gurubashi troll city, has risen from the sea off the coast of Stranglethorn Vale west of Grom'gol. Trolls, naga, and Saltseer pirates roam its storm-swept streets.",
         icon = "Interface\\Icons\\Spell_Frost_SummonWaterElemental",
-        art = { FDJ_MEDIA .. "DrownedCityHome" },
-        texCoord = { 0.00, 1.00, 0.06, 0.94 },
+        art = {
+            7963741,
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "tdc", "drowned city", "ilalai" },
         bosses = {
             { name = "Zul'Alai", level = "37", npcID = 258905, displayID = 144475, description = "First boss, an undead Gurubashi troll who enrages near death." },
@@ -529,8 +557,12 @@ local DUNGEONS = {
         location = "Tirisfal Glades",
         description = "The grand Chapel Gardens and Cathedral of the Scarlet Monastery, defended by Scarlet Commander Mograine and High Inquisitor Whitemane.",
         icon = "Interface\\Icons\\Spell_Holy_Resurrection",
-        art = { FDJ_MEDIA .. "ScarletMonasteryCathedralHome", LOAD_SCREEN .. "LoadScreenScarletMonastery", LOAD_SCREEN .. "LoadScreenScarletMonastery2" },
-        texCoord = { 0.02, 0.98, 0.24, 0.82 },
+        art = {
+            LOAD_SCREEN .. "LoadScreenMonastery",
+            LOAD_SCREEN .. "LoadScreenScarletMonastery",
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "sm cath", "sm cathedral", "cathedral", "mograine", "whitemane" },
         bosses = {
             { name = "High Inquisitor Fairbanks", level = "40", npcID = 4542, displayID = 2605, description = "Hidden behind a secret torch lever in the eastern transept." },
@@ -550,8 +582,12 @@ local DUNGEONS = {
         location = "Southern Barrens",
         description = "The ancient capital of the quilboar race, now corrupted by the Scourge lich Amnennar the Coldbringer and his undead Death's Head converts.",
         icon = "Interface\\Icons\\Spell_Frost_FrostArmor02",
-        art = { FDJ_MEDIA .. "RazorfenDownsHome", LOAD_SCREEN .. "LoadScreenRazorfenDowns", 131865 },
-        texCoord = { 0.02, 0.98, 0.24, 0.82 },
+        art = {
+            LOAD_SCREEN .. "LoadScreenRazorfenDowns",
+            LOAD_SCREEN .. "LoadScreenRazorfen",
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "rfd", "downs" },
         bosses = {
             { name = "Tuten'kash", level = "40", npcID = 7355, displayID = 7845, description = "Summoned by striking the gong three times to defeat waves of undead spiders." },
@@ -575,8 +611,8 @@ local DUNGEONS = {
         location = "Badlands",
         description = "An ancient Titan vault buried deep beneath the Badlands where the earthen first awoke, guarded by the titanic watcher Archaedas.",
         icon = "Interface\\Icons\\INV_Misc_StoneTablet_11",
-        art = { FDJ_MEDIA .. "UldamanHome", LOAD_SCREEN .. "LoadScreenUldaman" },
-        texCoord = { 0.02, 0.98, 0.24, 0.82 },
+        art = { LOAD_SCREEN .. "LoadScreenUldaman", LOAD_SCREEN .. "LoadScreenDungeon" },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "ulda", "uldaman" },
         bosses = {
             { name = "Baelog", level = "41", npcID = 6906, displayID = 5710, description = "Leader of the Lost Dwarves expedition." },
@@ -603,8 +639,11 @@ local DUNGEONS = {
         location = "Riverglades",
         description = "A fortified ogre stronghold of workshops, encampments, and Twilight's Hammer inner passages in the Riverglades, ruled by Overlord Mugg.",
         icon = "Interface\\Icons\\INV_Misc_Key_13",
-        art = { FDJ_MEDIA .. "KroldokHome" },
-        texCoord = { 0.00, 1.00, 0.06, 0.94 },
+        art = {
+            7963780,
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "krol", "kroldok", "riverglades" },
         bosses = {
             { name = "Slavecrusher Grox", level = "42", npcID = 258966, displayID = 141217, description = "Brutal ogre taskmaster overseeing the outer work pits." },
@@ -615,7 +654,6 @@ local DUNGEONS = {
             { name = "Overlord Mugg", level = "45", npcID = 258968, displayID = 141218, description = "Final boss and supreme ruler of Krol'dok Stronghold." },
         },
     },
-
     -- 21. Zul'Farrak (Classic)
     {
         id = "zulfarrak",
@@ -627,8 +665,8 @@ local DUNGEONS = {
         location = "Tanaris",
         description = "The sun-baked open-air troll city in the deserts of Tanaris, stronghold of the Sandfury tribe and the sacred hydra Gahz'rilla.",
         icon = "Interface\\Icons\\INV_Misc_Head_Troll_01",
-        art = { FDJ_MEDIA .. "ZulFarrakHome", LOAD_SCREEN .. "LoadScreenZulFarrak" },
-        texCoord = { 0.02, 0.98, 0.24, 0.82 },
+        art = { LOAD_SCREEN .. "LoadScreenZulFarrak", LOAD_SCREEN .. "LoadScreenDungeon" },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "zf", "zulfarrak", "zul'farrak" },
         bosses = {
             { name = "Antu'sul", level = "48", npcID = 8127, displayID = 7353, description = "Overseer of the Sul'lithuz basilisk pit." },
@@ -658,8 +696,8 @@ local DUNGEONS = {
         location = "Valley of Spears, Desolace",
         description = "Sacred burial site of Zaetar, divided between the corrupted Orange/Purple wings and the subterranean waterfall realm of Princess Theradras.",
         icon = "Interface\\Icons\\Spell_Nature_Acid_01",
-        art = { FDJ_MEDIA .. "MaraudonHome", LOAD_SCREEN .. "LoadScreenMaraudon" },
-        texCoord = { 0.00, 1.00, 0.06, 0.94 },
+        art = { LOAD_SCREEN .. "LoadScreenMaraudon", LOAD_SCREEN .. "LoadScreenDungeon" },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "mara", "maraudon", "theradras" },
         bosses = {
             { name = "Veng", level = "47", npcID = 13738, displayID = 9418, isMinor = true, description = "Centaur khan spirit roaming the Wicked Grotto." },
@@ -691,8 +729,11 @@ local DUNGEONS = {
         location = "Alcaz Island, Dustwallow Marsh",
         description = "Deep beneath the naga-infested jungles of Alcaz Island lies a subterranean prison complex holding high-value captives and dark secrets.",
         icon = "Interface\\Icons\\INV_Misc_Key_07",
-        art = { FDJ_MEDIA .. "AlcazPrisonHome" },
-        texCoord = { 0.00, 1.00, 0.06, 0.94 },
+        art = {
+            7963734,
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "alcaz", "alcaz island" },
         bosses = {
             { name = "Tidemistress Ca'zass", level = "50", npcID = 255997, displayID = 4973, description = "Naga sea-witch commanding the flooded lower vaults." },
@@ -713,8 +754,8 @@ local DUNGEONS = {
         location = "Swamp of Sorrows",
         description = "The Temple of Atal'Hakkar, where exiled Atal'ai priests seek to summon the blood god Hakkar while green dragonflight guardians battle the corruption.",
         icon = "Interface\\Icons\\Spell_Nature_Thorns",
-        art = { FDJ_MEDIA .. "SunkenTempleHome", LOAD_SCREEN .. "LoadScreenSunkenTemple" },
-        texCoord = { 0.00, 1.00, 0.06, 0.94 },
+        art = { LOAD_SCREEN .. "LoadScreenSunkenTemple", LOAD_SCREEN .. "LoadScreenDungeon" },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "st", "sunken temple", "atal'hakkar", "atalhakkar" },
         bosses = {
             { name = "Balcony Minibosses", level = "50", displayID = 6701, isMinor = true, description = "The six Atal'ai troll priests channeling dark magic on the upper balcony." },
@@ -742,8 +783,8 @@ local DUNGEONS = {
         location = "Blackrock Mountain",
         description = "The sprawling subterranean city of Shadowforge, capital of the Dark Iron dwarves ruled by Emperor Dagran Thaurissan beneath Blackrock Mountain.",
         icon = "Interface\\Icons\\INV_Hammer_Unique_Sulfuras",
-        art = { FDJ_MEDIA .. "BlackrockDepthsHome", LOAD_SCREEN .. "LoadScreenBlackrockDepths" },
-        texCoord = { 0.00, 1.00, 0.06, 0.94 },
+        art = { LOAD_SCREEN .. "LoadScreenBlackrockDepths", LOAD_SCREEN .. "LoadScreenDungeon" },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "brd", "depths", "shadowforge" },
         bosses = {
             { name = "Coren Direbrew", level = "??", npcID = 23872, displayID = 21824, isEvent = true, holiday = "Brewfest", description = "Dark Iron brewmaster fought during the Brewfest seasonal event." },
@@ -788,8 +829,8 @@ local DUNGEONS = {
         location = "Blackrock Mountain",
         description = "The lower halls of Blackrock Spire, held by the Spirestone ogres, Smolderthorn trolls, and Bloodaxe orcs of the Dark Horde under Overlord Wyrmthalak.",
         icon = "Interface\\Icons\\INV_Misc_Head_Dragon_Black",
-        art = { FDJ_MEDIA .. "BlackrockSpireHome", LOAD_SCREEN .. "LoadScreenBlackrockSpire" },
-        texCoord = { 0.00, 1.00, 0.06, 0.94 },
+        art = { LOAD_SCREEN .. "LoadScreenBlackrockSpire", LOAD_SCREEN .. "LoadScreenDungeon" },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "lbrs", "lower spire" },
         bosses = {
             { name = "Burning Felguard", level = "57", npcID = 10263, displayID = 5047, isMinor = true, description = "Demonic summoned guard." },
@@ -823,8 +864,8 @@ local DUNGEONS = {
         location = "Blackrock Mountain",
         description = "The upper citadel of Blackrock Spire, unlocked with the Seal of Ascension and ruled by Warchief Rend Blackhand and General Drakkisath.",
         icon = "Interface\\Icons\\INV_Misc_Head_Dragon_Black",
-        art = { FDJ_MEDIA .. "BlackrockSpireHome", LOAD_SCREEN .. "LoadScreenBlackrockSpire" },
-        texCoord = { 0.00, 1.00, 0.06, 0.94 },
+        art = { LOAD_SCREEN .. "LoadScreenBlackrockSpire", LOAD_SCREEN .. "LoadScreenDungeon" },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "ubrs", "upper spire", "rend", "drakkisath" },
         bosses = {
             { name = "Pyroguard Emberseer", level = "60", npcID = 9816, displayID = 2172, description = "Fire elemental bound inside the Hall of Binding." },
@@ -850,8 +891,8 @@ local DUNGEONS = {
         location = "Feralas",
         description = "Warpwood Quarter — the eastern wing of ancient Eldre'Thalas, overrun by satyrs and corrupted plant life under Alzzin the Wildshaper.",
         icon = "Interface\\Icons\\Spell_Nature_Preservation",
-        art = { FDJ_MEDIA .. "DireMaulHome", LOAD_SCREEN .. "LoadScreenDireMaul" },
-        texCoord = { 0.00, 1.00, 0.06, 0.94 },
+        art = { LOAD_SCREEN .. "LoadScreenDireMaul", LOAD_SCREEN .. "LoadScreenDungeon" },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "dme", "dm east", "warpwood" },
         bosses = {
             { name = "Pusillin", level = "57", npcID = 14354, displayID = 7552, description = "Mischievous imp chased through the conservatory for the Crescent Key." },
@@ -863,7 +904,7 @@ local DUNGEONS = {
         },
     },
 
-    -- 29. Blackmaw Hold (WoW Forever â€” Coming Soon)
+    -- 29. Blackmaw Hold (WoW Forever — Coming Soon)
     {
         id = "blackmaw_hold",
         name = "Blackmaw Hold",
@@ -874,8 +915,11 @@ local DUNGEONS = {
         location = "Azshara / Felwood",
         description = "The subterranean timbermaw fortress of the corrupted Blackmaw furbolg tribe, ruled by Elder Shaman Bloodmane and Varrox Bleakhoof.",
         icon = "Interface\\Icons\\INV_Misc_MonsterClaw_04",
-        art = { FDJ_MEDIA .. "BlackmawHoldHome" },
-        texCoord = { 0.00, 1.00, 0.06, 0.94 },
+        art = {
+            7963784,
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "bmh", "blackmaw", "furbolg" },
         bosses = {
             { name = "Withermaw", level = "58", npcID = 247195, displayID = 140708, description = "Plague-blighted ursine monstrosity." },
@@ -900,8 +944,8 @@ local DUNGEONS = {
         location = "Feralas",
         description = "Capital Gardens — the western wing of Eldre'Thalas where the Shen'dralar Highborne siphon demonic energy from the bound demon Immol'thar.",
         icon = "Interface\\Icons\\Spell_Nature_Preservation",
-        art = { FDJ_MEDIA .. "DireMaulHome", LOAD_SCREEN .. "LoadScreenDireMaul" },
-        texCoord = { 0.00, 1.00, 0.06, 0.94 },
+        art = { LOAD_SCREEN .. "LoadScreenDireMaul", LOAD_SCREEN .. "LoadScreenDungeon" },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "dmw", "dm west", "capital gardens" },
         bosses = {
             { name = "Tendris Warpwood", level = "60", npcID = 11489, displayID = 14383, description = "Ancient protector linked to all living protectors in the courtyard." },
@@ -923,10 +967,10 @@ local DUNGEONS = {
         minLevel = 56,
         maxLevel = 60,
         location = "Feralas",
-        description = "Gordok Commons â€” the northern ogre wing of Eldre'Thalas where players can either slay the Gordok guards or complete a Tribute run to become King.",
+        description = "Gordok Commons — the northern ogre wing of Eldre'Thalas where players can either slay the Gordok guards or complete a Tribute run to become King.",
         icon = "Interface\\Icons\\Spell_Nature_Preservation",
-        art = { FDJ_MEDIA .. "DireMaulHome", LOAD_SCREEN .. "LoadScreenDireMaul" },
-        texCoord = { 0.00, 1.00, 0.06, 0.94 },
+        art = { LOAD_SCREEN .. "LoadScreenDireMaul", LOAD_SCREEN .. "LoadScreenDungeon" },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "dmn", "dm north", "tribute", "gordok" },
         bosses = {
             { name = "Guard Mol'dar", level = "59", npcID = 14326, displayID = 11561, description = "First Gordok guard in the lower courtyard." },
@@ -948,10 +992,13 @@ local DUNGEONS = {
         minLevel = 58,
         maxLevel = 60,
         location = "Eastern Plaguelands",
-        description = "King's Square & Scarlet Bastion â€” the western side of burning Stratholme held by the Crimson Legion under Grand Crusader Dathrohan (Balnazzar).",
+        description = "King's Square & Scarlet Bastion — the western side of burning Stratholme held by the Crimson Legion under Grand Crusader Dathrohan (Balnazzar).",
         icon = "Interface\\Icons\\Spell_Holy_CrusaderStrike",
-        art = { FDJ_MEDIA .. "StratholmeHome", LOAD_SCREEN .. "LoadScreenStratholme" },
-        texCoord = { 0.00, 1.00, 0.06, 0.94 },
+        art = {
+            131871,
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "strat live", "strat living", "living", "balnazzar" },
         bosses = {
             { name = "Skul", level = "58", npcID = 10393, displayID = 2606, rare = true, description = "Rare skeletal mage near the entrance." },
@@ -978,10 +1025,13 @@ local DUNGEONS = {
         minLevel = 58,
         maxLevel = 60,
         location = "Eastern Plaguelands",
-        description = "The Gauntlet & Slaughter Square â€” the eastern Scourge-controlled district of Stratholme ruled by Baron Rivendare from the Slaughterhouse.",
+        description = "The Gauntlet & Slaughter Square — the eastern Scourge-controlled district of Stratholme ruled by Baron Rivendare from the Slaughterhouse.",
         icon = "Interface\\Icons\\Spell_Holy_CrusaderStrike",
-        art = { FDJ_MEDIA .. "StratholmeHome", LOAD_SCREEN .. "LoadScreenStratholme" },
-        texCoord = { 0.00, 1.00, 0.06, 0.94 },
+        art = {
+            131871,
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "strat ud", "strat undead", "undead", "rivendare" },
         bosses = {
             { name = "Magistrate Barthilas", level = "58", npcID = 10435, displayID = 10433, description = "Former magistrate of Stratholme who flees toward the Service Entrance." },
@@ -1006,8 +1056,11 @@ local DUNGEONS = {
         location = "Caer Darrow, Western Plaguelands",
         description = "The haunted crypts beneath ruined Caer Darrow, transformed by the Barov family's pact with Kel'Thuzad into the premier academy of necromancy under Darkmaster Gandling.",
         icon = "Interface\\Icons\\Spell_Shadow_RaiseDead",
-        art = { FDJ_MEDIA .. "ScholomanceHome", LOAD_SCREEN .. "LoadScreenScholomance" },
-        texCoord = { 0.00, 1.00, 0.06, 0.94 },
+        art = {
+            LOAD_SCREEN .. "LoadScreenScholomance",
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "scholo", "scholomance", "gandling" },
         bosses = {
             { name = "Blood Steward of Kirtonos", level = "61", npcID = 14861, displayID = 10925, isMinor = true, description = "Summoner servant on the porch of Kirtonos." },
@@ -1029,7 +1082,7 @@ local DUNGEONS = {
         },
     },
 
-    -- 35. Shaper's Terrace (WoW Forever â€” Coming Soon)
+    -- 35. Shaper's Terrace (WoW Forever — Coming Soon)
     {
         id = "shapers_terrace",
         name = "Shaper's Terrace",
@@ -1040,8 +1093,11 @@ local DUNGEONS = {
         location = "Un'Goro Crater",
         description = "An ancient Titan experimentation terrace overlooking Un'Goro Crater, inhabited by colossal primal beasts and titanic watchers.",
         icon = "Interface\\Icons\\Ability_Hunter_Pet_Raptor",
-        art = { FDJ_MEDIA .. "ShapersTerraceHome" },
-        texCoord = { 0.00, 1.00, 0.06, 0.94 },
+        art = {
+            7963783,
+            LOAD_SCREEN .. "LoadScreenDungeon",
+        },
+        texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "shapers", "terrace", "ungoro" },
         bosses = {
             { name = "Titanosaur", level = "61", npcID = 253201, displayID = 142989, description = "Apex devilsaur of the outer terrace." },
@@ -1216,5 +1272,4 @@ end
 -- 4. Namespace Attachment
 -- ----------------------------------------------------------------------------
 ns.Data.DungeonsData = DungeonsData
-
 

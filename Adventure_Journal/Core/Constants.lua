@@ -163,6 +163,7 @@ local Constants = {
 
     DB_DEFAULTS = {
         schemaVersion = 1,
+        showInAddonCompartment = true,
         minimap = {
             show = true,
             hide = false,

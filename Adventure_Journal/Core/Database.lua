@@ -60,6 +60,21 @@ function Database:GetStore()
 end
 
 --- @return boolean
+function Database:IsAddonCompartmentShown()
+    local store = self:GetStore()
+    if store.showInAddonCompartment ~= nil then
+        return store.showInAddonCompartment == true
+    end
+    return true
+end
+
+--- @param isShown boolean
+function Database:SetAddonCompartmentShown(isShown)
+    local store = self:GetStore()
+    store.showInAddonCompartment = isShown and true or false
+end
+
+--- @return boolean
 function Database:IsMinimapShown()
     local store = self:GetStore()
     if store.minimap.show ~= nil then

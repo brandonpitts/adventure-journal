@@ -184,6 +184,58 @@ end
 -- Side Tab Subsystem (Public API)
 -- ----------------------------------------------------------------------------
 
+-- ----------------------------------------------------------------------------
+-- Blizzard Addon Compartment Support
+-- ----------------------------------------------------------------------------
+function _G.AdventureJournal_OnAddonCompartmentClick(addonName, mouseButton)
+    if mouseButton == "RightButton" then
+        JournalBase:OpenSettings()
+    else
+        JournalBase:Toggle()
+    end
+end
+
+function _G.AdventureJournal_OnAddonCompartmentEnter(addonName, button)
+    if not GameTooltip then return end
+    GameTooltip:SetOwner(button or UIParent, "ANCHOR_LEFT")
+    GameTooltip:AddLine(Constants.TITLE, 1.0, 0.82, 0.0)
+    GameTooltip:AddLine("Left-click to toggle Adventure Journal.", 1, 1, 1, true)
+    GameTooltip:AddLine("Right-click to open Settings.", 0.7, 0.7, 0.7, true)
+    GameTooltip:Show()
+end
+
+function _G.AdventureJournal_OnAddonCompartmentLeave()
+    if GameTooltip then
+        GameTooltip:Hide()
+    end
+end
+
+local function RegisterAddonCompartment()
+    if _G.AddonCompartmentFrame and _G.AddonCompartmentFrame.RegisterAddOn then
+        if ns.Database and not ns.Database:IsAddonCompartmentShown() then
+            return
+        end
+        _G.AddonCompartmentFrame:RegisterAddOn({
+            text = Constants.TITLE,
+            icon = Constants.ASSETS.FALLBACK_ICON,
+            notCheckable = true,
+            func = function(button, menuInputData, menu)
+                if button == "RightButton" then
+                    JournalBase:OpenSettings()
+                else
+                    JournalBase:Toggle()
+                end
+            end,
+            funcOnEnter = function(button)
+                _G.AdventureJournal_OnAddonCompartmentEnter(addonName, button)
+            end,
+            funcOnLeave = function()
+                _G.AdventureJournal_OnAddonCompartmentLeave()
+            end,
+        })
+    end
+end
+
 -- Centralized Table-Driven Event Dispatcher
 local EventDispatcher = CreateFrame("Frame")
 
@@ -198,6 +250,7 @@ function EventDispatcher:ADDON_LOADED(loadedAddonName)
     ns.UI.MainFrame:Init()
     ns.UI.MinimapButton:Init()
     ns.UI.SettingsPanel:Init()
+    RegisterAddonCompartment()
 end
 
 function EventDispatcher:PLAYER_ENTERING_WORLD()
@@ -215,9 +268,10 @@ end)
 EventDispatcher:RegisterEvent("ADDON_LOADED")
 EventDispatcher:RegisterEvent("PLAYER_ENTERING_WORLD")
 
--- Slash Commands (/journal, /jb)
+-- Slash Commands (/journal, /jb, /aj)
 _G.SLASH_JOURNALBASE1 = "/journal"
 _G.SLASH_JOURNALBASE2 = "/jb"
+_G.SLASH_JOURNALBASE3 = "/aj"
 
 _G.SlashCmdList.JOURNALBASE = function(msg)
     local cmd = normalizeCommand(msg)
@@ -226,6 +280,17 @@ _G.SlashCmdList.JOURNALBASE = function(msg)
         return
     end
     JournalBase:Toggle()
+end
+
+-- Convenient quick reload command (/rl)
+if not _G.SLASH_AJ_RELOAD1 then
+    _G.SLASH_AJ_RELOAD1 = "/rl"
+    _G.SlashCmdList["AJ_RELOAD"] = function()
+        local reload = _G.ReloadUI or (_G.C_UI and _G.C_UI.Reload)
+        if reload then
+            reload()
+        end
+    end
 end
 
 -- ----------------------------------------------------------------------------
