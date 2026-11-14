@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Adventure Journal — World of Warcraft Addon</title>
-  <meta name="description" content="An authentic, Retail-inspired Adventure Guide and Encounter Atlas for World of Warcraft Forever.">
+  <title>Adventure Journal — World of Warcraft Addon Framework</title>
+  <meta name="description" content="A modular in-game journal framework for World of Warcraft Forever, providing dungeon item catalogs and planned gameplay modules.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -91,11 +91,12 @@
     }
 
     .subtitle {
-      font-size: 1.25rem;
+      font-size: 1.2rem;
       color: #bfbcc7;
-      max-width: 650px;
+      max-width: 720px;
       margin: 0 auto 2.2rem;
       font-weight: 400;
+      line-height: 1.65;
     }
 
     .cta-container {
@@ -181,7 +182,7 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
       gap: 1.5rem;
-      margin-bottom: 5rem;
+      margin-bottom: 3.5rem;
     }
 
     .card {
@@ -210,17 +211,20 @@
       transform: translateY(-3px);
     }
 
-    .card-icon {
-      font-size: 2rem;
-      margin-bottom: 1rem;
-      display: inline-block;
+    .card-tag {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--gold-bright);
+      margin-bottom: 0.5rem;
     }
 
     .card h3 {
       font-family: 'Cinzel', serif;
       font-size: 1.25rem;
       color: #fff;
-      margin-bottom: 0.6rem;
+      margin-bottom: 0.65rem;
     }
 
     .card p {
@@ -229,6 +233,55 @@
       line-height: 1.6;
     }
 
+    /* Disclaimer Box */
+    .disclaimer-box {
+      background: rgba(19, 20, 26, 0.85);
+      border: 1px solid rgba(198, 155, 58, 0.35);
+      border-left: 4px solid var(--border-gold);
+      border-radius: 8px;
+      padding: 1.8rem 2rem;
+      margin: 0 auto 4rem;
+      max-width: 900px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .disclaimer-header {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .disclaimer-badge {
+      background: rgba(198, 155, 58, 0.2);
+      border: 1px solid var(--border-gold);
+      color: var(--gold-bright);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+    }
+
+    .disclaimer-header h3 {
+      font-family: 'Cinzel', serif;
+      font-size: 1.15rem;
+      color: #fff;
+    }
+
+    .disclaimer-box p {
+      color: #b3b1ba;
+      font-size: 0.94rem;
+      line-height: 1.65;
+    }
+
+    .disclaimer-box strong {
+      color: var(--gold-bright);
+      font-weight: 600;
+    }
+
+    /* Installation Box */
     .install-box {
       background: var(--bg-panel);
       border: 1px solid rgba(198, 155, 58, 0.4);
@@ -320,7 +373,7 @@
   <header>
     <div class="badge-version">Release v0.4.0 • WoW Forever Client</div>
     <h1><span>Adventure Journal</span></h1>
-    <p class="subtitle">An authentic, Retail-inspired Adventure Guide and Encounter Atlas built exclusively for World of Warcraft Forever.</p>
+    <p class="subtitle">A modular in-game journal framework for World of Warcraft Forever. Currently providing comprehensive dungeon encounter and item lists, with planned modules for raids, professions, attunements, class quests, and more.</p>
 
     <div class="cta-container">
       <a href="Adventure_Journal-v0.4.0.zip" class="btn-download">
@@ -334,45 +387,54 @@
   </header>
 
   <main>
-    <h2 class="section-title">Encounter <span>Guide Highlights</span></h2>
+    <h2 class="section-title">Feature <span>Highlights</span></h2>
     <div class="section-divider"></div>
 
     <div class="features-grid">
       <div class="card">
-        <div class="card-icon">🗺️</div>
-        <h3>World Map Entrance Pins</h3>
-        <p>Interactive Retail-style blue swirl indicators right on zone and world maps. Filter pins by minimum level or bracket, and click to jump straight to that dungeon's journal entry.</p>
+        <div class="card-tag">Architecture</div>
+        <h3>Modular Addon Framework</h3>
+        <p>Built from the ground up as an extensible platform. Adventure Journal acts as a lightweight core shell hosting dedicated, plug-and-play modules for dungeon item lists, utilities, and future gameplay catalogs.</p>
       </div>
 
       <div class="card">
-        <div class="card-icon">🎨</div>
-        <h3>Official LFG Brackets & Difficulty</h3>
-        <p>Level badges color-code in real time (Grey, Green, Yellow, Orange, Red) against your character level using authentic Blizzard relative difficulty algorithms.</p>
+        <div class="card-tag">Roadmap</div>
+        <h3>Planned Ecosystem Modules</h3>
+        <p>Active development roadmap includes dedicated modules for Raid loot tables, Primary & Secondary Professions (recipes, reagents, and trainer sources), and Questlines (dungeon attunements and class quest chains).</p>
       </div>
 
       <div class="card">
-        <div class="card-icon">🛡️</div>
-        <h3>Capital City Faction Crests</h3>
-        <p>Prominent, authentic Horde and Alliance crests on instance headers for capital city dungeons, including Ragefire Chasm, Ruins of Lordaeron, Hall of Thanes, and The Stockade.</p>
+        <div class="card-tag">Dungeon Module</div>
+        <h3>Dungeon Item Lists & Encounters</h3>
+        <p>Detailed directories across 35 Classic and custom WoW Forever dungeons, featuring full boss rosters, lore backgrounds, and encounter item drop catalogs.</p>
       </div>
 
       <div class="card">
-        <div class="card-icon">⚔️</div>
-        <h3>Tier 0.5 Dungeon Set Challenges</h3>
-        <p>Dedicated encounter section for summonable Dungeon Set 2 (Tier 0.5) challenge bosses (Lord Valthalak, Mor Grayhoof, Jarien and Sothos, Kormok, Theldren, Isalien).</p>
+        <div class="card-tag">Utility Module</div>
+        <h3>World Map Entrance Indicators</h3>
+        <p>Retail-style blue swirl portal markers directly on world and zone maps showing dungeon locations, featuring level-bracket visibility and one-click navigation directly into the journal.</p>
       </div>
 
       <div class="card">
-        <div class="card-icon">🔍</div>
+        <div class="card-tag">Search</div>
         <h3>Real-Time Live Search</h3>
-        <p>Instant responsive filtering across all 35 classic dungeons, bosses, rare spawns, aliases, and encounter loot, with synchronized cross-grid item discovery.</p>
+        <p>Fast, responsive search filtering across dungeons, boss encounters, aliases, and specific item drops, with automatic cross-grid encounter discovery.</p>
       </div>
 
       <div class="card">
-        <div class="card-icon">⚙️</div>
-        <h3>Granular In-Game Settings</h3>
-        <p>Full settings suite accessible via the minimap button or game options. Toggle level badges, difficulty colors, minor quest encounters, holiday schedules, and grid sorting.</p>
+        <div class="card-tag">Encounters</div>
+        <h3>Tier 0.5 Challenge Bosses</h3>
+        <p>Dedicated encounter section for summonable Dungeon Set 2 (Tier 0.5) challenge encounters, complete with elite medallion borders and challenge boss rosters.</p>
       </div>
+    </div>
+
+    <!-- Agentic Development Disclaimer -->
+    <div class="disclaimer-box">
+      <div class="disclaimer-header">
+        <span class="disclaimer-badge">Development Context</span>
+        <h3>Built with Agentic Coding</h3>
+      </div>
+      <p>Adventure Journal was developed through agentic AI workflows to explore, test, and refine agent-driven software engineering workflows, skills, and practices using Google models, including <strong>Flash 3.8</strong>, <strong>Hydrogen</strong>, and <strong>Argon</strong>.</p>
     </div>
 
     <h2 class="section-title">Quick <span>Installation</span></h2>

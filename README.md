@@ -1,22 +1,27 @@
 # Adventure Journal (WoW Forever Client)
 
-**Adventure Journal** is an authentic, retail-inspired in-game encounter guide and dungeon atlas for the *World of Warcraft Forever* (12.x / Classic) client.
+**Adventure Journal** is a modular in-game journal framework for the *World of Warcraft Forever* client. It currently provides a comprehensive dungeon encounter and item drop catalog, with planned modules for raid item tables, primary and secondary professions, attunements, class quests, and more.
 
 ---
 
-## 🌟 Key Features
+## Feature Highlights
 
-* **Official LFG Level Brackets**: Dungeons and bosses are color-coded dynamically using authentic Blizzard level difficulty curves (Grey, Green, Yellow, Orange, Red) based on your character's level.
-* **World Map Entrance Indicators**: Retail-style blue swirl dungeon pins directly on zone and world maps, with level-bracket filtering and click-to-open integration.
-* **Capital City Faction Crests**: Distinctive Horde and Alliance crests on instance headers for capital city dungeons (*Ragefire Chasm*, *Ruins of Lordaeron*, *Hall of Thanes*, *The Stockade*).
-* **Tier 0.5 Dungeon Set Challenges**: Dedicated roster section for summonable Tier 0.5 challenge bosses (Lord Valthalak, Mor Grayhoof, Jarien and Sothos, Kormok, Theldren, Isalien).
-* **Live In-Dungeon & Global Search**: Instant filtering across 35 classic dungeons, bosses, rare spawns, and encounter loot.
-* **Interactive Navigation**: Return to dungeon overview directly from any boss view by clicking the dungeon medallion portrait or using the "Show on Map" button.
-* **Clean Configuration Suite**: Standalone Settings panel to toggle level badges, difficulty colors, minor quest mobs, holiday event schedules, and grid sorting.
+* **Modular Addon Framework**: Built from the ground up as an extensible architecture. Adventure Journal acts as a lightweight core shell hosting dedicated, plug-and-play modules for dungeon item lists, utilities, and future gameplay catalogs.
+* **Planned Ecosystem Modules**: Active development roadmap includes dedicated modules for Raid loot tables, Primary & Secondary Professions (recipes, reagents, and trainer sources), and Questlines (dungeon attunements and class quest chains).
+* **Dungeon Item Lists & Encounters**: Detailed directories across 35 Classic and custom WoW Forever dungeons, featuring full boss rosters, lore backgrounds, and encounter item drop catalogs.
+* **World Map Entrance Indicators**: Retail-style blue swirl portal markers directly on world and zone maps showing dungeon locations, featuring level-bracket visibility and one-click navigation directly into the journal.
+* **Real-Time Live Search**: Fast, responsive search filtering across dungeons, boss encounters, aliases, and specific item drops, with automatic cross-grid encounter discovery.
+* **Tier 0.5 Challenge Bosses**: Dedicated encounter section for summonable Dungeon Set 2 (Tier 0.5) challenge encounters, complete with elite medallion borders and challenge boss rosters.
 
 ---
 
-## 📥 Installation
+## Built with Agentic Coding
+
+Adventure Journal was developed through agentic AI workflows to assist, explore, test, and refine agent-driven software engineering skills, architectural patterns, and development practices using Google models, including **Flash 3.8**, **Hydrogen**, and **Argon**.
+
+---
+
+## Installation
 
 1. Download **[`Adventure_Journal-v0.4.0.zip`](Adventure_Journal-v0.4.0.zip)**.
 2. Extract the archive into your WoW Forever AddOns directory:
@@ -29,6 +34,6 @@
 
 ---
 
-## 🌐 Public Website
+## Public Website
 Visit the official GitHub Pages landing site:  
 👉 **[https://brandonpitts.github.io/adventure-journal/](https://brandonpitts.github.io/adventure-journal/)**
