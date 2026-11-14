@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Adventure Journal — World of Warcraft Addon Framework</title>
   <meta name="description" content="A modular in-game journal framework for World of Warcraft Forever, providing dungeon item catalogs and planned gameplay modules.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -40,6 +41,10 @@
         linear-gradient(to bottom, rgba(12, 13, 16, 0.8), #0c0d10);
       background-attachment: fixed;
       min-height: 100vh;
+    }
+
+    code {
+      white-space: nowrap;
     }
 
     header {
@@ -415,6 +420,110 @@
       color: #49c4ff;
       font-family: Consolas, monospace;
       font-size: 0.88rem;
+      white-space: nowrap;
+    }
+
+    /* Accordion Section */
+    .accordion-section {
+      max-width: 900px;
+      margin: 4rem auto 2rem;
+      padding: 0 1.5rem;
+    }
+
+    details.accordion-item {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+      transition: border-color 0.2s ease;
+    }
+
+    details.accordion-item[open] {
+      border-color: var(--border-gold);
+    }
+
+    summary.accordion-header {
+      padding: 1rem 1.4rem;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text-main);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      list-style: none;
+      user-select: none;
+    }
+
+    summary.accordion-header::-webkit-details-marker {
+      display: none;
+    }
+
+    summary.accordion-header::after {
+      content: "+";
+      font-size: 1.3rem;
+      color: var(--gold-soft);
+      line-height: 1;
+    }
+
+    details.accordion-item[open] summary.accordion-header::after {
+      content: "−";
+      color: var(--gold-bright);
+    }
+
+    summary.accordion-header:hover {
+      background: rgba(198, 155, 58, 0.08);
+      color: var(--gold-bright);
+    }
+
+    .accordion-content {
+      padding: 1.2rem 1.4rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    .changelog-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .changelog-entry {
+      border-left: 2px solid var(--border-gold);
+      padding-left: 0.9rem;
+    }
+
+    .changelog-tag {
+      color: var(--gold-bright);
+      font-weight: 700;
+      font-size: 0.9rem;
+      font-family: Consolas, monospace;
+      margin-right: 0.4rem;
+    }
+
+    .completed-features-list {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .completed-feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      color: var(--text-main);
+      font-size: 0.92rem;
+    }
+
+    .completed-feature-item::before {
+      content: "✓";
+      color: #38ef7d;
+      font-weight: 800;
     }
 
     /* Support & Feedback Box */
@@ -467,7 +576,7 @@
   <aside class="early-dev-banner" aria-label="Development Notice">
     <div class="banner-inner">
       <span class="banner-badge">Early Development</span>
-      <span class="banner-text">Adventure Journal is currently in active, early development. You may encounter bugs or incomplete data — please report any issues to <strong>Brandon (Endoria)</strong>!</span>
+      <span class="banner-text">Adventure Journal is an independent project created for personal, close friend, and friend-of-friend use. Anyone is welcome to use it with that understanding! Report any issues to <strong>Brandon (Endoria)</strong>. We apologize to players outside our direct circles who may not have a direct way to reach out—there are currently no plans to establish a public Discord or community channel at this time.</span>
     </div>
   </aside>
 
@@ -496,8 +605,8 @@
     <div class="features-grid">
       <div class="card">
         <div class="card-tag">Architecture</div>
-        <h3>Modular Addon Framework</h3>
-        <p>Built from the ground up as an extensible platform. Adventure Journal acts as a lightweight core shell hosting dedicated, plug-and-play modules for dungeon item lists, utilities, and future gameplay catalogs.</p>
+        <h3>Modular Architecture & Cross-Module Synergy</h3>
+        <p>Engineered for deep cross-module integration—connecting map markers, encounter catalogs, global search, and future questlines into a unified reference tool—while maintaining a lightweight, intentional footprint that allows players to enable only the exact modules they need.</p>
       </div>
 
       <div class="card">
@@ -509,25 +618,25 @@
       <div class="card">
         <div class="card-tag">Dungeon Module</div>
         <h3>Dungeon Item Lists & Encounters</h3>
-        <p>Detailed directories across 35 Classic and custom WoW Forever dungeons, featuring full boss rosters, lore backgrounds, and encounter item drop catalogs.</p>
+        <p>Comprehensive directories across Classic Dungeons and WoW Forever Dungeons, with an extensible catalog built to seamlessly incorporate any future added instances, boss rosters, lore backgrounds, and encounter item drops.</p>
       </div>
 
       <div class="card">
-        <div class="card-tag">Utility Module</div>
-        <h3>World Map Entrance Indicators</h3>
-        <p>Retail-style blue swirl portal markers directly on world and zone maps showing dungeon locations, featuring level-bracket visibility and one-click navigation directly into the journal.</p>
+        <div class="card-tag">Enhancements</div>
+        <h3>Game Enhancements</h3>
+        <p>Adventure-focused game enhancements with cross-module integration: native Blizzard map pin system integration for dungeon entrance portals, planned travel lane markers for zeppelins and boats, and more.</p>
       </div>
 
       <div class="card">
         <div class="card-tag">Search</div>
         <h3>Real-Time Live Search</h3>
-        <p>Fast, responsive search filtering across dungeons, boss encounters, aliases, and specific item drops, with automatic cross-grid encounter discovery.</p>
+        <p>Fast, responsive search filtering across dungeons, boss encounters, aliases, and specific item drops, with automatic cross-module encounter discovery.</p>
       </div>
 
       <div class="card">
-        <div class="card-tag">Encounters</div>
-        <h3>Tier 0.5 Challenge Bosses</h3>
-        <p>Dedicated encounter section for summonable Dungeon Set 2 (Tier 0.5) challenge encounters, complete with elite medallion borders and challenge boss rosters.</p>
+        <div class="card-tag">Raid Module</div>
+        <h3>Raid Encounters & Tier Sets</h3>
+        <p>10, 20, and 40-player raid progression references covering Classic raids and confirmed WoW Forever endgame raids—engineered to adapt to future raid additions as they release, complete with boss mechanics, role notes, and tier set catalogs.</p>
       </div>
     </div>
 
@@ -546,21 +655,21 @@
 
     <div class="roadmap-grid">
       <div class="card roadmap-next">
-        <div class="card-tag">Up Next • In Active Development</div>
-        <h3>Quests Tab & Attunements</h3>
-        <p>The next major expansion for Adventure Journal introduces the comprehensive Quests tab: tracking dungeon & raid attunements, class quest chains (totems, shapeshift forms, class mounts, and epic weapons), and dungeon quest guides with turn-ins and rewards.</p>
+        <div class="card-tag">Priority 1 • In Active Design</div>
+        <h3>Backend Item Storage Engine</h3>
+        <p>A module-agnostic, lightweight central item database with dynamic search tagging and an interactive intake pipeline (collaborating with Argon) to power all future tabs and modules.</p>
       </div>
 
       <div class="card">
-        <div class="card-tag">Future Module</div>
-        <h3>Raids & World Bosses</h3>
-        <p>Full 10, 20, and 40-player raid tier guides with multi-phase encounter breakdowns, boss abilities, and complete tier set item drop catalogs.</p>
+        <div class="card-tag">Priority 2 • Planned Feature</div>
+        <h3>Quest System & Attunements</h3>
+        <p>Dungeon-attached vertical tabs displaying quest directories, coordinates, multi-step chains, and turn-ins, with a dedicated quest storage pipeline.</p>
       </div>
 
       <div class="card">
-        <div class="card-tag">Future Module</div>
-        <h3>Professions Reference</h3>
-        <p>Comprehensive tradeskill catalogs covering recipe drops, material requirements, skill level thresholds, and trainer / vendor coordinates.</p>
+        <div class="card-tag">Priority 3 • Planned Module</div>
+        <h3>Raid Journal & Confirmed Encounters</h3>
+        <p>10, 20, and 40-player raid progression built on post-refactor foundations, targeting confirmed WoW Forever raids: The Barrow Deeps, Hyjal Summit, and Onyxia's Lair.</p>
       </div>
     </div>
 
@@ -572,7 +681,7 @@
         <li>
           <div class="step-content">
             <strong>Download the Addon Zip</strong>
-            <p>Click the download button above to grab <code>Adventure_Journal-v0.4.0.zip</code>.</p>
+            <p>Click the download button above to grab <code>Adventure_Journal-v0.5.1.zip</code>.</p>
           </div>
         </li>
         <li>
@@ -580,6 +689,7 @@
             <strong>Extract to your WoW Forever AddOns Folder</strong>
             <p>Unzip the archive directly into your installation directory:</p>
             <p style="margin-top: 0.4rem;"><code>World of Warcraft\_forever_\Interface\AddOns\Adventure_Journal\</code></p>
+            <p style="margin-top: 0.45rem; font-size: 0.88rem; color: #bfbcc7;"><em>Tip: You can easily locate your game folder by clicking the gear icon next to the Play button in the Battle.net launcher for your WoW Forever client and selecting <strong>"Show in Explorer"</strong>.</em></p>
           </div>
         </li>
         <li>
@@ -590,6 +700,52 @@
         </li>
       </ol>
     </div>
+
+    <!-- Project Accordion (FAQ, Changelog, Completed Features) -->
+    <section class="accordion-section" aria-label="Project Information & History">
+      <!-- Item 1: FAQ -->
+      <details class="accordion-item">
+        <summary class="accordion-header">Frequently Asked Questions (FAQ) — (Under Construction)</summary>
+        <div class="accordion-content">
+          <p>We are compiling answers to common installation, configuration, and feature questions. Check back soon or reach out directly to Brandon (Endoria) with questions.</p>
+        </div>
+      </details>
+
+      <!-- Item 2: Changelog -->
+      <details class="accordion-item" open>
+        <summary class="accordion-header">Changelog & Release History</summary>
+        <div class="accordion-content">
+          <ul class="changelog-list">
+            <li class="changelog-entry">
+              <span class="changelog-tag">v0.5.1</span> Resolved custom keybinding reservation conflicts, added persistent agent automation rules, and verified clean fresh installs.
+            </li>
+            <li class="changelog-entry">
+              <span class="changelog-tag">v0.5.0</span> Consolidated unified addon versioning across all modules, shortened default landing tab selector, and added catalog notice.
+            </li>
+            <li class="changelog-entry">
+              <span class="changelog-tag">v0.4.0</span> Initial public release with 35 Classic and custom WoW Forever dungeons, open-book split view, and world map entrance markers.
+            </li>
+          </ul>
+        </div>
+      </details>
+
+      <!-- Item 3: Completed Features -->
+      <details class="accordion-item">
+        <summary class="accordion-header">Completed Roadmap Features</summary>
+        <div class="accordion-content">
+          <ul class="completed-features-list">
+            <li class="completed-feature-item">Interactive Dungeon Catalog & Browser Grid across Classic and WoW Forever instances</li>
+            <li class="completed-feature-item">Open-Book Split View with Multi-Tier Boss Rosters & Encounter Drops</li>
+            <li class="completed-feature-item">World & Zone Map Entrance Indicators with level-bracket filtering</li>
+            <li class="completed-feature-item">Unified Breadcrumb Navigation (Home &gt; Dungeons &gt; Instance &gt; Boss)</li>
+            <li class="completed-feature-item">Native In-Game Settings Panel with Keybinding Recorder & Starred Landing Tab</li>
+            <li class="completed-feature-item">Minimap Shortcut Button with orbit positioning & visibility toggles</li>
+            <li class="completed-feature-item">Live Real-Time Search across instances, bosses, and loot drops</li>
+            <li class="completed-feature-item">Dungeon Set 2 (Tier 0.5) Challenge Boss Rosters & Medallion Frames</li>
+          </ul>
+        </div>
+      </details>
+    </section>
 
     <h2 class="section-title" style="margin-top: 4rem;">Feedback & <span>Support</span></h2>
     <div class="section-divider"></div>

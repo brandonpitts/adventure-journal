@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff0aa"/>
+      <stop offset="50%" stop-color="#c69b3a"/>
+      <stop offset="100%" stop-color="#694d13"/>
+    </linearGradient>
+    <linearGradient id="darkBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1c1e28"/>
+      <stop offset="100%" stop-color="#0c0d12"/>
+    </linearGradient>
+    <linearGradient id="pageGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#e8dfca"/>
+      <stop offset="100%" stop-color="#fff8eb"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="64" height="64" rx="14" fill="url(#darkBg)"/>
+  <rect x="2" y="2" width="60" height="60" rx="12" fill="none" stroke="url(#goldGrad)" stroke-width="2.5"/>
+
+  <!-- Book Spine / Left Page Shadow -->
+  <path d="M12 16 C12 16 22 17 32 20 L32 49 C22 46 12 45 12 45 Z" fill="#2d2215" stroke="#c69b3a" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- Left Parchment Page -->
+  <path d="M14 17 C14 17 22 18 31 20.5 L31 47.5 C22 45 14 44.5 14 44.5 Z" fill="url(#pageGrad)"/>
+
+  <!-- Right Spine / Right Page Shadow -->
+  <path d="M52 16 C52 16 42 17 32 20 L32 49 C42 46 52 45 52 45 Z" fill="#2d2215" stroke="#c69b3a" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- Right Parchment Page -->
+  <path d="M50 17 C50 17 42 18 33 20.5 L33 47.5 C42 45 50 44.5 50 44.5 Z" fill="url(#pageGrad)"/>
+
+  <!-- Center Stitch / Ribbon Marker -->
+  <path d="M32 19 L32 53 L35 50 L38 53 L38 21 Z" fill="#b32424" stroke="#ffd100" stroke-width="0.8"/>
+
+  <!-- Mini Gold Corner Ornaments -->
+  <circle cx="9" cy="9" r="1.5" fill="#ffd100"/>
+  <circle cx="55" cy="9" r="1.5" fill="#ffd100"/>
+  <circle cx="9" cy="55" r="1.5" fill="#ffd100"/>
+  <circle cx="55" cy="55" r="1.5" fill="#ffd100"/>
+</svg>
