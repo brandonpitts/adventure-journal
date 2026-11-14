@@ -21,6 +21,7 @@ local Constants = {
     ADDON_NAME = addonName,
     TITLE = "Adventure Journal",
     VERSION = "0.5.0",
+    AUTHOR = "Brandon (Endoria)",
     PLUGIN_API_VERSION = 1,
 
     BINDING_HEADER = "JOURNALBASE",
@@ -73,8 +74,6 @@ local Constants = {
         JOURNAL_PORTRAIT = "Interface\\EncounterJournal\\UI-EJ-PortraitIcon",
         FALLBACK_ICON = "Interface\\Icons\\INV_Misc_Book_09",
         GEAR_ICON = "Interface\\Buttons\\UI-OptionsButton",
-        HOME_ATLAS = "common-icon-home",
-        HOME_FALLBACK_ICON = "Interface\\Icons\\INV_Misc_Rune_01",
         PARCHMENT_ATLAS = "Spellbook-Page-1",
         PARCHMENT_FALLBACK = "Interface\\Spellbook\\Spellbook-Page-1",
         BUTTON_HIGHLIGHT = "Interface\\Buttons\\UI-Common-MouseHilight",
@@ -86,19 +85,9 @@ local Constants = {
         NAV_CHEVRON_ARROW = "Interface\\ChatFrame\\ChatFrameExpandArrow",
     },
 
-    -- Canonical ecosystem catalog displayed on the Home page (even before a plugin is installed)
+    -- Canonical ecosystem catalog displayed in Settings (even before a plugin is installed)
     -- and merged with live `description`, `version`, and `lastUpdated` registered by loaded plugins.
     KNOWN_PLUGINS = {
-        {
-            id = "home",
-            title = "Home",
-            addonName = "Journal_Base",
-            defaultOrder = 1,
-            icon = "Interface\\Icons\\INV_Misc_Book_09",
-            description = "Browse the module catalog, view installed plugin statuses, and discover ecosystem features.",
-            version = "0.5.0",
-            lastUpdated = "2026-11-14",
-        },
         {
             id = "dungeons",
             title = "Dungeons",
@@ -162,7 +151,7 @@ local Constants = {
     },
 
     DB_DEFAULTS = {
-        schemaVersion = 1,
+        schemaVersion = 2,
         showInAddonCompartment = true,
         minimap = {
             show = true,
@@ -175,9 +164,7 @@ local Constants = {
             defaultLandingPluginId = nil,
             point = nil,
         },
-        disabledPlugins = {
-            ["home"] = true,
-        },
+        disabledPlugins = {},
         pluginOrder = {},
         dungeons = {
             showBossLevel = true,
@@ -185,11 +172,11 @@ local Constants = {
             showMinorMonsters = true,
             showEventBosses = "holiday",
             showDungeonSetChallenges = false,
-            worldMapDungeonIcons = "min_level",
+            worldMapDungeonIcons = "always",
             dungeonGridSort = "level",
         },
         map_icons = {
-            worldMapDungeonIcons = "min_level",
+            worldMapDungeonIcons = "always",
             worldMapRaidIcons = "disabled",
         },
     },

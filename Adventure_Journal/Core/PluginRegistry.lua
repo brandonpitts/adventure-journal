@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Journal_Base - PluginRegistry.lua
--- Plugin registration contract, custom ordering, Home routing, and xpcall sandboxing.
+-- Plugin registration contract, custom ordering, and xpcall sandboxing.
 -- ============================================================================
 local addonName, ns = ...
 
@@ -25,11 +25,7 @@ local DEFAULT_PLUGIN_ORDER = 100
 
 --- Returns the effective sort order for a plugin (user's custom drag-and-drop
 --- order from `Database`, falling back to `plugin.defaultOrder`).
---- "home" always returns 0 to guarantee it occupies Slot 1.
 local function getEffectiveOrder(plugin)
-    if plugin.id == "home" then
-        return 0
-    end
     local custom = ns.Database and ns.Database:GetPluginCustomOrder(plugin.id)
     if type(custom) == "number" then
         return custom
@@ -38,14 +34,8 @@ local function getEffectiveOrder(plugin)
 end
 
 --- Comparator for sorting plugins left-to-right by effective order then `title`.
---- "home" is always pinned unconditionally to the top (Slot 1).
 --- Utility modules (`isUtility == true`) are always pinned to the bottom.
 local function comparePlugins(a, b)
-    if a.id == "home" then
-        return true
-    elseif b.id == "home" then
-        return false
-    end
     local aUtil = (a.isUtility == true)
     local bUtil = (b.isUtility == true)
     if aUtil ~= bUtil then
@@ -65,20 +55,24 @@ local function isAddOnInstalledOnDisk(addonName)
     if not addonName or addonName == "" then
         return false
     end
-    if addonName == "Journal_Base" then
-        return true
-    end
     if C_AddOns and C_AddOns.DoesAddOnExist then
         local ok, exists = pcall(C_AddOns.DoesAddOnExist, addonName)
         if ok and exists then
             return true
         end
     end
+    -- In WoW 3.3.5 / Classic, GetAddOnInfo requires an integer index 1..GetNumAddOns()
+    local getNum = (C_AddOns and C_AddOns.GetNumAddOns) or _G.GetNumAddOns
     local getInfo = (C_AddOns and C_AddOns.GetAddOnInfo) or _G.GetAddOnInfo
-    if getInfo then
-        local ok, name = pcall(getInfo, addonName)
-        if ok and name then
-            return true
+    if getNum and getInfo then
+        local okNum, count = pcall(getNum)
+        if okNum and type(count) == "number" then
+            for i = 1, count do
+                local okInfo, name = pcall(getInfo, i)
+                if okInfo and name == addonName then
+                    return true
+                end
+            end
         end
     end
     return false
@@ -204,7 +198,7 @@ function PluginRegistry:GetOrderedPlugins()
     return enabled
 end
 
---- Returns the full catalog of all possible Journal plugins for the Home page and Settings,
+--- Returns the full catalog of all possible Journal plugins for Settings,
 --- merging `Constants.KNOWN_PLUGINS` with live metadata from any installed/registered plugins
 --- so descriptions, versions, and update dates always stay 100% consistent.
 --- @return table[]
@@ -225,7 +219,7 @@ function PluginRegistry:GetCatalogPlugins()
             version = (live and live.version) or known.version or "0.1.0",
             lastUpdated = (live and live.lastUpdated) or known.lastUpdated or "2026-11-11",
             apiVersion = (live and live.apiVersion) or Constants.PLUGIN_API_VERSION,
-            defaultOrder = (known.id == "home" and 0) or (live and live.defaultOrder) or known.defaultOrder or DEFAULT_PLUGIN_ORDER,
+            defaultOrder = (live and live.defaultOrder) or known.defaultOrder or DEFAULT_PLUGIN_ORDER,
             isUtility = (live and live.isUtility ~= nil and live.isUtility) or (known.isUtility == true) or false,
             isInstalled = isInstalled,
             isLoaded = (live ~= nil),
@@ -248,7 +242,7 @@ function PluginRegistry:GetCatalogPlugins()
                 version = live.version or "0.1.0",
                 lastUpdated = live.lastUpdated or "2026-11-11",
                 apiVersion = live.apiVersion or Constants.PLUGIN_API_VERSION,
-                defaultOrder = (live.id == "home" and 0) or live.defaultOrder or DEFAULT_PLUGIN_ORDER,
+                defaultOrder = live.defaultOrder or DEFAULT_PLUGIN_ORDER,
                 isUtility = (live.isUtility == true) or false,
                 isInstalled = true,
                 isLoaded = true,
@@ -264,14 +258,10 @@ function PluginRegistry:GetCatalogPlugins()
 end
 
 --- Moves `pluginId` to `targetIndex` in the sorted plugin order, saves the new
---- order to `Database`, and immediately updates bottom tabs, Home cards, and Settings rows.
---- Note: "home" is locked in Slot 1 and cannot be moved or displaced.
+--- order to `Database`, and immediately updates bottom tabs and Settings rows.
 --- @param pluginId string
 --- @param targetIndex number
 function PluginRegistry:MovePluginToIndex(pluginId, targetIndex)
-    if pluginId == "home" then
-        return -- Home cannot be rearranged
-    end
     local movingPlugin = self.pluginsById[pluginId]
     if movingPlugin and movingPlugin.isUtility then
         return -- Utility modules cannot be rearranged
@@ -290,9 +280,8 @@ function PluginRegistry:MovePluginToIndex(pluginId, targetIndex)
         return
     end
 
-    -- Home permanently occupies index 1; targetIndex cannot be slot 1 or less
-    if targetIndex < 2 then
-        targetIndex = 2
+    if targetIndex < 1 then
+        targetIndex = 1
     end
 
     -- Target index cannot displace utility modules pinned at the bottom
@@ -308,19 +297,6 @@ function PluginRegistry:MovePluginToIndex(pluginId, targetIndex)
 
     local moved = table.remove(all, currentIndex)
     table.insert(all, targetIndex, moved)
-
-    -- Ensure Home is always in slot 1
-    local homeIdx = nil
-    for i, item in ipairs(all) do
-        if item.id == "home" then
-            homeIdx = i
-            break
-        end
-    end
-    if homeIdx and homeIdx ~= 1 then
-        local homeItem = table.remove(all, homeIdx)
-        table.insert(all, 1, homeItem)
-    end
 
     local orderedIds = {}
     for i, item in ipairs(all) do
@@ -359,7 +335,7 @@ function PluginRegistry:SetPluginEnabled(pluginId, isEnabled)
     end
 
     if not isEnabled and self.activePluginId == pluginId then
-        self:ActivateHome()
+        self:ActivateDefaultPlugin()
     end
 
     if ns.UI.MainFrame and ns.UI.MainFrame:IsInitialized() then
@@ -407,52 +383,14 @@ function PluginRegistry:GetActivePlugin()
     return self.pluginsById[self.activePluginId]
 end
 
---- Registers built-in core plugins (such as the Home tab module).
+--- Registers built-in core plugins (reserved for future built-in extensions).
 function PluginRegistry:RegisterBuiltInPlugins()
-    local homePlugin = {
-        id = "home",
-        title = "Home",
-        addonName = "Journal_Base",
-        version = Constants.VERSION,
-        lastUpdated = Constants.LAST_UPDATED,
-        description = "Browse the module catalog, view installed plugin statuses, and discover ecosystem features.",
-        apiVersion = Constants.PLUGIN_API_VERSION,
-        order = 0,
-        defaultOrder = 0,
-        icon = Constants.ASSETS.FALLBACK_ICON,
-        OnInitialize = function(plugin, canvas, headerBar)
-            if ns.UI.HomeView and not ns.UI.HomeView.rootFrame then
-                ns.UI.HomeView:Create(canvas)
-            elseif ns.UI.HomeView and ns.UI.HomeView.rootFrame then
-                ns.UI.HomeView.rootFrame:SetParent(canvas)
-                ns.UI.HomeView.rootFrame:ClearAllPoints()
-                ns.UI.HomeView.rootFrame:SetAllPoints(canvas)
-            end
-        end,
-        OnActivate = function(plugin, canvas, headerBar)
-            if headerBar then
-                headerBar:ResetBreadcrumbs("Home", function()
-                    PluginRegistry:ActivatePlugin("home")
-                end)
-            end
-            if ns.UI.HomeView and ns.UI.HomeView.rootFrame then
-                ns.UI.HomeView.rootFrame:Show()
-                ns.UI.HomeView:Refresh()
-            end
-        end,
-        OnDeactivate = function(plugin)
-            if ns.UI.HomeView and ns.UI.HomeView.rootFrame then
-                ns.UI.HomeView.rootFrame:Hide()
-            end
-        end,
-    }
-    self:Register(homePlugin)
 end
 
 --- Navigates to the user's configured default opening / landing destination:
 ---   * If a valid, enabled `defaultLandingPluginId` is set in Settings, activates that plugin tab directly.
 ---   * If no default is set, activates the first enabled plugin (e.g. Dungeons).
----   * If all plugins are disabled, displays the base catalog page (`ShowCatalogHome`).
+---   * If all plugins are disabled, deactivates all views.
 function PluginRegistry:ActivateDefaultPlugin()
     local defaultId = ns.Database:GetDefaultLandingPluginId()
     if defaultId and self.pluginsById[defaultId] and not ns.Database:IsPluginDisabled(defaultId) then
@@ -467,7 +405,7 @@ function PluginRegistry:ActivateDefaultPlugin()
         return
     end
 
-    self:ShowCatalogHome()
+    self:DeactivateAll()
 end
 
 --- Backwards-compatibility alias for `ActivateDefaultPlugin`.
@@ -475,9 +413,8 @@ function PluginRegistry:ActivateHome()
     self:ActivateDefaultPlugin()
 end
 
---- Displays the Journal Base Home catalog page (listing all possible plugins on parchment),
---- hiding any active plugin canvas and resetting the breadcrumb bar to `Home`.
-function PluginRegistry:ShowCatalogHome()
+--- Deactivates all module views and displays the empty state if all plugins are disabled.
+function PluginRegistry:DeactivateAll()
     local current = self:GetActivePlugin()
     if current then
         safeInvokePlugin(current, "OnDeactivate")
@@ -496,14 +433,17 @@ function PluginRegistry:ShowCatalogHome()
     local mainFrame = ns.UI.MainFrame
     local headerBar = mainFrame:GetHeaderBar()
     if headerBar then
-        headerBar:ResetBreadcrumbs("Home", function()
-            self:ShowCatalogHome()
-        end)
+        headerBar:ResetBreadcrumbs("", nil)
     end
 
     mainFrame:SetPortraitIcon(Constants.ASSETS.JOURNAL_PORTRAIT)
     mainFrame:SetEmptyStateVisible(true)
     mainFrame:ClearTabSelection()
+end
+
+--- Backwards-compatibility alias for `DeactivateAll`.
+function PluginRegistry:ShowCatalogHome()
+    self:DeactivateAll()
 end
 
 --- Activates the specified plugin tab, lazily initializing its canvas on first view.
@@ -529,7 +469,7 @@ function PluginRegistry:ActivatePlugin(pluginId)
     local mainFrame = ns.UI.MainFrame
     local headerBar = mainFrame:GetHeaderBar()
     if headerBar then
-        headerBar:ResetBreadcrumbs("Home", function()
+        headerBar:ResetBreadcrumbs(target.title, function()
             safeInvokePlugin(target, "OnActivate", target.canvas, headerBar)
         end)
     end

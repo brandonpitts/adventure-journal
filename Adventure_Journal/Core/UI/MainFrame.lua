@@ -265,19 +265,23 @@ function MainFrame:SetupHeaderAndCanvas(frame)
     frame.ContentCanvas = canvas
 end
 
---- Initializes the Home catalog view on parentCanvas.
+--- Initializes the empty state fallback on parentCanvas if no plugins are enabled.
 --- @param parentCanvas Frame
 function MainFrame:SetupEmptyState(parentCanvas)
-    self.frame.EmptyState = ns.UI.HomeView:Create(parentCanvas)
+    local empty = CreateFrame("Frame", nil, parentCanvas)
+    empty:SetAllPoints(parentCanvas)
+    local text = empty:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+    text:SetPoint("CENTER", empty, "CENTER", 0, 0)
+    text:SetText("No Journal modules are currently active.")
+    empty.text = text
+    empty:Hide()
+    self.frame.EmptyState = empty
 end
 
 --- @param isVisible boolean
 function MainFrame:SetEmptyStateVisible(isVisible)
     if not self.frame or not self.frame.EmptyState then
         return
-    end
-    if isVisible and ns.UI.HomeView then
-        ns.UI.HomeView:Refresh()
     end
     self.frame.EmptyState:SetShown(isVisible)
 end
@@ -292,17 +296,13 @@ function MainFrame:GetContentCanvas()
     return self.frame and self.frame.ContentCanvas
 end
 
---- Refreshes tabs and the Home view whenever plugins or their sort order change.
+--- Refreshes tabs whenever plugins or their sort order change.
 function MainFrame:OnPluginsChanged()
     if not self.frame then
         return
     end
     local plugins = ns.PluginRegistry:GetOrderedPlugins()
     ns.UI.TabBar:RefreshTabs(plugins)
-
-    if ns.UI.HomeView then
-        ns.UI.HomeView:Refresh()
-    end
 
     local activePlugin = ns.PluginRegistry:GetActivePlugin()
     self:SetEmptyStateVisible(activePlugin == nil)
@@ -318,7 +318,7 @@ function MainFrame:SelectTabByPluginId(pluginId)
     ns.UI.TabBar:SelectPlugin(pluginId)
 end
 
---- Clears bottom tab selection when viewing the base `Home` screen.
+--- Clears bottom tab selection when no module tab is active.
 function MainFrame:ClearTabSelection()
     ns.UI.TabBar:ClearSelection()
 end

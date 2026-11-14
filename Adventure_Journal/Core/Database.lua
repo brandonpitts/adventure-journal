@@ -47,6 +47,18 @@ local Database = {
 --- Initializes `JournalBaseDB` with defensive defaults on ADDON_LOADED.
 function Database:Init()
     _G.JournalBaseDB = copyDefaults(Constants.DB_DEFAULTS, _G.JournalBaseDB)
+
+    -- Schema migration: update worldMapDungeonIcons to "always" if upgrading from schemaVersion < 2
+    if _G.JournalBaseDB and (_G.JournalBaseDB.schemaVersion or 0) < 2 then
+        if _G.JournalBaseDB.dungeons and _G.JournalBaseDB.dungeons.worldMapDungeonIcons == "min_level" then
+            _G.JournalBaseDB.dungeons.worldMapDungeonIcons = "always"
+        end
+        if _G.JournalBaseDB.map_icons and _G.JournalBaseDB.map_icons.worldMapDungeonIcons == "min_level" then
+            _G.JournalBaseDB.map_icons.worldMapDungeonIcons = "always"
+        end
+        _G.JournalBaseDB.schemaVersion = 2
+    end
+
     self.db = _G.JournalBaseDB
 end
 
@@ -92,6 +104,9 @@ function Database:SetMinimapShown(isShown)
     local val = isShown and true or false
     store.minimap.show = val
     store.minimap.hide = not val
+    if not val then
+        self:SetAddonCompartmentShown(true)
+    end
 end
 
 --- @return boolean

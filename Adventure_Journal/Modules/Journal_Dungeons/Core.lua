@@ -38,14 +38,14 @@ function DungeonsPlugin:OnInitialize(canvas, headerBar)
 end
 
 --- Called whenever the Dungeons bottom tab is selected or when `Dungeons` is
---- clicked in the breadcrumb navigation track (`Home > Dungeons`).
+--- clicked in the breadcrumb navigation track.
 --- @param _canvas Frame
 --- @param headerBar table|nil
 function DungeonsPlugin:OnActivate(_canvas, headerBar)
     ns.UI.MainView:ShowRoot(headerBar)
 end
 
---- Called when the user switches away to Home or another plugin tab.
+--- Called when the user switches away to another plugin tab.
 function DungeonsPlugin:OnDeactivate()
     ns.UI.MainView:Hide()
 end

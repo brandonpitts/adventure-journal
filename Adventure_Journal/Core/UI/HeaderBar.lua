@@ -333,8 +333,10 @@ function HeaderBarMixin:CreateBreadcrumbTrack(headerBand)
                 navBar.home:SetPoint("LEFT", navBar, "LEFT", 0, 0)
             end
 
+            local active = ns.PluginRegistry and ns.PluginRegistry.GetActivePlugin and ns.PluginRegistry:GetActivePlugin()
+            local rootTitle = (active and active.title) or "Dungeons"
             local homeData = {
-                name = HOME or "Home",
+                name = rootTitle,
                 OnClick = function()
                     self:OnRootClicked()
                 end,
@@ -351,8 +353,8 @@ function HeaderBarMixin:CreateBreadcrumbTrack(headerBand)
     end
 end
 
---- Invoked when the root red arrow "Home" button is clicked.
---- Always takes the player directly back to the base of whatever module tab is currently selected.
+--- Invoked when the root breadcrumb button is clicked.
+--- Always takes the player directly back to the root of whatever module tab is currently selected.
 function HeaderBarMixin:OnRootClicked()
     local rootStep = self.steps and self.steps[1]
     local rootCb = rootStep and rootStep.onClick
@@ -376,7 +378,9 @@ end
 --- @param crumbList table Array of `{ id, label, onClick }`
 function HeaderBarMixin:SetBreadcrumbs(crumbList)
     if not crumbList or #crumbList == 0 then
-        self:ResetBreadcrumbs("Home", function()
+        local active = ns.PluginRegistry and ns.PluginRegistry.GetActivePlugin and ns.PluginRegistry:GetActivePlugin()
+        local rootTitle = (active and active.title) or "Dungeons"
+        self:ResetBreadcrumbs(rootTitle, function()
             self:OnRootClicked()
         end)
         return
@@ -393,14 +397,16 @@ function HeaderBarMixin:SetBreadcrumbs(crumbList)
     self:RefreshBreadcrumbs()
 end
 
---- Resets breadcrumbs to the root "Home" state (1 step).
+--- Resets breadcrumbs to the root module state (1 step).
 --- @param rootLabel string|nil
 --- @param onRootClick function|nil
 function HeaderBarMixin:ResetBreadcrumbs(rootLabel, onRootClick)
+    local active = ns.PluginRegistry and ns.PluginRegistry.GetActivePlugin and ns.PluginRegistry:GetActivePlugin()
+    local defaultLabel = rootLabel or (active and active.title) or "Dungeons"
     self.steps = {
         {
             id = "root",
-            label = rootLabel or "Home",
+            label = defaultLabel,
             onClick = onRootClick,
         },
     }

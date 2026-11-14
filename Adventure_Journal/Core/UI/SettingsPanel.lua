@@ -192,15 +192,16 @@ function SettingsPanel:Init()
     self.scrollFrame = scrollFrame
 
     local scrollChild = CreateFrame("Frame", nil, scrollFrame)
-    scrollChild:SetSize(580, 720)
+    scrollChild:SetSize(580, 820)
     scrollFrame:SetScrollChild(scrollChild)
     self.scrollChild = scrollChild
 
+    self:CreateCatalogDisclaimerBanner(scrollChild)
     self:CreateAlertBanner(scrollChild)
     self:CreateKeybindRow(scrollChild)
     self:CreateMinimapToggleRow(scrollChild)
-    self:CreateCompareItemsToggleRow(scrollChild)
     self:CreateAddonCompartmentToggleRow(scrollChild)
+    self:CreateCompareItemsToggleRow(scrollChild)
     self:CreateInstalledPluginsSection(scrollChild)
     self:CreateDungeonModuleSection(scrollChild)
     self:CreateMapIconsModuleSection(scrollChild)
@@ -229,7 +230,7 @@ function SettingsPanel:CreateHeader(panel)
 
     local subtitle = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
-    subtitle:SetText("Version " .. Constants.VERSION .. " — Base Shell & General Settings")
+    subtitle:SetText("Version " .. Constants.VERSION .. " • Author: |cffffd200" .. (Constants.AUTHOR or "Brandon (Endoria)") .. "|r")
     subtitle:SetTextColor(0.75, 0.72, 0.66)
 
     local reloadBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
@@ -255,12 +256,77 @@ function SettingsPanel:CreateHeader(panel)
     self.HeaderDivider = divider
 end
 
---- Builds the alert banner for notifying about out-of-date or mismatched AtlasLoot versions.
+--- Builds the prominent Catalog Disclaimer banner at the very top of Settings.
+--- Informs players that WoW Forever custom content and loot drops are continuously being cataloged.
 --- @param panel Frame
-function SettingsPanel:CreateAlertBanner(panel)
+function SettingsPanel:CreateCatalogDisclaimerBanner(panel)
     local banner = CreateFrame("Frame", nil, panel)
     banner:SetPoint("TOPLEFT", panel, "TOPLEFT", 18, -8)
     banner:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -18, -8)
+    banner:SetHeight(38)
+
+    -- 1. Warm dark amber-bronze background
+    local bg = banner:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints(banner)
+    bg:SetTexture(Constants.ASSETS.WHITE_8X8)
+    bg:SetVertexColor(0.18, 0.12, 0.04, 0.94)
+
+    -- 2. Gold / yellow borders on all four sides
+    local borderTop = banner:CreateTexture(nil, "BORDER")
+    borderTop:SetHeight(1)
+    borderTop:SetPoint("TOPLEFT", banner, "TOPLEFT", 0, 0)
+    borderTop:SetPoint("TOPRIGHT", banner, "TOPRIGHT", 0, 0)
+    borderTop:SetTexture(Constants.ASSETS.WHITE_8X8)
+    borderTop:SetVertexColor(0.95, 0.78, 0.25, 0.95)
+
+    local borderBottom = banner:CreateTexture(nil, "BORDER")
+    borderBottom:SetHeight(1)
+    borderBottom:SetPoint("BOTTOMLEFT", banner, "BOTTOMLEFT", 0, 0)
+    borderBottom:SetPoint("BOTTOMRIGHT", banner, "BOTTOMRIGHT", 0, 0)
+    borderBottom:SetTexture(Constants.ASSETS.WHITE_8X8)
+    borderBottom:SetVertexColor(0.95, 0.78, 0.25, 0.95)
+
+    local borderLeft = banner:CreateTexture(nil, "BORDER")
+    borderLeft:SetWidth(2)
+    borderLeft:SetPoint("TOPLEFT", banner, "TOPLEFT", 0, 0)
+    borderLeft:SetPoint("BOTTOMLEFT", banner, "BOTTOMLEFT", 0, 0)
+    borderLeft:SetTexture(Constants.ASSETS.WHITE_8X8)
+    borderLeft:SetVertexColor(0.95, 0.78, 0.25, 1.0)
+
+    local borderRight = banner:CreateTexture(nil, "BORDER")
+    borderRight:SetWidth(2)
+    borderRight:SetPoint("TOPRIGHT", banner, "TOPRIGHT", 0, 0)
+    borderRight:SetPoint("BOTTOMRIGHT", banner, "BOTTOMRIGHT", 0, 0)
+    borderRight:SetTexture(Constants.ASSETS.WHITE_8X8)
+    borderRight:SetVertexColor(0.95, 0.78, 0.25, 1.0)
+
+    -- 3. Left Alert / Notice Icon
+    local icon = banner:CreateTexture(nil, "ARTWORK")
+    icon:SetSize(20, 20)
+    icon:SetPoint("LEFT", banner, "LEFT", 10, 0)
+    icon:SetTexture("Interface\\DialogFrame\\UI-Dialog-Icon-AlertNew")
+
+    -- 4. Informative notice text
+    local text = banner:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    text:SetPoint("LEFT", icon, "RIGHT", 10, 0)
+    text:SetPoint("RIGHT", banner, "RIGHT", -12, 0)
+    text:SetJustifyH("LEFT")
+    if text.SetWordWrap then
+        text:SetWordWrap(true)
+    end
+    text:SetText("|cffffd200World of Warcraft Forever|r |cffe8ded0introduced a lot of new items. These items will be added to the catalog regularly. Please report any discrepancies you notice to the |cffffd200Author|r.|r")
+    banner.text = text
+
+    self.CatalogDisclaimerBanner = banner
+end
+
+--- Builds the alert banner for notifying about out-of-date or mismatched AtlasLoot versions.
+--- Placed beneath the Catalog Disclaimer banner when triggered.
+--- @param panel Frame
+function SettingsPanel:CreateAlertBanner(panel)
+    local banner = CreateFrame("Frame", nil, panel)
+    banner:SetPoint("TOPLEFT", panel, "TOPLEFT", 18, -48)
+    banner:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -18, -48)
     banner:SetHeight(28)
     banner:Hide()
 
@@ -301,7 +367,7 @@ end
 --- @param panel Frame
 function SettingsPanel:CreateKeybindRow(panel)
     local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -16)
+    label:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -56)
     label:SetText("Toggle Journal Keybind")
     self.KeybindLabel = label
 
@@ -315,7 +381,7 @@ end
 --- @param panel Frame
 function SettingsPanel:CreateMinimapToggleRow(panel)
     local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -44)
+    label:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -84)
     label:SetText("Show Minimap Icon")
     self.MinimapLabel = label
 
@@ -345,17 +411,65 @@ function SettingsPanel:CreateMinimapToggleRow(panel)
         end
         ns.Database:SetMinimapShown(isChecked)
         ns.UI.MinimapButton:RefreshVisibility()
+
+        -- When Minimap Icon is hidden (unchecked), automatically enable Addon Compartment
+        if not isChecked then
+            ns.Database:SetAddonCompartmentShown(true)
+            if self.AddonCompartmentCheckbox then
+                self.AddonCompartmentCheckbox:SetChecked(true)
+            end
+        end
     end)
 
     self.ShowMinimapCheckbox = checkbox
     self.HideMinimapCheckbox = checkbox
 end
 
+--- Builds the "Show in Blizzard Addon Compartment" checkbox row.
+--- Placed directly beneath the Minimap icon setting.
+--- @param panel Frame
+function SettingsPanel:CreateAddonCompartmentToggleRow(panel)
+    local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -112)
+    label:SetText("Show in Blizzard Addon Compartment")
+    self.AddonCompartmentLabel = label
+
+    local checkbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+    checkbox:SetSize(28, 28)
+    checkbox:SetPoint("RIGHT", panel, "RIGHT", -24, 0)
+    checkbox:SetPoint("CENTER", label, "CENTER", 0, 0)
+
+    checkbox:SetScript("OnEnter", function(cb)
+        if GameTooltip then
+            GameTooltip:SetOwner(cb, "ANCHOR_RIGHT")
+            GameTooltip:AddLine("Blizzard Addon Compartment", 1.0, 0.82, 0.0)
+            GameTooltip:AddLine("When enabled on modern WoW clients, Adventure Journal is listed in the Blizzard Addon Compartment dropdown next to the Minimap.", 1.0, 1.0, 1.0, true)
+            GameTooltip:Show()
+        end
+    end)
+    checkbox:SetScript("OnLeave", function()
+        if GameTooltip then
+            GameTooltip:Hide()
+        end
+    end)
+
+    checkbox:SetScript("OnClick", function(cb)
+        local isChecked = cb:GetChecked() and true or false
+        if PlaySound then
+            PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
+        end
+        ns.Database:SetAddonCompartmentShown(isChecked)
+        -- Note: Unchecking compartment does not show or modify the minimap icon setting.
+    end)
+
+    self.AddonCompartmentCheckbox = checkbox
+end
+
 --- Builds the "Automatically compare items on mouseover" checkbox row.
 --- @param panel Frame
 function SettingsPanel:CreateCompareItemsToggleRow(panel)
     local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -72)
+    label:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -140)
     label:SetText("Automatically compare items on mouseover")
     self.CompareItemsLabel = label
 
@@ -391,55 +505,17 @@ function SettingsPanel:CreateCompareItemsToggleRow(panel)
     self.CompareItemsCheckbox = checkbox
 end
 
---- Builds the "Show in Blizzard Addon Compartment" checkbox row.
---- @param panel Frame
-function SettingsPanel:CreateAddonCompartmentToggleRow(panel)
-    local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -100)
-    label:SetText("Show in Blizzard Addon Compartment")
-    self.AddonCompartmentLabel = label
-
-    local checkbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
-    checkbox:SetSize(28, 28)
-    checkbox:SetPoint("RIGHT", panel, "RIGHT", -24, 0)
-    checkbox:SetPoint("CENTER", label, "CENTER", 0, 0)
-
-    checkbox:SetScript("OnEnter", function(cb)
-        if GameTooltip then
-            GameTooltip:SetOwner(cb, "ANCHOR_RIGHT")
-            GameTooltip:AddLine("Blizzard Addon Compartment", 1.0, 0.82, 0.0)
-            GameTooltip:AddLine("When enabled on modern WoW clients, Adventure Journal is listed in the Blizzard Addon Compartment dropdown next to the Minimap.", 1.0, 1.0, 1.0, true)
-            GameTooltip:Show()
-        end
-    end)
-    checkbox:SetScript("OnLeave", function()
-        if GameTooltip then
-            GameTooltip:Hide()
-        end
-    end)
-
-    checkbox:SetScript("OnClick", function(cb)
-        local isChecked = cb:GetChecked() and true or false
-        if PlaySound then
-            PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
-        end
-        ns.Database:SetAddonCompartmentShown(isChecked)
-    end)
-
-    self.AddonCompartmentCheckbox = checkbox
-end
-
 --- Builds the "Installed Modules" section header, instructions, and drag-and-drop list container.
 --- @param panel Frame
 function SettingsPanel:CreateInstalledPluginsSection(panel)
     local sectionHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    sectionHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 18, -144)
+    sectionHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 18, -184)
     sectionHeader:SetText("Installed Modules")
     self.PluginSectionHeader = sectionHeader
 
     local subNote = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     subNote:SetPoint("LEFT", sectionHeader, "RIGHT", 12, 0)
-    subNote:SetText("Click the star to set a default landing tab when opening the Journal, or drag rows to reorder tabs.")
+    subNote:SetText("Click the star to set a default tab when opening the Journal, or drag rows to reorder tabs.")
     subNote:SetTextColor(0.68, 0.64, 0.56)
 
     local divider = panel:CreateTexture(nil, "ARTWORK")
@@ -845,9 +921,9 @@ function SettingsPanel:CreateMapIconsModuleSection(panel)
     }
 
     local function initializeDropdown(selfDD, level)
-        local selectedValue = (ns.Database and ns.Database.GetMapIconsSetting and ns.Database:GetMapIconsSetting("worldMapDungeonIcons", "min_level"))
-            or (ns.Database and ns.Database.GetDungeonSetting and ns.Database:GetDungeonSetting("worldMapDungeonIcons", "min_level"))
-            or "min_level"
+        local selectedValue = (ns.Database and ns.Database.GetMapIconsSetting and ns.Database:GetMapIconsSetting("worldMapDungeonIcons", "always"))
+            or (ns.Database and ns.Database.GetDungeonSetting and ns.Database:GetDungeonSetting("worldMapDungeonIcons", "always"))
+            or "always"
         for _, opt in ipairs(MAP_ICON_OPTIONS) do
             local info = UIDropDownMenu_CreateInfo and UIDropDownMenu_CreateInfo() or {}
             info.text = opt.text
@@ -886,7 +962,7 @@ function SettingsPanel:CreateMapIconsModuleSection(panel)
         if GameTooltip then
             GameTooltip:SetOwner(dd, "ANCHOR_RIGHT")
             GameTooltip:AddLine("Dungeon Icons on World Map", 1.0, 0.82, 0.0)
-            GameTooltip:AddLine("Controls when dungeon entrance icons (blue swirl portals) appear on the World Map.\n\n• After minimum level: Visible once your character reaches the dungeon's minimum level (Default).\n• Only during level bracket: Only visible while within the recommended level range.\n• Always show: Always visible regardless of your character's level.\n• Disabled: Hides all dungeon entrance markers.", 1.0, 1.0, 1.0, true)
+            GameTooltip:AddLine("Controls when dungeon entrance icons (blue swirl portals) appear on the World Map.\n\n• Always show: Always visible regardless of your character's level (Default).\n• After minimum level: Visible once your character reaches the dungeon's minimum level.\n• Only during level bracket: Only visible while within the recommended level range.\n• Disabled: Hides all dungeon entrance markers.", 1.0, 1.0, 1.0, true)
             GameTooltip:Show()
         end
     end)
@@ -991,7 +1067,7 @@ function SettingsPanel:GetTargetSlotFromCursor(totalRows)
 end
 
 --- Acquires or creates a pooled row widget for a plugin in Settings, supporting:
----   * Left house icon toggle (`Set as Home`)
+---   * Left star icon toggle (`Set as Default Landing Tab`)
 ---   * Drag-and-drop row reordering
 ---   * Version & status inspection + Enable/Disable button
 --- @param index number
@@ -1060,14 +1136,10 @@ function SettingsPanel:AcquirePluginRow(index)
     icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     row.icon = icon
 
-    -- 4. Plugin Title, Version, Status, and Enable/Disable Button
+    -- 4. Plugin Title, Status, and Enable/Disable Button
     local nameText = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     nameText:SetPoint("LEFT", icon, "RIGHT", 10, 0)
     row.nameText = nameText
-
-    local versionText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    versionText:SetPoint("LEFT", nameText, "RIGHT", 10, 0)
-    row.versionText = versionText
 
     local statusText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     statusText:SetPoint("RIGHT", row, "RIGHT", -106, 0)
@@ -1128,8 +1200,8 @@ function SettingsPanel:AcquirePluginRow(index)
 
     -- 5. Click-and-Drag Row Reordering Scripts
     row:SetScript("OnDragStart", function(draggedRow)
-        if not draggedRow.pluginId or draggedRow.pluginId == "home" or draggedRow.isUtility then
-            return -- Home and Utility modules cannot be dragged
+        if not draggedRow.pluginId or draggedRow.isUtility then
+            return -- Utility modules cannot be dragged
         end
         self.draggingPluginId = draggedRow.pluginId
         draggedRow:SetFrameLevel((self.PluginListContainer:GetFrameLevel() or 2) + 10)
@@ -1146,7 +1218,7 @@ function SettingsPanel:AcquirePluginRow(index)
                 end
             end
             local rawSlot = self:GetTargetSlotFromCursor(#catalog)
-            local targetSlot = math.max(2, math.min(maxNonUtilitySlot, rawSlot))
+            local targetSlot = math.max(1, math.min(maxNonUtilitySlot, rawSlot))
             if targetSlot ~= draggedRow.slotIndex then
                 ns.PluginRegistry:MovePluginToIndex(draggedRow.pluginId, targetSlot)
             end
@@ -1164,7 +1236,7 @@ function SettingsPanel:AcquirePluginRow(index)
     return row
 end
 
---- Refreshes the list of plugins, their House icon state, version numbers, and order.
+--- Refreshes the list of plugins, their Default Landing Tab star state, version numbers, and order.
 function SettingsPanel:RefreshPluginRows()
     if not self.PluginListContainer then
         return
@@ -1221,9 +1293,9 @@ function SettingsPanel:RefreshPluginRows()
             row.bBottom:SetVertexColor(0.26, 0.21, 0.13, 0.78)
         end
 
-        -- "home" is locked in Slot 1; utility modules are pinned to the bottom:
-        -- Neither can have drag handles or default landing tab stars.
-        if entry.id == "home" or entry.isUtility then
+        -- Utility modules are pinned to the bottom:
+        -- They cannot have drag handles or default landing tab stars.
+        if entry.isUtility then
             row.grip:Hide()
             row.defaultBtn:Hide()
         else
@@ -1235,7 +1307,6 @@ function SettingsPanel:RefreshPluginRows()
         row.icon:SetTexture(entry.icon or Constants.ASSETS.FALLBACK_ICON)
         row.icon:SetDesaturated(not entry.isEnabled)
         row.nameText:SetText(entry.title .. " |cff808080(" .. tostring(entry.addonName) .. ")|r")
-        row.versionText:SetText("v" .. tostring(entry.version))
 
         if not isInstalled then
             row.statusText:SetText("|cff808080Not Installed|r")
@@ -1291,18 +1362,18 @@ function SettingsPanel:Refresh()
             status.syncedVersion or "Unknown"
         ))
         self.AlertBanner:Show()
-        if self.KeybindLabel then self.KeybindLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -46) end
-        if self.MinimapLabel then self.MinimapLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -74) end
-        if self.CompareItemsLabel then self.CompareItemsLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -102) end
-        if self.AddonCompartmentLabel then self.AddonCompartmentLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -130) end
-        if self.PluginSectionHeader then self.PluginSectionHeader:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 18, -174) end
+        if self.KeybindLabel then self.KeybindLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -90) end
+        if self.MinimapLabel then self.MinimapLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -118) end
+        if self.AddonCompartmentLabel then self.AddonCompartmentLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -146) end
+        if self.CompareItemsLabel then self.CompareItemsLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -174) end
+        if self.PluginSectionHeader then self.PluginSectionHeader:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 18, -218) end
     else
         if self.AlertBanner then self.AlertBanner:Hide() end
-        if self.KeybindLabel then self.KeybindLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -16) end
-        if self.MinimapLabel then self.MinimapLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -44) end
-        if self.CompareItemsLabel then self.CompareItemsLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -72) end
-        if self.AddonCompartmentLabel then self.AddonCompartmentLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -100) end
-        if self.PluginSectionHeader then self.PluginSectionHeader:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 18, -144) end
+        if self.KeybindLabel then self.KeybindLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -56) end
+        if self.MinimapLabel then self.MinimapLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -84) end
+        if self.AddonCompartmentLabel then self.AddonCompartmentLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -112) end
+        if self.CompareItemsLabel then self.CompareItemsLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -140) end
+        if self.PluginSectionHeader then self.PluginSectionHeader:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 18, -184) end
     end
 
     if self.KeybindButton then
@@ -1370,17 +1441,17 @@ function SettingsPanel:Refresh()
         end
     end
     if self.WorldMapIconsDropdown then
-        local val = (ns.Database and ns.Database.GetMapIconsSetting and ns.Database:GetMapIconsSetting("worldMapDungeonIcons", "min_level"))
-            or (ns.Database and ns.Database.GetDungeonSetting and ns.Database:GetDungeonSetting("worldMapDungeonIcons", "min_level"))
-            or "min_level"
+        local val = (ns.Database and ns.Database.GetMapIconsSetting and ns.Database:GetMapIconsSetting("worldMapDungeonIcons", "always"))
+            or (ns.Database and ns.Database.GetDungeonSetting and ns.Database:GetDungeonSetting("worldMapDungeonIcons", "always"))
+            or "always"
         if UIDropDownMenu_SetSelectedValue then
             UIDropDownMenu_SetSelectedValue(self.WorldMapIconsDropdown, val)
         end
-        local labelText = "After minimum level"
-        if val == "bracket" then
+        local labelText = "Always show"
+        if val == "min_level" then
+            labelText = "After minimum level"
+        elseif val == "bracket" then
             labelText = "Only during level bracket"
-        elseif val == "always" then
-            labelText = "Always show"
         elseif val == "disabled" then
             labelText = "Disabled"
         end
@@ -1393,9 +1464,9 @@ function SettingsPanel:Refresh()
     end
     self:RefreshPluginRows()
 
-    local totalH = 780
+    local totalH = 820
     if status and status.isMismatch then
-        totalH = 810
+        totalH = 860
     end
     if self.scrollChild and self.scrollFrame then
         local w = self.scrollFrame:GetWidth()

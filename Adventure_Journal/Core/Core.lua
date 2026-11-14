@@ -87,9 +87,14 @@ function JournalBase:GetPlugin(pluginId)
     return ns.PluginRegistry:GetPlugin(pluginId)
 end
 
---- Activates the Journal Base "Home" screen and resets breadcrumbs to `Home`.
+--- Activates the default opening tab (e.g. Dungeons).
+function JournalBase:ActivateDefaultPlugin()
+    ns.PluginRegistry:ActivateDefaultPlugin()
+end
+
+--- Backwards-compatibility alias.
 function JournalBase:ActivateHome()
-    ns.PluginRegistry:ActivateHome()
+    ns.PluginRegistry:ActivateDefaultPlugin()
 end
 
 -- ----------------------------------------------------------------------------

@@ -18,7 +18,6 @@ Core\PluginRegistry.lua
 Core\HolidayManager.lua
 Core\UI\HeaderBar.lua
 Core\UI\TabBar.lua
-Core\UI\HomeView.lua
 Core\UI\MainFrame.lua
 Core\UI\MinimapButton.lua
 Core\UI\KeybindButton.lua

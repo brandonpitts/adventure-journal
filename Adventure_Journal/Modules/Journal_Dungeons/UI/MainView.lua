@@ -1,9 +1,9 @@
 -- ============================================================================
 -- Journal_Dungeons - UI/MainView.lua
 -- State controller for `Journal_Dungeons`, coordinating:
---   * Level 2 (`Home > Dungeons`): 4-Column Dungeon Browser Grid
---   * Level 3 (`Home > Dungeons > <Dungeon>`): Open-Book Instance Overview
---   * Level 4 (`Home > Dungeons > <Dungeon> > <Boss>`): Boss Encounter Lore & Drops
+--   * Level 1 (`Dungeons`): 4-Column Dungeon Browser Grid
+--   * Level 2 (`Dungeons > <Dungeon>`): Open-Book Instance Overview
+--   * Level 3 (`Dungeons > <Dungeon> > <Boss>`): Boss Encounter Lore & Drops
 -- ============================================================================
 local addonName, parent = ...
 local ns = parent.Dungeons or {} ; parent.Dungeons = ns
@@ -57,7 +57,7 @@ function MainView:Init(parentCanvas, headerBar)
     })
 end
 
---- Displays the root 4-column Dungeon Browser Grid (`Home`),
+--- Displays the root 4-column Dungeon Browser Grid,
 --- resetting any open dungeon/boss book view.
 --- @param headerBar table|nil
 function MainView:ShowRoot(headerBar)
@@ -72,7 +72,7 @@ function MainView:ShowRoot(headerBar)
     self.selectedBoss = nil
 
     if self.headerBar and self.headerBar.ResetBreadcrumbs then
-        self.headerBar:ResetBreadcrumbs("Home", function()
+        self.headerBar:ResetBreadcrumbs("Dungeons", function()
             self:ShowRoot()
         end)
     end
@@ -82,7 +82,7 @@ function MainView:ShowRoot(headerBar)
     ns.UI.DungeonGridView:Show()
 end
 
---- Transitions to the Open-Book Instance View (`Home > <Dungeon Name>`).
+--- Transitions to the Open-Book Instance View (`Dungeons > <Dungeon Name>`).
 --- @param dungeon table
 function MainView:SelectDungeon(dungeon)
     if not dungeon then
@@ -96,7 +96,7 @@ function MainView:SelectDungeon(dungeon)
     end
 
     if self.headerBar and self.headerBar.ResetBreadcrumbs and self.headerBar.PushStep then
-        self.headerBar:ResetBreadcrumbs("Home", function()
+        self.headerBar:ResetBreadcrumbs("Dungeons", function()
             self:ShowRoot()
         end)
         self.headerBar:PushStep(dungeon.name, function()
