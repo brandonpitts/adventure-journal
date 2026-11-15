@@ -117,7 +117,16 @@
       letter-spacing: 0.05em;
       display: inline-flex;
       align-items: center;
-      gap: 0.55rem;
+      gap: 0.6rem;
+    }
+
+    .site-nav-logo {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      display: block;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
     }
 
     .site-nav-brand span {
@@ -152,6 +161,91 @@
       color: var(--gold-bright);
       background: rgba(198, 155, 58, 0.14);
       border-color: rgba(198, 155, 58, 0.55);
+    }
+
+    /* Info '?' Tooltip Badge Component */
+    .info-tip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      margin-left: 0.4rem;
+      border-radius: 50%;
+      background: rgba(198, 155, 58, 0.16);
+      border: 1px solid rgba(255, 209, 0, 0.55);
+      color: var(--gold-bright);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 800;
+      line-height: 1;
+      cursor: help;
+      vertical-align: middle;
+      user-select: none;
+      transition: all 0.18s ease;
+      flex-shrink: 0;
+    }
+
+    .info-tip:hover,
+    .info-tip:focus-visible {
+      background: var(--gold-bright);
+      color: #0c0d10;
+      box-shadow: 0 0 10px rgba(255, 209, 0, 0.5);
+      outline: none;
+    }
+
+    .info-tip-box {
+      visibility: hidden;
+      opacity: 0;
+      pointer-events: none;
+      position: absolute;
+      bottom: calc(100% + 10px);
+      left: 50%;
+      transform: translateX(-50%) translateY(4px);
+      width: 305px;
+      background: #0d0e14;
+      border: 1px solid var(--border-gold);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      color: var(--text-main);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 400;
+      line-height: 1.5;
+      text-align: left;
+      text-transform: none;
+      letter-spacing: normal;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.85);
+      z-index: 250;
+      transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+      white-space: normal;
+    }
+
+    .info-tip-box strong {
+      display: block;
+      color: var(--gold-bright);
+      font-size: 0.84rem;
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+    }
+
+    .info-tip-box::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 6px;
+      border-style: solid;
+      border-color: var(--border-gold) transparent transparent transparent;
+    }
+
+    .info-tip:hover .info-tip-box,
+    .info-tip:focus-visible .info-tip-box {
+      visibility: visible;
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
     }
 
     header {
@@ -238,7 +332,6 @@
       border-radius: 8px;
       padding: 1.5rem;
       position: relative;
-      overflow: hidden;
     }
 
     .kpi-card::before {
@@ -259,6 +352,8 @@
       letter-spacing: 0.07em;
       color: var(--text-muted);
       margin-bottom: 0.4rem;
+      display: flex;
+      align-items: center;
     }
 
     .kpi-value {
@@ -285,6 +380,19 @@
       box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
     }
 
+    .coverage-intro {
+      color: var(--text-muted);
+      font-size: 0.94rem;
+      line-height: 1.6;
+      margin-bottom: 1.6rem;
+      padding-bottom: 1.2rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .coverage-intro strong {
+      color: var(--gold-bright);
+    }
+
     .coverage-row {
       margin-bottom: 1.4rem;
     }
@@ -296,15 +404,19 @@
     .coverage-header {
       display: flex;
       justify-content: space-between;
-      align-items: baseline;
+      align-items: center;
       margin-bottom: 0.45rem;
       gap: 1rem;
+      flex-wrap: wrap;
     }
 
     .coverage-title {
       font-weight: 600;
       color: #fff;
       font-size: 0.96rem;
+      display: inline-flex;
+      align-items: center;
+      flex-wrap: wrap;
     }
 
     .coverage-stats {
@@ -341,7 +453,7 @@
       background: var(--bg-panel);
       border: 1px solid var(--border-dark);
       border-radius: 10px;
-      overflow: hidden;
+      overflow: visible;
       margin-bottom: 3rem;
     }
 
@@ -423,7 +535,7 @@
   <!-- Primary Site Navigation -->
   <nav class="site-nav" aria-label="Primary Navigation">
     <div class="site-nav-inner">
-      <a href="index.html" class="site-nav-brand">⚔ <span>Adventure Journal</span></a>
+      <a href="index.html" class="site-nav-brand"><img src="favicon.svg" alt="" class="site-nav-logo"><span>Adventure Journal</span></a>
       <div class="site-nav-links">
         <a href="index.html" class="site-nav-link">Home</a>
         <a href="architecture.html" class="site-nav-link">Architecture &amp; Data Engine</a>
@@ -435,46 +547,110 @@
   <header>
     <div class="eyebrow">Catalog Telemetry &amp; Coverage Matrix</div>
     <h1><span>Item Catalog Telemetry</span></h1>
-    <p class="subtitle">Live coverage metrics across the normalized 1,602-item dungeon catalog, tracking static cold-cache metadata hydration, category distribution, and multi-tag query readiness.</p>
+    <p class="subtitle">Live coverage metrics across the normalized 1,602-item dungeon catalog, tracking how item details are pre-loaded offline versus filled in dynamically by the game client.</p>
   </header>
 
   <main>
-    <h2 class="section-title" style="margin-top: 1rem;">Catalog <span>Key Metrics</span></h2>
+    <h2 class="section-title" style="margin-top: 1rem;">
+      Catalog <span>Key Metrics</span>
+      <span class="info-tip" tabindex="0">?
+        <span class="info-tip-box">
+          <strong>What Are Catalog Key Metrics?</strong>
+          These four numbers summarize the size of the Adventure Journal item database and how much information is ready to search the moment you log in.
+        </span>
+      </span>
+    </h2>
     <div class="section-divider"></div>
 
     <div class="kpi-grid">
       <div class="kpi-card">
-        <div class="kpi-label">Master Item Store</div>
+        <div class="kpi-label">
+          Master Item Store
+          <span class="info-tip" tabindex="0">?
+            <span class="info-tip-box">
+              <strong>Master Item Store (1,602 Items)</strong>
+              Every unique dungeon item in the game has a single record keyed by its numeric <code>itemID</code>. Even if 5 bosses drop the same item, it is stored only once in memory.
+            </span>
+          </span>
+        </div>
         <div class="kpi-value">1,602</div>
         <div class="kpi-sub">Unique item records indexed by numeric <code>itemID</code></div>
       </div>
 
       <div class="kpi-card">
-        <div class="kpi-label">Instance Coverage</div>
+        <div class="kpi-label">
+          Instance Coverage
+          <span class="info-tip" tabindex="0">?
+            <span class="info-tip-box">
+              <strong>35 Dungeon Instances</strong>
+              Includes all classic 5-player dungeons (Ragefire Chasm through Stratholme/Scholomance) plus custom WoW Forever dungeons like Hall of Thanes, Ruins of Lordaeron, City of Dalaran, and The Drowned City.
+            </span>
+          </span>
+        </div>
         <div class="kpi-value">35</div>
         <div class="kpi-sub">Classic &amp; custom WoW Forever 5-player dungeons</div>
       </div>
 
       <div class="kpi-card">
-        <div class="kpi-label">Static Cold-Cache Names</div>
+        <div class="kpi-label">
+          Static Cold-Cache Names
+          <span class="info-tip" tabindex="0">?
+            <span class="info-tip-box">
+              <strong>What Does "Cold-Cache" Mean?</strong>
+              When you first install WoW or clear your cache folder, your client hasn't seen most items yet ("cold cache"). Having 77.6% of names pre-saved in the addon means you can search for them by name immediately without waiting on the server.
+            </span>
+          </span>
+        </div>
         <div class="kpi-value">77.6%</div>
         <div class="kpi-sub"><code>1,243 / 1,602</code> items searchable prior to server cache</div>
       </div>
 
       <div class="kpi-card">
-        <div class="kpi-label">Taxonomy &amp; Aliases</div>
+        <div class="kpi-label">
+          Taxonomy &amp; Aliases
+          <span class="info-tip" tabindex="0">?
+            <span class="info-tip-box">
+              <strong>What Are Taxonomy Aliases?</strong>
+              Players type shorthand like <code>"1h"</code>, <code>"2h"</code>, <code>"sp"</code>, <code>"mp5"</code>, or <code>"str"</code>. Our alias dictionary automatically translates over 120 player terms into canonical filter tags.
+            </span>
+          </span>
+        </div>
         <div class="kpi-value">120+</div>
         <div class="kpi-sub">Natural-language synonyms mapped across 8 dimensions</div>
       </div>
     </div>
 
-    <h2 class="section-title">Progressive Hydration <span>Coverage</span></h2>
+    <h2 class="section-title">
+      Progressive Hydration <span>Coverage</span>
+      <span class="info-tip" tabindex="0">?
+        <span class="info-tip-box">
+          <strong>What is "Progressive Hydration"?</strong>
+          "Hydration" means filling in an item's details step-by-step:
+          <br><br>
+          1. <strong>Static Data</strong> is baked directly into the addon files.<br>
+          2. <strong>Client DBC</strong> fills in weapon/armor types instantly from local game files.<br>
+          3. <strong>Tooltip Scanning</strong> fills in green bonus stats from the server as you browse.
+        </span>
+      </span>
+    </h2>
     <div class="section-divider"></div>
 
     <section class="coverage-panel" aria-label="Catalog Field Completeness">
+      <p class="coverage-intro">
+        <strong>How to read these progress bars:</strong> In World of Warcraft, some item properties are always known locally by your game client (<strong>100% bars</strong>), while others are pre-baked into the addon's static catalog (<strong>72%–77% bars</strong>) so searches work even before your character has seen the item on the server. Any remaining items are filled in automatically at runtime the moment the server sends their tooltip.
+      </p>
+
       <div class="coverage-row">
         <div class="coverage-header">
-          <span class="coverage-title">Bi-Directional Source &amp; Domain Tag Indexing (<code>dungeon</code>, <code>boss-drop</code>, <code>zone-drop</code>)</span>
+          <span class="coverage-title">
+            Bi-Directional Source &amp; Domain Tag Indexing (<code>dungeon</code>, <code>boss-drop</code>, <code>zone-drop</code>)
+            <span class="info-tip" tabindex="0">?
+              <span class="info-tip-box">
+                <strong>Bi-Directional Source Indexing (100%)</strong>
+                Every single item in the catalog knows exactly which dungeon, boss encounter, or zone trash table drops it—and every boss knows all of its items.
+              </span>
+            </span>
+          </span>
           <span class="coverage-stats">1,602 / 1,602 (100.0%)</span>
         </div>
         <div class="progress-track">
@@ -484,7 +660,15 @@
 
       <div class="coverage-row">
         <div class="coverage-header">
-          <span class="coverage-title">Synchronous Client DBC Classification (<code>C_Item.GetItemInfoInstant</code> Slot &amp; Subtype)</span>
+          <span class="coverage-title">
+            Synchronous Client DBC Classification (<code>C_Item.GetItemInfoInstant</code> Slot &amp; Subtype)
+            <span class="info-tip" tabindex="0">?
+              <span class="info-tip-box">
+                <strong>Synchronous Client DBC Classification (100%)</strong>
+                WoW's local game files (<code>DBC</code>) always know an item's icon, equipment slot (e.g. Two-Hand, Trinket, Head), and weapon/armor type (e.g. Sword, Mail, Cloth) for 100% of items without needing the server!
+              </span>
+            </span>
+          </span>
           <span class="coverage-stats">1,602 / 1,602 (100.0% In-Client)</span>
         </div>
         <div class="progress-track">
@@ -494,7 +678,15 @@
 
       <div class="coverage-row">
         <div class="coverage-header">
-          <span class="coverage-title">Pre-Hydrated Static English Item Names (<code>name</code>)</span>
+          <span class="coverage-title">
+            Pre-Hydrated Static English Item Names (<code>name</code>)
+            <span class="info-tip" tabindex="0">?
+              <span class="info-tip-box">
+                <strong>Pre-Hydrated Static Names (77.6%)</strong>
+                1,243 of the 1,602 items have their exact English name saved directly inside <code>Items_Catalog.lua</code>. For the remaining 359 custom WoW Forever items, the addon requests the name from the server automatically when opened.
+              </span>
+            </span>
+          </span>
           <span class="coverage-stats">1,243 / 1,602 (77.6%)</span>
         </div>
         <div class="progress-track">
@@ -504,7 +696,15 @@
 
       <div class="coverage-row">
         <div class="coverage-header">
-          <span class="coverage-title">Pre-Hydrated Static Quality Tiers (<code>q</code>)</span>
+          <span class="coverage-title">
+            Pre-Hydrated Static Quality Tiers (<code>q</code>)
+            <span class="info-tip" tabindex="0">?
+              <span class="info-tip-box">
+                <strong>Pre-Hydrated Quality Tiers (75.9%)</strong>
+                <code>q</code> stores the item's rarity color (<code>2</code> = Uncommon Green, <code>3</code> = Rare Blue, <code>4</code> = Epic Purple) so item links and borders render in the right color immediately on a cold cache.
+              </span>
+            </span>
+          </span>
           <span class="coverage-stats">1,216 / 1,602 (75.9%)</span>
         </div>
         <div class="progress-track">
@@ -514,7 +714,15 @@
 
       <div class="coverage-row">
         <div class="coverage-header">
-          <span class="coverage-title">Pre-Hydrated Static Slot &amp; Subtype Tags (<code>slot</code>, <code>subType</code>)</span>
+          <span class="coverage-title">
+            Pre-Hydrated Static Slot &amp; Subtype Tags (<code>slot</code>, <code>subType</code>)
+            <span class="info-tip" tabindex="0">?
+              <span class="info-tip-box">
+                <strong>Pre-Hydrated Slot &amp; Subtype Tags (72.0%)</strong>
+                72% of items have their slot and subtype pre-baked in the static file, and the remaining 28% are filled in instantaneously at runtime by <code>C_Item.GetItemInfoInstant</code> (reaching 100% in-game!).
+              </span>
+            </span>
+          </span>
           <span class="coverage-stats">1,154 / 1,602 (72.0%)</span>
         </div>
         <div class="progress-track">
@@ -523,16 +731,48 @@
       </div>
     </section>
 
-    <h2 class="section-title">Multi-Tag &amp; Level <span>Query Examples</span></h2>
+    <h2 class="section-title">
+      Multi-Tag &amp; Level <span>Query Examples</span>
+      <span class="info-tip" tabindex="0">?
+        <span class="info-tip-box">
+          <strong>How Advanced Search Queries Work</strong>
+          When Advanced Searching is enabled in Settings, you can combine equipment slots, weapon/armor types, primary stats, spell power, and level ranges in a single search.
+        </span>
+      </span>
+    </h2>
     <div class="section-divider"></div>
 
     <div class="query-table-wrap">
       <table class="query-table">
         <thead>
           <tr>
-            <th>Search Bar Input</th>
-            <th>Normalized Query AST</th>
-            <th>Evaluation Behavior</th>
+            <th>
+              Search Bar Input
+              <span class="info-tip" tabindex="0">?
+                <span class="info-tip-box">
+                  <strong>Search Bar Input</strong>
+                  What you type into the top-right search box in the Adventure Journal window (commas or spaces both work!).
+                </span>
+              </span>
+            </th>
+            <th>
+              Normalized Query AST
+              <span class="info-tip" tabindex="0">?
+                <span class="info-tip-box">
+                  <strong>What is a "Normalized Query AST"?</strong>
+                  "AST" stands for Abstract Syntax Tree—it just means how the search engine breaks your words down into clean, standardized filter rules (tags + minimum/maximum level).
+                </span>
+              </span>
+            </th>
+            <th>
+              Evaluation Behavior
+              <span class="info-tip" tabindex="0">?
+                <span class="info-tip-box">
+                  <strong>Evaluation Behavior</strong>
+                  How the engine filters the dungeon grid, boss list, and right-hand item page to show only matching items.
+                </span>
+              </span>
+            </th>
           </tr>
         </thead>
         <tbody>
