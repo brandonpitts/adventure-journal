@@ -357,6 +357,75 @@
       color: #55e670;
     }
 
+    /* Future Candidates Box */
+    .future-candidates-box {
+      background: rgba(19, 20, 26, 0.7);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      padding: 1.6rem 2rem;
+      margin: -2rem auto 4rem;
+      max-width: 1100px;
+    }
+
+    .future-candidates-header {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .future-badge {
+      background: rgba(198, 155, 58, 0.15);
+      border: 1px solid rgba(198, 155, 58, 0.4);
+      color: var(--gold-bright);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+    }
+
+    .future-candidates-header h3 {
+      font-family: 'Cinzel', serif;
+      font-size: 1.1rem;
+      color: #fff;
+    }
+
+    .future-intro {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .future-candidates-list {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 0.8rem 1.5rem;
+    }
+
+    .future-candidates-list li {
+      font-size: 0.88rem;
+      color: #b3b1ba;
+      position: relative;
+      padding-left: 1.2rem;
+      line-height: 1.5;
+    }
+
+    .future-candidates-list li::before {
+      content: "•";
+      color: var(--border-gold);
+      position: absolute;
+      left: 0;
+      font-size: 1.1rem;
+      line-height: 1;
+    }
+
+    .future-candidates-list li strong {
+      color: var(--gold-bright);
+    }
+
     .card {
       background: var(--bg-panel);
       border: 1px solid var(--border-dark);
@@ -794,24 +863,36 @@
     <div class="roadmap-grid">
       <div class="card roadmap-next">
         <div class="card-tag">Priority 1 • Next Up</div>
-        <h3>Quest System &amp; Attunements</h3>
-        <p>Dungeon-attached vertical tabs displaying quest directories, coordinates, multi-step chains, and turn-ins,
-          powered by a dedicated quest storage pipeline.</p>
+        <h3>Raid Journal &amp; Attunements</h3>
+        <p>10, 20, and 40-player raid progression references, boss mechanics, role notes, and tier set catalogs alongside attunements, targeting confirmed encounters: The Barrow Deeps, Hyjal Summit, and Onyxia's Lair.</p>
       </div>
 
       <div class="card">
-        <div class="card-tag">Priority 2 • Planned Module</div>
-        <h3>Raid Journal &amp; Confirmed Encounters</h3>
-        <p>10, 20, and 40-player raid progression built on the central item database foundation, targeting confirmed WoW
-          Forever raids: The Barrow Deeps, Hyjal Summit, and Onyxia's Lair.</p>
+        <div class="card-tag">Priority 2 • Architecture</div>
+        <h3>Quest Data Storage Overhaul &amp; Refactor</h3>
+        <p>Unified storage system with a scalable quest tagging system to match the item storage architecture, enabling rich cross-linking and multi-dimensional querying.</p>
       </div>
 
       <div class="card">
-        <div class="card-tag">Priority 3 • Planned Expansion</div>
-        <h3>Entity Storage &amp; World Transit Markers</h3>
-        <p>Extending the normalized central database architecture to dungeon and boss entities alongside boat and
-          zeppelin world map transit indicators.</p>
+        <div class="card-tag">Priority 3 • Planned Tab</div>
+        <h3>Standalone Quests Tab</h3>
+        <p>Dedicated Quests tab for class quests, collectible item quests, and elite quests like attunements. Quests are already available in the dungeon tab, but this tab will allow for quest searching and act as a place to view priority quests.</p>
       </div>
+    </div>
+
+    <!-- Future Roadmap Candidates (Unscheduled Backlog) -->
+    <div class="future-candidates-box">
+      <div class="future-candidates-header">
+        <span class="future-badge">Backlog</span>
+        <h3>Future Explorations &amp; Unscheduled Candidates</h3>
+      </div>
+      <p class="future-intro">Candidate modules and feature ideas queued for future investigation without a fixed roadmap position:</p>
+      <ul class="future-candidates-list">
+        <li><strong>Professions Module:</strong> Comprehensive recipe catalogs, crafting reagents, gathering nodes, and trainer reference directories.</li>
+        <li><strong>Notes Module:</strong> In-game player notes, personal coordinate bookmarks, and custom adventure reminder checklists.</li>
+        <li><strong>Compact Mode:</strong> Streamlined, low-profile interface option designed for active in-instance and quest tracking.</li>
+        <li><strong>Gamepad &amp; Controller Support:</strong> Investigation and potential implementation of native controller navigation and gamepad bindings.</li>
+      </ul>
     </div>
 
     <h2 class="section-title">Quick <span>Installation</span></h2>
@@ -894,6 +975,7 @@
         <summary class="accordion-header">Completed Roadmap Features</summary>
         <div class="accordion-content">
           <ul class="completed-features-list">
+            <li class="completed-feature-item">Dungeon Quest System with multi-step chain accordions, quest givers, objectives, and interactive map pins</li>
             <li class="completed-feature-item">World Map Zone Level Overlays with level brackets &amp; fishing skill indicators</li>
             <li class="completed-feature-item">Central Item Storage Engine with 8-dimension multi-tag &amp; level-range
               search</li>
