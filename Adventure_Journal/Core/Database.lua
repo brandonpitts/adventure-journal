@@ -92,7 +92,7 @@ function Database:IsAddonCompartmentShown()
     if store.showInAddonCompartment ~= nil then
         return store.showInAddonCompartment == true
     end
-    return true
+    return false
 end
 
 --- @param isShown boolean
@@ -134,9 +134,6 @@ function Database:SetMinimapShown(isShown)
     local val = isShown and true or false
     store.minimap.show = val
     store.minimap.hide = not val
-    if not val then
-        self:SetAddonCompartmentShown(true)
-    end
 end
 
 --- @return boolean

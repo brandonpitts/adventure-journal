@@ -53,7 +53,7 @@ function MinimapButton:Init()
         return
     end
 
-    local button = CreateFrame("Button", nil, Minimap)
+    local button = CreateFrame("Button", "AdventureJournalMinimapButton", Minimap)
     button:SetSize(Constants.MINIMAP.SIZE, Constants.MINIMAP.SIZE)
     button:SetFrameStrata("MEDIUM")
     button:SetFrameLevel((Minimap:GetFrameLevel() or 0) + 8)

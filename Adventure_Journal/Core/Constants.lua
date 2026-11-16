@@ -20,7 +20,7 @@ local SOUNDKIT = SOUNDKIT
 local Constants = {
     ADDON_NAME = addonName,
     TITLE = "Adventure Journal",
-    VERSION = "0.7.0",
+    VERSION = "0.7.1",
     AUTHOR = "Brandon (Endoria)",
     PLUGIN_API_VERSION = 1,
 
@@ -132,7 +132,7 @@ local Constants = {
 
     DB_DEFAULTS = {
         schemaVersion = 4,
-        showInAddonCompartment = true,
+        showInAddonCompartment = false,
         enableAdvancedSearch = false,
         minimap = {
             show = true,
@@ -177,3 +177,4 @@ local Constants = {
 -- ----------------------------------------------------------------------------
 ns.Constants = Constants
 ns.UI = ns.UI or {}
+

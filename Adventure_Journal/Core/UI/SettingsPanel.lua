@@ -406,14 +406,6 @@ function SettingsPanel:CreateMinimapToggleRow(panel)
         end
         ns.Database:SetMinimapShown(isChecked)
         ns.UI.MinimapButton:RefreshVisibility()
-
-        -- When Minimap Icon is hidden (unchecked), automatically enable Addon Compartment
-        if not isChecked then
-            ns.Database:SetAddonCompartmentShown(true)
-            if self.AddonCompartmentCheckbox then
-                self.AddonCompartmentCheckbox:SetChecked(true)
-            end
-        end
     end)
 
     self.ShowMinimapCheckbox = checkbox
@@ -454,7 +446,6 @@ function SettingsPanel:CreateAddonCompartmentToggleRow(panel)
             PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
         end
         ns.Database:SetAddonCompartmentShown(isChecked)
-        -- Note: Unchecking compartment does not show or modify the minimap icon setting.
     end)
 
     self.AddonCompartmentCheckbox = checkbox
