@@ -416,16 +416,7 @@
 
     /* Visual Architecture Map */
     .arch-diagram {
-      background: var(--bg-panel);
-      border: 1px solid rgba(198, 155, 58, 0.45);
-      border-radius: 10px;
-      padding: 2rem;
-      margin-bottom: 3rem;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
-    }
-
-    .arch-diagram.legacy-diagram {
-      border-color: rgba(255, 107, 107, 0.38);
+      margin-bottom: 3.5rem;
     }
 
     .arch-tiers {
@@ -435,10 +426,15 @@
     }
 
     .arch-tier {
-      background: rgba(12, 13, 16, 0.75);
+      background: var(--bg-panel);
       border: 1px solid var(--border-dark);
       border-radius: 8px;
-      padding: 1.25rem 1.4rem;
+      padding: 1.35rem 1.5rem;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+    }
+
+    .legacy-diagram .arch-tier {
+      border-color: rgba(255, 107, 107, 0.35);
     }
 
     .arch-tier-header {
@@ -489,13 +485,27 @@
       margin-bottom: 0.35rem;
       display: flex;
       align-items: center;
-      gap: 0.35rem;
-      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 0.4rem;
+      line-height: 1.35;
+      flex-wrap: nowrap;
     }
 
     .arch-node-title code {
       color: var(--accent-blue);
-      font-size: 0.86rem;
+      font-size: 0.80rem;
+      white-space: nowrap;
+      letter-spacing: -0.015em;
+    }
+
+    .arch-node-sub {
+      margin-top: -0.15rem;
+      margin-bottom: 0.45rem;
+    }
+
+    .arch-node-sub code {
+      color: var(--accent-blue);
+      font-size: 0.84rem;
     }
 
     .arch-node p {
@@ -643,9 +653,12 @@
       font-size: 1.25rem;
       color: #fff;
       margin-bottom: 0.75rem;
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
+      display: block;
+      line-height: 1.35;
+    }
+
+    .card h3 .info-tip {
+      vertical-align: 1px;
     }
 
     .card p {
@@ -680,6 +693,63 @@
     .code-num { color: #d19a66; }
     .code-kw { color: #c678dd; }
 
+    /* Argon Model Spotlight Box */
+    .model-spotlight-box {
+      background: rgba(19, 20, 26, 0.85);
+      border: 1px solid rgba(198, 155, 58, 0.35);
+      border-left: 4px solid var(--border-gold);
+      border-radius: 8px;
+      padding: 1.6rem 2rem;
+      margin: 0 auto 3rem;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .model-spotlight-header {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .model-spotlight-badge {
+      background: rgba(198, 155, 58, 0.2);
+      border: 1px solid var(--border-gold);
+      color: var(--gold-bright);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+    }
+
+    .model-spotlight-header h3 {
+      font-family: 'Cinzel', serif;
+      font-size: 1.15rem;
+      color: #fff;
+    }
+
+    .model-spotlight-box p {
+      color: #b3b1ba;
+      font-size: 0.94rem;
+      line-height: 1.65;
+    }
+
+    .model-spotlight-box strong {
+      color: var(--gold-bright);
+      font-weight: 600;
+    }
+
+    .model-spotlight-box code {
+      background: #090a0d;
+      border: 1px solid #232634;
+      padding: 0.2rem 0.45rem;
+      border-radius: 4px;
+      color: #49c4ff;
+      font-size: 0.84rem;
+    }
+
     /* 8-Dimension Taxonomy Grid */
     .taxonomy-grid {
       display: grid;
@@ -710,7 +780,20 @@
       color: #fff;
       margin-bottom: 0.75rem;
       display: flex;
-      align-items: center;
+      justify-content: space-between;
+      align-items: flex-start;
+      line-height: 1.35;
+    }
+
+    .dim-title-text {
+      flex: 1;
+      padding-right: 0.35rem;
+    }
+
+    .dim-card h4 .info-tip {
+      margin-top: 2px;
+      margin-left: 0.4rem;
+      flex-shrink: 0;
     }
 
     .tag-pill-list {
@@ -761,7 +844,6 @@
       <div class="site-nav-links">
         <a href="index.html" class="site-nav-link">Home</a>
         <a href="architecture.html" class="site-nav-link active">Architecture &amp; Data Engine</a>
-        <a href="catalog.html" class="site-nav-link">Catalog Telemetry</a>
       </div>
     </div>
   </nav>
@@ -774,13 +856,13 @@
     <!-- Transitional Era Switcher Tabs -->
     <div class="arch-switcher-wrap">
       <div class="arch-switcher" role="tablist" aria-label="Architecture Generation Switcher">
-        <button type="button" class="arch-tab-btn active" role="tab" aria-selected="true" aria-controls="pane-current" id="tab-current" onclick="switchArchTab('current')">
-          <span class="tab-pill new">v0.6+ Active</span>
-          Central Storage Engine
-        </button>
         <button type="button" class="arch-tab-btn" role="tab" aria-selected="false" aria-controls="pane-legacy" id="tab-legacy" onclick="switchArchTab('legacy')">
           <span class="tab-pill legacy">v0.1 – v0.5</span>
           Legacy Siloed Method
+        </button>
+        <button type="button" class="arch-tab-btn active" role="tab" aria-selected="true" aria-controls="pane-current" id="tab-current" onclick="switchArchTab('current')">
+          <span class="tab-pill new">v0.6+ Active</span>
+          Central Storage Engine
         </button>
       </div>
       <span class="info-tip" tabindex="0" aria-label="What do these tabs compare?">?
@@ -798,6 +880,15 @@
     <!-- PANE 1: CURRENT ARCHITECTURE (v0.6+ CENTRAL STORAGE ENGINE)        -->
     <!-- ================================================================== -->
     <div id="pane-current" class="arch-view-pane active" role="tabpanel" aria-labelledby="tab-current">
+
+      <!-- Argon Engineering Spotlight -->
+      <div class="model-spotlight-box">
+        <div class="model-spotlight-header">
+          <span class="model-spotlight-badge">Engineered with Argon</span>
+          <h3>Architected with Google Argon</h3>
+        </div>
+        <p>The <strong>v0.6+ Central Item Storage Engine</strong> was designed and developed through agentic workflows utilizing Google's <strong>Argon</strong> model. Argon was leveraged for complex architectural reasoning: transforming legacy siloed dungeon loot tables into a normalized relational data model (<code>Items_Catalog.lua</code>), formulating the 8-dimension inverted tag taxonomy, and engineering the sub-millisecond O(1) query evaluation engine and true <code>:OnUnload()</code> memory reclamation pipeline.</p>
+      </div>
 
       <h2 class="section-title" style="margin-top: 0.5rem;">
         Data Pipeline &amp; <span>Runtime Topology</span>
@@ -897,7 +988,7 @@
             <div class="arch-nodes">
               <div class="arch-node">
                 <div class="arch-node-title">
-                  Inverted Tag Index <code>TagIndex[tag]</code>
+                  <span>Inverted Tag Index</span>
                   <span class="info-tip" tabindex="0">?
                     <span class="info-tip-box">
                       <strong>What is an Inverted Tag Index?</strong>
@@ -905,11 +996,12 @@
                     </span>
                   </span>
                 </div>
+                <div class="arch-node-sub"><code>TagIndex[tag]</code></div>
                 <p>O(1) hash-set buckets mapping every canonical tag (e.g. <code>"one-hand"</code>, <code>"sword"</code>, <code>"spell-power"</code>) to matching item IDs for instant set intersection.</p>
               </div>
               <div class="arch-node">
                 <div class="arch-node-title">
-                  Reverse Source Graph <code>ItemSources[id]</code>
+                  <span>Reverse Source Graph</span>
                   <span class="info-tip" tabindex="0">?
                     <span class="info-tip-box">
                       <strong>What is a Reverse Source Graph?</strong>
@@ -917,17 +1009,17 @@
                     </span>
                   </span>
                 </div>
+                <div class="arch-node-sub"><code>ItemSources[id]</code></div>
                 <p>Links every item back to all bosses, zone drop tables, quests, and seasonal events that award it—enabling cross-module provenance lookups.</p>
               </div>
               <div class="arch-node">
                 <div class="arch-node-title">
-                  Hybrid Cache &amp; Tooltip Hydrator
-                  <span class="info-tip" tabindex="0">?
+                  <span>Hybrid Cache &amp; <span style="white-space: nowrap;">Tooltip Hydrator&nbsp;<span class="info-tip" tabindex="0">?
                     <span class="info-tip-box">
                       <strong>How Does Hybrid Hydration Work?</strong>
                       Combines three layers: (1) static data bundled with the addon, (2) instant local WoW client files (<code>DBC</code>), and (3) live server tooltips scanned in the background.
                     </span>
-                  </span>
+                  </span></span></span>
                 </div>
                 <p>Combines static catalog fields with synchronous <code>C_Item.GetItemInfoInstant</code> DBC lookups and asynchronous <code>GET_ITEM_INFO_RECEIVED</code> tooltip parsing.</p>
               </div>
@@ -1115,13 +1207,12 @@
         <div class="card">
           <div class="card-tag">Normalization vs. Duplication</div>
           <h3>
-            Master Item Store + Domain Source Tables
-            <span class="info-tip" tabindex="0">?
+            Item Store + Domain Source <span style="white-space: nowrap;">Tables&nbsp;<span class="info-tip" tabindex="0">?
               <span class="info-tip-box">
                 <strong>Elastic Progressive Record Schema</strong>
                 Each item in <code>Items_Catalog.lua</code> only stores the fields it needs (no bloated empty keys), and automatically enriches itself with live tooltip stats when seen in-game.
               </span>
-            </span>
+            </span></span>
           </h3>
           <p>In World of Warcraft, a single item can be acquired from multiple distinct sources: shared dungeon boss pools, zone-wide trash drops, seasonal holiday bosses, or quest rewards. Storing item metadata inline inside individual dungeon or quest files either causes data drift or slows down global searches.</p>
           <p>Adventure Journal solves this with a relational split: every item is defined <strong>once</strong> in <code>Items_Catalog.lua</code>, while domain source files store only compact arrays of numeric <code>itemID</code>s. At load time, <code>ItemDatabase</code> links both directions in memory.</p>
@@ -1139,13 +1230,12 @@
         <div class="card">
           <div class="card-tag">Client Cache Constraints</div>
           <h3>
-            Cold-Cache Resilience in WoW 16001
-            <span class="info-tip" tabindex="0">?
+            Cold-Cache Resilience in <span style="white-space: nowrap;">WoW 16001&nbsp;<span class="info-tip" tabindex="0">?
               <span class="info-tip-box">
                 <strong>DBC vs. WDB Server Cache</strong>
                 <code>GetItemInfoInstant</code> reads local game files (<code>DBC</code>) that are always available offline. <code>GetItemInfo</code> reads the server cache (<code>WDB</code>), which only populates after the server sends item details.
               </span>
-            </span>
+            </span></span>
           </h3>
           <p>The WoW client splits item APIs into two tiers: <code>C_Item.GetItemInfoInstant(itemID)</code> reads local client DBC tables synchronously (returning class, subclass, equip location, and icon), whereas <code>C_Item.GetItemInfo(itemID)</code> and tooltip scanning require the item to exist in the player's local <code>WDB</code> cache.</p>
           <p>By filtering on instant DBC tags first and immediately hydrating and scanning candidate item tooltips on demand, compound searches like <code>"two handed sword strength"</code> work seamlessly without requiring you to browse and mouse over items beforehand.</p>
@@ -1172,7 +1262,7 @@
         <div class="dim-card">
           <div class="dim-num">Dimension 01</div>
           <h4>
-            Category &amp; Source
+            <span class="dim-title-text">Category &amp; Source</span>
             <span class="info-tip" tabindex="0">?
               <span class="info-tip-box">
                 <strong>Category &amp; Source Tags</strong>
@@ -1199,7 +1289,7 @@
         <div class="dim-card">
           <div class="dim-num">Dimension 02</div>
           <h4>
-            Slot &amp; Handedness
+            <span class="dim-title-text">Slot &amp; Handedness</span>
             <span class="info-tip" tabindex="0">?
               <span class="info-tip-box">
                 <strong>Equipment Slot &amp; Handedness</strong>
@@ -1232,7 +1322,7 @@
         <div class="dim-card">
           <div class="dim-num">Dimension 03</div>
           <h4>
-            Weapon &amp; Armor Subtype
+            <span class="dim-title-text">Weapon &amp; Armor Subtype</span>
             <span class="info-tip" tabindex="0">?
               <span class="info-tip-box">
                 <strong>Weapon &amp; Armor Proficiency</strong>
@@ -1263,7 +1353,7 @@
         <div class="dim-card">
           <div class="dim-num">Dimension 04</div>
           <h4>
-            Primary Attributes
+            <span class="dim-title-text">Primary Attributes</span>
             <span class="info-tip" tabindex="0">?
               <span class="info-tip-box">
                 <strong>Base Character Stats</strong>
@@ -1283,7 +1373,7 @@
         <div class="dim-card">
           <div class="dim-num">Dimension 05</div>
           <h4>
-            Physical &amp; Defensive
+            <span class="dim-title-text">Physical &amp; Defensive</span>
             <span class="info-tip" tabindex="0">?
               <span class="info-tip-box">
                 <strong>Melee, Ranged &amp; Tanking Stats</strong>
@@ -1308,7 +1398,7 @@
         <div class="dim-card">
           <div class="dim-num">Dimension 06</div>
           <h4>
-            Caster &amp; Regeneration
+            <span class="dim-title-text">Caster &amp; Regeneration</span>
             <span class="info-tip" tabindex="0">?
               <span class="info-tip-box">
                 <strong>Spellcaster &amp; Healer Stats</strong>
@@ -1330,7 +1420,7 @@
         <div class="dim-card">
           <div class="dim-num">Dimension 07</div>
           <h4>
-            Elemental Schools
+            <span class="dim-title-text">Elemental Schools</span>
             <span class="info-tip" tabindex="0">?
               <span class="info-tip-box">
                 <strong>School-Specific Damage &amp; Resistances</strong>
@@ -1357,7 +1447,7 @@
         <div class="dim-card">
           <div class="dim-num">Dimension 08</div>
           <h4>
-            Mechanics &amp; Context
+            <span class="dim-title-text">Mechanics &amp; Context</span>
             <span class="info-tip" tabindex="0">?
               <span class="info-tip-box">
                 <strong>Special Effects, Binding &amp; Role Tags</strong>
@@ -1470,8 +1560,7 @@
         <div class="card">
           <div class="card-tag">Bottleneck 01 • Cold-Cache Blind Spots</div>
           <h3>
-            Uncached Items Couldn't Be Searched
-            <span class="info-tip" tabindex="0">?
+            Uncached Items Couldn't Be Searched&nbsp;<span class="info-tip" tabindex="0">?
               <span class="info-tip-box">
                 <strong>The "Mouseover First" Problem</strong>
                 In WoW, if you haven't seen an item yet, the client doesn't have its tooltip cached. Relying purely on live client queries meant uncached items were invisible to stat searches.
@@ -1485,8 +1574,7 @@
         <div class="card">
           <div class="card-tag">Bottleneck 02 • Cross-Module Silos</div>
           <h3>
-            Preparing for Quests, Raids &amp; Professions
-            <span class="info-tip" tabindex="0">?
+            Preparing for Quests, Raids &amp; Professions&nbsp;<span class="info-tip" tabindex="0">?
               <span class="info-tip-box">
                 <strong>One Item, Many Sources</strong>
                 An item might drop in a dungeon, be required for a quest chain, and be crafted by a profession. Centralizing items in <code>Core/</code> lets every module share one truth.

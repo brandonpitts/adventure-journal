@@ -8,9 +8,11 @@ local addonName, ns = ...
 -- 1. Upvalued Globals & Constants
 -- ----------------------------------------------------------------------------
 local _G = _G
+local ipairs = ipairs
 local tinsert = tinsert
 local pcall = pcall
 local CreateFrame = CreateFrame
+local IsShiftKeyDown = IsShiftKeyDown
 local UIParent = UIParent
 local UISpecialFrames = UISpecialFrames
 local PlaySound = PlaySound
@@ -73,7 +75,6 @@ function MainFrame:Init()
     frame:SetClampedToScreen(true)
     frame:SetMovable(true)
     frame:EnableMouse(true)
-    frame:RegisterForDrag("LeftButton")
     frame:Hide()
 
     if ButtonFrameTemplate_HideButtonBar then
@@ -85,6 +86,7 @@ function MainFrame:Init()
 
     self:SetPortraitIcon(Constants.ASSETS.JOURNAL_PORTRAIT)
     self:RestorePosition()
+    self:SetupCloseButton(frame)
     self:SetupDragAndLifecycle(frame)
     self:SetupHeaderAndCanvas(frame)
     self:SetupEmptyState(frame.ContentCanvas)
@@ -146,30 +148,193 @@ function MainFrame:RestorePosition()
     end
 end
 
+--- Configures and elevates the window close button so it is always visually crisp and clickable.
+--- Matches the exact appearance and layout of CharacterFrameCloseButton (square red button, gold border, yellow 'X').
+--- @param frame Frame
+function MainFrame:SetupCloseButton(frame)
+    local closeBtn = frame.CloseButton
+        or (frame.TitleContainer and frame.TitleContainer.CloseButton)
+        or _G[frame:GetName() .. "CloseButton"]
+        or _G[FRAME_NAME .. "CloseButton"]
+
+    if not closeBtn then
+        local ok, btn = pcall(CreateFrame, "Button", FRAME_NAME .. "CloseButton", frame, "UIPanelCloseButton")
+        if ok and btn then
+            closeBtn = btn
+        end
+    end
+
+    if not closeBtn then
+        return
+    end
+
+    frame.CloseButton = closeBtn
+    closeBtn:SetParent(frame)
+    closeBtn:SetFrameStrata("DIALOG")
+    closeBtn:SetFrameLevel(frame:GetFrameLevel() + 50)
+    closeBtn:ClearAllPoints()
+
+    -- Match exact anchoring and size from CharacterFrameCloseButton if available
+    local charClose = _G.CharacterFrameCloseButton
+    local anchored = false
+    if charClose and charClose.GetPoint then
+        local point, _, relPoint, x, y = charClose:GetPoint(1)
+        if point and relPoint and x and y then
+            closeBtn:SetPoint(point, frame, relPoint, x, y)
+            anchored = true
+        end
+    end
+    if not anchored then
+        closeBtn:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -5, -5)
+    end
+
+    local btnW, btnH = 32, 32
+    if charClose and charClose.GetSize then
+        local cw, ch = charClose:GetSize()
+        if cw and cw > 0 and ch and ch > 0 then
+            btnW, btnH = cw, ch
+        end
+    end
+    closeBtn:SetSize(btnW, btnH)
+    closeBtn:SetAlpha(1.0)
+    closeBtn:Show()
+
+    -- Synchronize textures directly from CharacterFrameCloseButton to guarantee exact visual parity
+    if charClose then
+        local cNormal = charClose:GetNormalTexture()
+        if cNormal then
+            local atlas = cNormal.GetAtlas and cNormal:GetAtlas()
+            if atlas and atlas ~= "" and closeBtn.SetNormalAtlas then
+                closeBtn:SetNormalAtlas(atlas)
+            elseif cNormal:GetTexture() then
+                closeBtn:SetNormalTexture(cNormal:GetTexture())
+            end
+            if cNormal.GetTexCoord then
+                local ulx, uly, llx, lly, urx, ury, lrx, lry = cNormal:GetTexCoord()
+                local myNormal = closeBtn:GetNormalTexture()
+                if myNormal and ulx and uly and lrx and lry then
+                    myNormal:SetTexCoord(ulx, uly, llx, lly, urx, ury, lrx, lry)
+                end
+            end
+        end
+
+        local cPushed = charClose:GetPushedTexture()
+        if cPushed then
+            local atlas = cPushed.GetAtlas and cPushed:GetAtlas()
+            if atlas and atlas ~= "" and closeBtn.SetPushedAtlas then
+                closeBtn:SetPushedAtlas(atlas)
+            elseif cPushed:GetTexture() then
+                closeBtn:SetPushedTexture(cPushed:GetTexture())
+            end
+        end
+
+        local cHighlight = charClose:GetHighlightTexture()
+        if cHighlight then
+            local atlas = cHighlight.GetAtlas and cHighlight:GetAtlas()
+            if atlas and atlas ~= "" and closeBtn.SetHighlightAtlas then
+                closeBtn:SetHighlightAtlas(atlas)
+            elseif cHighlight:GetTexture() then
+                closeBtn:SetHighlightTexture(cHighlight:GetTexture(), "ADD")
+            end
+        end
+
+        local cDisabled = charClose:GetDisabledTexture()
+        if cDisabled then
+            local atlas = cDisabled.GetAtlas and cDisabled:GetAtlas()
+            if atlas and atlas ~= "" and closeBtn.SetDisabledAtlas then
+                closeBtn:SetDisabledAtlas(atlas)
+            elseif cDisabled:GetTexture() then
+                closeBtn:SetDisabledTexture(cDisabled:GetTexture())
+            end
+        end
+    end
+
+    -- Hook click handler to always cleanly hide the main window with close sound
+    closeBtn:SetScript("OnClick", function()
+        if PlaySound then
+            PlaySound(Constants.SOUNDS.CLOSE)
+        end
+        frame:Hide()
+    end)
+end
+
 --- Configures drag-to-move persistence and open/close audio scripts.
+--- Window is only movable via the top header bar (portrait to close button).
+--- Honors the "Lock Adventure Journal Window" setting (Shift + drag to move when locked).
 --- @param frame Frame
 function MainFrame:SetupDragAndLifecycle(frame)
-    frame:SetScript("OnDragStart", function(f)
-        f:StartMoving()
-    end)
+    local isMoving = false
 
-    frame:SetScript("OnDragStop", function(f)
-        f:StopMovingOrSizing()
-        local point, _, relativePoint, x, y = f:GetPoint(1)
-        if point and relativePoint then
-            ns.Database:SetWindowPoint({
-                point = point,
-                relativePoint = relativePoint,
-                x = x,
-                y = y,
-            })
+    local function canMove()
+        local isLocked = ns.Database and ns.Database.IsWindowLocked and ns.Database:IsWindowLocked()
+        if isLocked then
+            return (IsShiftKeyDown and IsShiftKeyDown()) and true or false
         end
-        if self.HeaderBar and self.HeaderBar.RefreshBreadcrumbs then
-            self.HeaderBar:RefreshBreadcrumbs()
+        return true
+    end
+
+    local function onDragStart()
+        if canMove() then
+            isMoving = true
+            frame:StartMoving()
         end
-    end)
+    end
+
+    local function onDragStop()
+        if isMoving then
+            isMoving = false
+            frame:StopMovingOrSizing()
+            local point, _, relativePoint, x, y = frame:GetPoint(1)
+            if point and relativePoint and ns.Database and ns.Database.SetWindowPoint then
+                ns.Database:SetWindowPoint({
+                    point = point,
+                    relativePoint = relativePoint,
+                    x = x,
+                    y = y,
+                })
+            end
+            if self.HeaderBar and self.HeaderBar.RefreshBreadcrumbs then
+                self.HeaderBar:RefreshBreadcrumbs()
+            end
+        else
+            frame:StopMovingOrSizing()
+        end
+    end
+
+    -- Create dedicated drag header covering the top window header bar.
+    -- Spans from the top-left (including portrait) to the top-right (comfortably before CloseButton).
+    local dragHeader = CreateFrame("Frame", nil, frame)
+    dragHeader:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+    dragHeader:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", -40, Constants.WINDOW.HEADER_TOP_Y)
+    dragHeader:SetFrameLevel(frame:GetFrameLevel() + 2)
+    self.dragHeader = dragHeader
+
+    local dragFrames = { dragHeader }
+    if frame.TitleContainer then
+        tinsert(dragFrames, frame.TitleContainer)
+    end
+
+    for _, df in ipairs(dragFrames) do
+        df:EnableMouse(true)
+        df:RegisterForDrag("LeftButton")
+        df:SetScript("OnDragStart", onDragStart)
+        df:SetScript("OnDragStop", onDragStop)
+    end
+
+    -- Defensively ensure the main frame body does not drag
+    if frame.RegisterForDrag then
+        frame:RegisterForDrag()
+    end
+    frame:SetScript("OnDragStart", nil)
+    frame:SetScript("OnDragStop", nil)
 
     frame:SetScript("OnShow", function()
+        self:SetupCloseButton(frame)
+        if frame.CloseButton then
+            frame.CloseButton:SetFrameStrata("DIALOG")
+            frame.CloseButton:SetFrameLevel(frame:GetFrameLevel() + 50)
+            frame.CloseButton:Show()
+        end
         if PlaySound then
             PlaySound(Constants.SOUNDS.OPEN)
         end
@@ -187,6 +352,10 @@ function MainFrame:SetupDragAndLifecycle(frame)
     end)
 
     frame:SetScript("OnHide", function()
+        if isMoving then
+            isMoving = false
+            frame:StopMovingOrSizing()
+        end
         if PlaySound then
             PlaySound(Constants.SOUNDS.CLOSE)
         end

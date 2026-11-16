@@ -71,6 +71,20 @@ function JournalBase:OpenSettings()
     ns.UI.SettingsPanel:Open()
 end
 
+--- Returns whether the Adventure Journal window is locked against dragging.
+--- @return boolean
+function JournalBase:IsWindowLocked()
+    return ns.Database and ns.Database.IsWindowLocked and ns.Database:IsWindowLocked() or false
+end
+
+--- Sets whether the Adventure Journal window is locked against dragging.
+--- @param isLocked boolean
+function JournalBase:SetWindowLocked(isLocked)
+    if ns.Database and ns.Database.SetWindowLocked then
+        ns.Database:SetWindowLocked(isLocked)
+    end
+end
+
 --- Public contract for standalone `Journal_*` plugins to register a tab.
 --- @param pluginDef table
 --- @return boolean success, string|nil errorMessage
@@ -184,6 +198,27 @@ function JournalBase:SetDungeonSetting(key, val)
     end
     if self.OnModuleSettingChanged then
         self:OnModuleSettingChanged("dungeons", key, val)
+    end
+end
+
+--- Convenience getter for Quests module settings.
+--- @param key string
+--- @param defaultVal any
+--- @return any
+function JournalBase:GetQuestSetting(key, defaultVal)
+    return ns.Database:GetQuestSetting(key, defaultVal)
+end
+
+--- Convenience setter for Quests module settings.
+--- @param key string
+--- @param val any
+function JournalBase:SetQuestSetting(key, val)
+    ns.Database:SetQuestSetting(key, val)
+    if self.OnQuestSettingChanged then
+        self:OnQuestSettingChanged(key, val)
+    end
+    if self.OnModuleSettingChanged then
+        self:OnModuleSettingChanged("quests", key, val)
     end
 end
 

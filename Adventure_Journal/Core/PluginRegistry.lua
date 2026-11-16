@@ -259,73 +259,37 @@ function PluginRegistry:PurgeDisabledModules()
     end
 end
 
---- Returns the full catalog of all possible Journal plugins for Settings,
---- merging `Constants.KNOWN_PLUGINS` with live metadata from any installed/registered plugins
---- so descriptions, versions, and update dates always stay 100% consistent.
+--- Returns the catalog of installed and registered Journal plugins for Settings,
+--- populating strictly from modules present and registered in the modules ecosystem.
 --- @return table[]
 function PluginRegistry:GetCatalogPlugins()
-    local catalogById = {}
     local list = {}
 
-    for _, known in ipairs(Constants.KNOWN_PLUGINS or {}) do
-        local live = self.pluginsById[known.id]
-        local isInstalled = (live ~= nil) or isAddOnInstalledOnDisk(known.addonName)
-        local isDisabled = ns.Database:IsPluginDisabled(known.id)
-        local isUnloaded = (live == nil) or (live.isUnloaded == true)
-        local pendingReload = (live ~= nil and live.isUnloaded == true and not isDisabled)
+    for _, live in ipairs(self.orderedPlugins) do
+        local isDisabled = ns.Database:IsPluginDisabled(live.id)
+        local isUnloaded = (live.isUnloaded == true)
+        local pendingReload = (isUnloaded and not isDisabled)
         local entry = {
-            id = known.id,
-            title = (live and live.title) or known.title,
-            addonName = (live and live.addonName) or known.addonName,
-            icon = (live and live.icon) or known.icon or Constants.ASSETS.FALLBACK_ICON,
-            description = (live and live.description) or known.description or "",
-            version = (live and live.version) or known.version or "0.1.0",
-            lastUpdated = (live and live.lastUpdated) or known.lastUpdated or "2026-11-11",
-            apiVersion = (live and live.apiVersion) or Constants.PLUGIN_API_VERSION,
-            defaultOrder = (live and live.defaultOrder) or known.defaultOrder or DEFAULT_PLUGIN_ORDER,
-            isUtility = (live and live.isUtility ~= nil and live.isUtility) or (known.isUtility == true) or false,
-            hasTab = (live and live.hasTab ~= nil and live.hasTab) or (known.hasTab == true) or false,
-            alignRight = (live and live.alignRight ~= nil and live.alignRight) or (known.alignRight == true) or false,
-            pinLast = (live and live.pinLast ~= nil and live.pinLast) or (known.pinLast == true) or false,
-            isInstalled = isInstalled,
-            isLoaded = (live ~= nil) and not isUnloaded,
+            id = live.id,
+            title = live.title,
+            addonName = live.addonName,
+            icon = live.icon or Constants.ASSETS.FALLBACK_ICON,
+            description = live.description or "",
+            version = live.version or (Constants and Constants.VERSION) or "0.1.0",
+            lastUpdated = live.lastUpdated or "2026-11-14",
+            apiVersion = live.apiVersion or Constants.PLUGIN_API_VERSION,
+            defaultOrder = live.defaultOrder or DEFAULT_PLUGIN_ORDER,
+            isUtility = (live.isUtility == true) or false,
+            hasTab = (live.hasTab == true) or false,
+            alignRight = (live.alignRight == true) or false,
+            pinLast = (live.pinLast == true) or false,
+            isInstalled = true,
+            isLoaded = not isUnloaded,
             isUnloaded = isUnloaded,
             pendingReload = pendingReload,
-            isEnabled = isInstalled and (live ~= nil) and (not isUnloaded) and (not isDisabled),
+            isEnabled = (not isUnloaded) and (not isDisabled),
         }
-        catalogById[entry.id] = entry
         list[#list + 1] = entry
-    end
-
-    -- Include any additional custom plugins not listed in KNOWN_PLUGINS
-    for _, live in ipairs(self.orderedPlugins) do
-        if not catalogById[live.id] then
-            local isDisabled = ns.Database:IsPluginDisabled(live.id)
-            local isUnloaded = (live.isUnloaded == true)
-            local pendingReload = (isUnloaded and not isDisabled)
-            local entry = {
-                id = live.id,
-                title = live.title,
-                addonName = live.addonName,
-                icon = live.icon or Constants.ASSETS.FALLBACK_ICON,
-                description = live.description or "",
-                version = live.version or "0.1.0",
-                lastUpdated = live.lastUpdated or "2026-11-11",
-                apiVersion = live.apiVersion or Constants.PLUGIN_API_VERSION,
-                defaultOrder = live.defaultOrder or DEFAULT_PLUGIN_ORDER,
-                isUtility = (live.isUtility == true) or false,
-                hasTab = (live.hasTab == true) or false,
-                alignRight = (live.alignRight == true) or false,
-                pinLast = (live.pinLast == true) or false,
-                isInstalled = true,
-                isLoaded = not isUnloaded,
-                isUnloaded = isUnloaded,
-                pendingReload = pendingReload,
-                isEnabled = (not isUnloaded) and (not isDisabled),
-            }
-            catalogById[entry.id] = entry
-            list[#list + 1] = entry
-        end
     end
 
     table.sort(list, comparePlugins)

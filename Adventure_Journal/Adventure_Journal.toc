@@ -2,7 +2,7 @@
 ## Title: Adventure Journal
 ## Notes: Complete in-game adventure guide, dungeon and raid reference for WoW Forever.
 ## Author: Brand
-## Version: 0.6.0
+## Version: 0.7.0
 ## IconTexture: Interface\Icons\INV_Misc_Book_09
 ## SavedVariables: JournalBaseDB
 ## OptionalDeps: AtlasLoot, AtlasLootClassic
@@ -43,7 +43,10 @@ Modules\Journal_Dungeons\Core.lua
 # Modules: Utility - Map Icons
 Modules\Utility_MapIcons\Constants.lua
 Modules\Utility_MapIcons\Data\EntranceCoordinates.lua
+Modules\Utility_MapIcons\Data\ZoneLevels.lua
+Modules\Utility_MapIcons\Data\FlightPaths.lua
 Modules\Utility_MapIcons\UI\MapPinProvider.lua
+Modules\Utility_MapIcons\UI\AreaLabelProvider.lua
 Modules\Utility_MapIcons\Core.lua
 
 # Modules: Raids

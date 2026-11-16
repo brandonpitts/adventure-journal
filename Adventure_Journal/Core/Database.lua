@@ -192,6 +192,24 @@ function Database:SetWindowPoint(pointTable)
     store.window.point = pointTable
 end
 
+--- Returns whether the main Adventure Journal window is locked against dragging.
+--- @return boolean
+function Database:IsWindowLocked()
+    local store = self:GetStore()
+    if store.window and store.window.lockWindow ~= nil then
+        return store.window.lockWindow == true
+    end
+    return false
+end
+
+--- Sets whether the main Adventure Journal window is locked against dragging.
+--- @param isLocked boolean
+function Database:SetWindowLocked(isLocked)
+    local store = self:GetStore()
+    store.window = store.window or {}
+    store.window.lockWindow = (isLocked == true)
+end
+
 --- Returns whether a registered plugin (`pluginId`) is disabled by the user in Settings.
 --- @param pluginId string
 --- @return boolean
@@ -353,6 +371,27 @@ function Database:SetMapIconsSetting(key, val)
     if key == "worldMapDungeonIcons" then
         self:SetDungeonSetting(key, val)
     end
+end
+
+--- Convenience getter for Quests module settings.
+--- @param key string
+--- @param defaultVal any
+--- @return any
+function Database:GetQuestSetting(key, defaultVal)
+    return self:GetModuleSetting("quests", key, defaultVal)
+end
+
+--- Convenience setter for Quests module settings.
+--- @param key string
+--- @param val any
+function Database:SetQuestSetting(key, val)
+    self:SetModuleSetting("quests", key, val)
+end
+
+--- Returns whether both faction quests are shown in quest views.
+--- @return boolean
+function Database:IsBothFactionQuestsShown()
+    return self:GetQuestSetting("showBothFactionData", false) == true
 end
 
 -- ----------------------------------------------------------------------------

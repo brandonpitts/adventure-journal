@@ -150,6 +150,22 @@ function MapPinProvider:ShowTooltip(pin)
     GameTooltip:SetOwner(pin, "ANCHOR_RIGHT")
     GameTooltip:ClearLines()
 
+    if data.kind == "FlightPath" then
+        -- Line 1: Flight Point Name
+        GameTooltip:AddLine(data.name or "Flight Path", 1.0, 1.0, 1.0)
+        -- Line 2: Faction Label
+        local faction = data.faction or "Neutral"
+        if faction == "Alliance" then
+            GameTooltip:AddLine("Alliance Flight Path", 0.25, 0.60, 1.0)
+        elseif faction == "Horde" then
+            GameTooltip:AddLine("Horde Flight Path", 1.0, 0.25, 0.25)
+        else
+            GameTooltip:AddLine("Neutral Flight Path", 1.0, 0.82, 0.0)
+        end
+        GameTooltip:Show()
+        return
+    end
+
     -- Line 1: Instance Name (White)
     local r1, g1, b1 = unpack(Constants.TOOLTIP.TITLE_COLOR)
     GameTooltip:AddLine(data.name or "Dungeon", r1, g1, b1)
@@ -283,11 +299,51 @@ function MapPinProvider:AddPin(pinData)
 
     pin:SetScale(Constants.PIN.POI_SCALE / canvasScale)
 
-    local atlas = (pinData.kind == "Raid") and Constants.ATLAS.RAID or Constants.ATLAS.DUNGEON
-    pin.Texture:SetAtlas(atlas)
-    if pin.Highlight then
-        pin.Highlight:SetAtlas(atlas)
-        pin.Highlight:Hide()
+    if pinData.kind == "FlightPath" then
+        pin:SetSize(Constants.PIN.FLIGHT_SIZE, Constants.PIN.FLIGHT_SIZE)
+
+        local useFactionColors = true
+        if ns.Database and ns.Database.GetMapIconsSetting then
+            useFactionColors = ns.Database:GetMapIconsSetting("useFactionColorsForFlightPaths", true) ~= false
+        end
+
+        -- Native Blizzard Taxi Node Atlas Identifiers
+        local atlas = Constants.ATLAS.TAXI_NEUTRAL
+        if useFactionColors then
+            if pinData.faction == "Alliance" then
+                atlas = Constants.ATLAS.TAXI_ALLIANCE
+            elseif pinData.faction == "Horde" then
+                atlas = Constants.ATLAS.TAXI_HORDE
+            else
+                atlas = Constants.ATLAS.TAXI_NEUTRAL
+            end
+        end
+
+        local ok = pcall(pin.Texture.SetAtlas, pin.Texture, atlas)
+        if not ok or not pin.Texture:GetTexture() then
+            -- Supplementary Blizzard native texture fallback
+            pin.Texture:SetTexture("Interface\\MINIMAP\\TRACKING\\FlightMaster")
+        end
+        pin.Texture:SetVertexColor(1, 1, 1, 1)
+
+        if pin.Highlight then
+            local hlOk = pcall(pin.Highlight.SetAtlas, pin.Highlight, atlas)
+            if not hlOk or not pin.Highlight:GetTexture() then
+                pin.Highlight:SetTexture("Interface\\MINIMAP\\TRACKING\\FlightMaster")
+            end
+            pin.Highlight:SetVertexColor(1, 1, 1, 0.45)
+            pin.Highlight:Hide()
+        end
+    else
+        pin:SetSize(Constants.PIN.SIZE, Constants.PIN.SIZE)
+        local atlas = (pinData.kind == "Raid") and Constants.ATLAS.RAID or Constants.ATLAS.DUNGEON
+        pin.Texture:SetAtlas(atlas)
+        pin.Texture:SetVertexColor(1, 1, 1, 1)
+        if pin.Highlight then
+            pin.Highlight:SetAtlas(atlas)
+            pin.Highlight:SetVertexColor(1, 1, 1, 1)
+            pin.Highlight:Hide()
+        end
     end
 
     positionPin(pin)
@@ -302,21 +358,55 @@ function MapPinProvider:Refresh()
         return
     end
 
+    if ns.AreaLabelProvider and not ns.AreaLabelProvider.isInitialized then
+        ns.AreaLabelProvider:Init()
+    end
+
     self:ReleaseAllPins()
 
     local mapID = _G.WorldMapFrame.mapID or (_G.WorldMapFrame.GetMapID and _G.WorldMapFrame:GetMapID())
-    if not mapID or not ns.EntranceCoordinates then
+    if not mapID then
         return
     end
 
-    local candidates = ns.EntranceCoordinates[mapID]
-    if not candidates then
-        return
+    -- 1. Dungeon / Raid Entrance Pins
+    if ns.EntranceCoordinates then
+        local candidates = ns.EntranceCoordinates[mapID]
+        if candidates then
+            for _, pinData in ipairs(candidates) do
+                if shouldShowPin(pinData) then
+                    self:AddPin(pinData)
+                end
+            end
+        end
     end
 
-    for _, pinData in ipairs(candidates) do
-        if shouldShowPin(pinData) then
-            self:AddPin(pinData)
+    -- 2. Flight Path Pins
+    local showFlight = true
+    local showEnemy = false
+    if ns.Database and ns.Database.GetMapIconsSetting then
+        showFlight = ns.Database:GetMapIconsSetting("showFlightPaths", true) ~= false
+        showEnemy = ns.Database:GetMapIconsSetting("showEnemyFactionFlightPaths", false) == true
+    end
+
+    if showFlight and ns.FlightPaths then
+        local fps = ns.FlightPaths[mapID]
+        if fps then
+            local playerFaction = (_G.UnitFactionGroup and _G.UnitFactionGroup("player")) or "Neutral"
+            for _, fp in ipairs(fps) do
+                local isEnemy = (fp.faction ~= "Neutral" and fp.faction ~= playerFaction)
+                local allowFaction = (not isEnemy or showEnemy)
+
+                if allowFaction then
+                    self:AddPin({
+                        kind = "FlightPath",
+                        faction = fp.faction,
+                        x = fp.x,
+                        y = fp.y,
+                        name = fp.name,
+                    })
+                end
+            end
         end
     end
 end
@@ -349,15 +439,23 @@ function MapPinProvider:Init()
         _G.hooksecurefunc(_G.WorldMapFrame, "OnMapChanged", function()
             MapPinProvider:Refresh()
         end)
+        _G.hooksecurefunc(_G.WorldMapFrame, "Show", function()
+            MapPinProvider:Refresh()
+        end)
+        _G.hooksecurefunc(_G.WorldMapFrame, "Hide", function()
+            MapPinProvider:ReleaseAllPins()
+        end)
+    else
+        -- Fallback if hooksecurefunc is unavailable
+        if _G.WorldMapFrame.HookScript then
+            _G.WorldMapFrame:HookScript("OnShow", function()
+                MapPinProvider:Refresh()
+            end)
+            _G.WorldMapFrame:HookScript("OnHide", function()
+                MapPinProvider:ReleaseAllPins()
+            end)
+        end
     end
-
-    -- Refresh whenever the world map is toggled open
-    _G.WorldMapFrame:HookScript("OnShow", function()
-        MapPinProvider:Refresh()
-    end)
-    _G.WorldMapFrame:HookScript("OnHide", function()
-        MapPinProvider:ReleaseAllPins()
-    end)
 end
 
 -- ----------------------------------------------------------------------------

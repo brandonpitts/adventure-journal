@@ -1,14 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Adventure Journal — World of Warcraft Addon Framework</title>
-  <meta name="description" content="A modular in-game journal framework for World of Warcraft Forever, providing dungeon item catalogs and planned gameplay modules.">
+  <meta name="description"
+    content="A modular in-game journal framework for World of Warcraft Forever, providing dungeon item catalogs and planned gameplay modules.">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
   <style>
     :root {
       --bg-dark: #0c0d10;
@@ -36,7 +40,7 @@
       color: var(--text-main);
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       line-height: 1.6;
-      background-image: 
+      background-image:
         radial-gradient(circle at 50% 0%, rgba(198, 155, 58, 0.15) 0%, transparent 60%),
         linear-gradient(to bottom, rgba(12, 13, 16, 0.8), #0c0d10);
       background-attachment: fixed;
@@ -258,14 +262,14 @@
       padding: 1.1rem 2.6rem;
       border-radius: 6px;
       border: 2px solid #dfa13d;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.25), 0 0 25px rgba(223, 161, 61, 0.35);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 0 25px rgba(223, 161, 61, 0.35);
       transition: all 0.2s ease;
       cursor: pointer;
     }
 
     .btn-download:hover {
       background: linear-gradient(180deg, #b83232 0%, #7d1a1a 100%);
-      box-shadow: 0 8px 26px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.4), 0 0 35px rgba(223, 161, 61, 0.6);
+      box-shadow: 0 8px 26px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 35px rgba(223, 161, 61, 0.6);
       transform: translateY(-2px);
       border-color: #ffd866;
     }
@@ -286,6 +290,22 @@
       background: rgba(255, 255, 255, 0.06);
       padding: 0.2rem 0.4rem;
       border-radius: 4px;
+    }
+
+    .download-help-note {
+      font-size: 0.86rem;
+      color: #dfa13d;
+      max-width: 650px;
+      line-height: 1.5;
+      background: rgba(198, 155, 58, 0.08);
+      border: 1px solid rgba(198, 155, 58, 0.28);
+      border-radius: 6px;
+      padding: 0.6rem 1rem;
+      text-align: center;
+    }
+
+    .download-help-note strong {
+      color: var(--gold-bright);
     }
 
     main {
@@ -441,7 +461,7 @@
       padding: 2.5rem;
       max-width: 800px;
       margin: 0 auto;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     }
 
     .steps-list {
@@ -476,7 +496,7 @@
       margin-top: 2px;
     }
 
-    .step-content > strong:first-child {
+    .step-content>strong:first-child {
       display: block;
       color: #fff;
       font-size: 1.05rem;
@@ -618,7 +638,7 @@
       max-width: 800px;
       margin: 0 auto;
       text-align: center;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     }
 
     .support-box p {
@@ -639,7 +659,7 @@
       font-size: 0.85rem;
     }
 
-    footer p + p {
+    footer p+p {
       margin-top: 0.5rem;
     }
 
@@ -653,13 +673,16 @@
     }
   </style>
 </head>
+
 <body>
 
   <!-- Top Early Development Notice Banner -->
   <aside class="early-dev-banner" aria-label="Development Notice">
     <div class="banner-inner">
       <span class="banner-badge">Early Development</span>
-      <span class="banner-text">Adventure Journal is an independent project created for personal, close friend, and friend-of-friend use. Anyone is welcome to use it with that understanding! Report any issues to <strong>Brandon (Endoria)</strong>.</span>
+      <span class="banner-text">Adventure Journal is an independent project created for personal, close friend, and
+        friend-of-friend use. Anyone is welcome to use it with that understanding! Report any issues to <strong>Brandon
+          (Endoria)</strong>.</span>
       <span class="banner-badge">Early Development</span>
     </div>
   </aside>
@@ -667,30 +690,38 @@
   <!-- Primary Site Navigation -->
   <nav class="site-nav" aria-label="Primary Navigation">
     <div class="site-nav-inner">
-      <a href="index.html" class="site-nav-brand"><img src="favicon.svg" alt="" class="site-nav-logo"><span>Adventure Journal</span></a>
+      <a href="index.html" class="site-nav-brand"><img src="favicon.svg" alt="" class="site-nav-logo"><span>Adventure
+          Journal</span></a>
       <div class="site-nav-links">
         <a href="index.html" class="site-nav-link active">Home</a>
         <a href="architecture.html" class="site-nav-link">Architecture &amp; Data Engine</a>
-        <a href="catalog.html" class="site-nav-link">Catalog Telemetry</a>
       </div>
     </div>
   </nav>
 
   <header>
-    <a href="https://github.com/brandonpitts/adventure-journal" target="_blank" rel="noopener noreferrer" class="badge-version" title="View Source & Releases on GitHub">
-      Release v0.6.0 • WoW Forever Client <span class="badge-repo-arrow">↗</span>
+    <a href="https://github.com/brandonpitts/adventure-journal" target="_blank" rel="noopener noreferrer"
+      class="badge-version" title="View Source & Releases on GitHub">
+      Release v0.7.0 • WoW Forever Client <span class="badge-repo-arrow">↗</span>
     </a>
     <h1><span>Adventure Journal</span></h1>
-    <p class="subtitle">A modular in-game journal framework for World of Warcraft Forever. Currently providing comprehensive dungeon encounter and item lists, with planned modules for raids, professions, attunements, class quests, and more.</p>
+    <p class="subtitle">A modular in-game journal framework for World of Warcraft Forever. Currently providing
+      comprehensive dungeon encounter and item lists, with planned modules for raids, professions, attunements, class
+      quests, and more.</p>
 
     <div class="cta-container">
-      <a href="Adventure_Journal-v0.6.0.zip" class="btn-download">
-        <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+      <a href="Adventure_Journal-v0.7.0.zip" class="btn-download">
+        <svg viewBox="0 0 24 24">
+          <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+        </svg>
         Download Adventure Journal
       </a>
       <div class="download-meta">
-        Version <code>0.6.0</code> • Extract directly to <code>Interface\AddOns\</code>
+        Version <code>0.7.0</code> • Extract directly to <code>Interface\AddOns\</code>
       </div>
+      <p class="download-help-note">
+        <strong>Important:</strong> It is strongly recommended when updating the Adventure_Journal that all old files and folders are completely removed before adding the newly downloaded ones.
+      </p>
     </div>
   </header>
 
@@ -702,37 +733,46 @@
       <div class="card">
         <div class="card-tag">Architecture</div>
         <h3>Modular Architecture & Cross-Module Synergy</h3>
-        <p>Engineered for deep cross-module integration—connecting map markers, encounter catalogs, global search, and future questlines into a unified reference tool—while maintaining a lightweight, intentional footprint that allows players to enable only the exact modules they need.</p>
+        <p>Engineered for deep cross-module integration—connecting map markers, encounter catalogs, global search, and
+          future questlines into a unified reference tool—while maintaining a lightweight, intentional footprint that
+          allows players to enable only the exact modules they need.</p>
       </div>
 
       <div class="card">
         <div class="card-tag">Roadmap</div>
         <h3>Planned Ecosystem Modules</h3>
-        <p>Active development roadmap includes dedicated modules for Raid loot tables, Primary & Secondary Professions (recipes, reagents, and trainer sources), and Questlines (dungeon attunements and class quest chains).</p>
+        <p>Active development roadmap includes dedicated modules for Raid loot tables, Primary & Secondary Professions
+          (recipes, reagents, and trainer sources), and Questlines (dungeon attunements and class quest chains).</p>
       </div>
 
       <div class="card">
         <div class="card-tag">Dungeon Module</div>
         <h3>Dungeon Item Lists & Encounters</h3>
-        <p>Comprehensive directories across Classic Dungeons and WoW Forever Dungeons, with an extensible catalog built to seamlessly incorporate any future added instances, boss rosters, lore backgrounds, and encounter item drops.</p>
+        <p>Comprehensive directories across Classic Dungeons and WoW Forever Dungeons, with an extensible catalog built
+          to seamlessly incorporate any future added instances, boss rosters, lore backgrounds, and encounter item
+          drops.</p>
       </div>
 
       <div class="card">
         <div class="card-tag">Enhancements</div>
         <h3>Game Enhancements</h3>
-        <p>Adventure-focused game enhancements with cross-module integration: native Blizzard map pin system integration for dungeon entrance portals, planned travel lane markers for zeppelins and boats, and more.</p>
+        <p>Adventure-focused game enhancements with cross-module integration: native Blizzard map pin system integration
+          for dungeon entrance portals, planned travel lane markers for zeppelins and boats, and more.</p>
       </div>
 
       <div class="card">
         <div class="card-tag">Search</div>
         <h3>Real-Time Live Search</h3>
-        <p>Fast, responsive search filtering across dungeons, boss encounters, aliases, and specific item drops, with automatic cross-module encounter discovery.</p>
+        <p>Fast, responsive search filtering across dungeons, boss encounters, aliases, and specific item drops, with
+          automatic cross-module encounter discovery.</p>
       </div>
 
       <div class="card">
         <div class="card-tag">Raid Module</div>
         <h3>Raid Encounters & Tier Sets</h3>
-        <p>10, 20, and 40-player raid progression references covering Classic raids and confirmed WoW Forever endgame raids—engineered to adapt to future raid additions as they release, complete with boss mechanics, role notes, and tier set catalogs.</p>
+        <p>10, 20, and 40-player raid progression references covering Classic raids and confirmed WoW Forever endgame
+          raids—engineered to adapt to future raid additions as they release, complete with boss mechanics, role notes,
+          and tier set catalogs.</p>
       </div>
     </div>
 
@@ -742,7 +782,9 @@
         <span class="disclaimer-badge">Development Context</span>
         <h3>Built with Agentic Coding</h3>
       </div>
-      <p>Adventure Journal was developed through agentic AI workflows to explore, test, and refine agent-driven software engineering workflows, skills, and practices using Google models, including <strong>Flash 3.8</strong>, <strong>Hydrogen</strong>, and <strong>Argon</strong>.</p>
+      <p>Adventure Journal was developed through agentic AI workflows to explore, test, and refine agent-driven software
+        engineering workflows, skills, and practices using Google models, including <strong>Flash 3.8</strong>,
+        <strong>Hydrogen</strong>, and <strong>Argon</strong>.</p>
     </div>
 
     <!-- Development Roadmap -->
@@ -753,19 +795,22 @@
       <div class="card roadmap-next">
         <div class="card-tag">Priority 1 • Next Up</div>
         <h3>Quest System &amp; Attunements</h3>
-        <p>Dungeon-attached vertical tabs displaying quest directories, coordinates, multi-step chains, and turn-ins, powered by a dedicated quest storage pipeline.</p>
+        <p>Dungeon-attached vertical tabs displaying quest directories, coordinates, multi-step chains, and turn-ins,
+          powered by a dedicated quest storage pipeline.</p>
       </div>
 
       <div class="card">
         <div class="card-tag">Priority 2 • Planned Module</div>
         <h3>Raid Journal &amp; Confirmed Encounters</h3>
-        <p>10, 20, and 40-player raid progression built on the central item database foundation, targeting confirmed WoW Forever raids: The Barrow Deeps, Hyjal Summit, and Onyxia's Lair.</p>
+        <p>10, 20, and 40-player raid progression built on the central item database foundation, targeting confirmed WoW
+          Forever raids: The Barrow Deeps, Hyjal Summit, and Onyxia's Lair.</p>
       </div>
 
       <div class="card">
         <div class="card-tag">Priority 3 • Planned Expansion</div>
         <h3>Entity Storage &amp; World Transit Markers</h3>
-        <p>Extending the normalized central database architecture to dungeon and boss entities alongside boat and zeppelin world map transit indicators.</p>
+        <p>Extending the normalized central database architecture to dungeon and boss entities alongside boat and
+          zeppelin world map transit indicators.</p>
       </div>
     </div>
 
@@ -777,21 +822,28 @@
         <li>
           <div class="step-content">
             <strong>Download the Addon Zip</strong>
-            <p>Click the download button above to grab <code>Adventure_Journal-v0.6.0.zip</code>.</p>
+            <p>Click the download button above to grab <code>Adventure_Journal-v0.7.0.zip</code>.</p>
           </div>
         </li>
         <li>
           <div class="step-content">
             <strong>Extract to your WoW Forever AddOns Folder</strong>
             <p>Unzip the archive directly into your installation directory:</p>
-            <p style="margin-top: 0.4rem;"><code>World of Warcraft\_forever_\Interface\AddOns\Adventure_Journal\</code></p>
-            <p style="margin-top: 0.45rem; font-size: 0.88rem; color: #bfbcc7;"><em>Tip: You can easily locate your game folder by clicking the gear icon next to the Play button in the Battle.net launcher for your WoW Forever client and selecting <strong>"Show in Explorer"</strong>.</em></p>
+            <p style="margin-top: 0.4rem;"><code>World of Warcraft\_forever_\Interface\AddOns\Adventure_Journal\</code>
+            </p>
+            <p style="margin-top: 0.45rem; font-size: 0.88rem; color: #bfbcc7;"><em>Tip: You can easily locate your game
+                folder by clicking the gear icon next to the Play button in the Battle.net launcher for your WoW Forever
+                client and selecting <strong>"Show in Explorer"</strong>.</em></p>
+            <p style="margin-top: 0.55rem; font-size: 0.88rem; color: #ffd100; line-height: 1.55;">
+              <strong>Important:</strong> It is strongly recommended when updating the Adventure_Journal that all old files and folders are completely removed before adding the newly downloaded ones.
+            </p>
           </div>
         </li>
         <li>
           <div class="step-content">
             <strong>Open the Journal In-Game</strong>
-            <p>Launch the game or type <code>/reload</code> if already logged in. Open your journal with <code>/aj</code>, <code>/journal</code>, or by clicking the gold minimap button.</p>
+            <p>Launch the game or type <code>/reload</code> if already logged in. Open your journal with
+              <code>/aj</code>, <code>/journal</code>, or by clicking the gold minimap button.</p>
           </div>
         </li>
       </ol>
@@ -803,26 +855,35 @@
       <details class="accordion-item">
         <summary class="accordion-header">Frequently Asked Questions (FAQ) — (Under Construction)</summary>
         <div class="accordion-content">
-          <p>We are compiling answers to common installation, configuration, and feature questions. Check back soon or reach out directly to Brandon (Endoria) with questions.</p>
+          <p>We are compiling answers to common installation, configuration, and feature questions. Check back soon or
+            reach out directly to Brandon (Endoria) with questions.</p>
         </div>
       </details>
 
       <!-- Item 2: Changelog -->
-      <details class="accordion-item" open>
+      <details class="accordion-item">
         <summary class="accordion-header">Changelog & Release History</summary>
         <div class="accordion-content">
           <ul class="changelog-list">
             <li class="changelog-entry">
-              <span class="changelog-tag">v0.6.0</span> Added Central Item Storage Engine with opt-in multi-tag and level-range search, true memory unloading for disabled modules (/reload lifecycle), and default landing tab radio selection.
+              <span class="changelog-tag">v0.7.0</span> Added World Map Zone Level Overlays with recommended level ranges and fishing skill requirements, flight path indicators, and native Character Frame close button styling.
             </li>
             <li class="changelog-entry">
-              <span class="changelog-tag">v0.5.1</span> Resolved custom keybinding reservation conflicts, added persistent agent automation rules, and verified clean fresh installs.
+              <span class="changelog-tag">v0.6.0</span> Added Central Item Storage Engine with opt-in multi-tag and
+              level-range search, true memory unloading for disabled modules (/reload lifecycle), and default landing
+              tab radio selection.
             </li>
             <li class="changelog-entry">
-              <span class="changelog-tag">v0.5.0</span> Consolidated unified addon versioning across all modules, shortened default landing tab selector, and added catalog notice.
+              <span class="changelog-tag">v0.5.1</span> Resolved custom keybinding reservation conflicts, added
+              persistent agent automation rules, and verified clean fresh installs.
             </li>
             <li class="changelog-entry">
-              <span class="changelog-tag">v0.4.0</span> Initial public release with 35 Classic and custom WoW Forever dungeons, open-book split view, and world map entrance markers.
+              <span class="changelog-tag">v0.5.0</span> Consolidated unified addon versioning across all modules,
+              shortened default landing tab selector, and added catalog notice.
+            </li>
+            <li class="changelog-entry">
+              <span class="changelog-tag">v0.4.0</span> Initial public release with 35 Classic and custom WoW Forever
+              dungeons, open-book split view, and world map entrance markers.
             </li>
           </ul>
         </div>
@@ -833,16 +894,25 @@
         <summary class="accordion-header">Completed Roadmap Features</summary>
         <div class="accordion-content">
           <ul class="completed-features-list">
-            <li class="completed-feature-item">Central Item Storage Engine with 8-dimension multi-tag &amp; level-range search</li>
+            <li class="completed-feature-item">World Map Zone Level Overlays with level brackets &amp; fishing skill indicators</li>
+            <li class="completed-feature-item">Central Item Storage Engine with 8-dimension multi-tag &amp; level-range
+              search</li>
             <li class="completed-feature-item">True Module Memory Unloading with /reload-gated lifecycle</li>
-            <li class="completed-feature-item">Interactive Dungeon Catalog &amp; Browser Grid across Classic and WoW Forever instances</li>
-            <li class="completed-feature-item">Open-Book Split View with Multi-Tier Boss Rosters &amp; Encounter Drops</li>
-            <li class="completed-feature-item">World &amp; Zone Map Entrance Indicators with level-bracket filtering</li>
-            <li class="completed-feature-item">Unified Breadcrumb Navigation (Home &gt; Dungeons &gt; Instance &gt; Boss)</li>
-            <li class="completed-feature-item">Native In-Game Settings Panel with Keybinding Recorder &amp; Default Landing Tab Radio Selector</li>
-            <li class="completed-feature-item">Minimap Shortcut Button with orbit positioning &amp; visibility toggles</li>
+            <li class="completed-feature-item">Interactive Dungeon Catalog &amp; Browser Grid across Classic and WoW
+              Forever instances</li>
+            <li class="completed-feature-item">Open-Book Split View with Multi-Tier Boss Rosters &amp; Encounter Drops
+            </li>
+            <li class="completed-feature-item">World &amp; Zone Map Entrance Indicators with level-bracket filtering
+            </li>
+            <li class="completed-feature-item">Unified Breadcrumb Navigation (Home &gt; Dungeons &gt; Instance &gt;
+              Boss)</li>
+            <li class="completed-feature-item">Native In-Game Settings Panel with Keybinding Recorder &amp; Default
+              Landing Tab Radio Selector</li>
+            <li class="completed-feature-item">Minimap Shortcut Button with orbit positioning &amp; visibility toggles
+            </li>
             <li class="completed-feature-item">Live Real-Time Search across instances, bosses, and loot drops</li>
-            <li class="completed-feature-item">Dungeon Set 2 (Tier 0.5) Challenge Boss Rosters &amp; Medallion Frames</li>
+            <li class="completed-feature-item">Dungeon Set 2 (Tier 0.5) Challenge Boss Rosters &amp; Medallion Frames
+            </li>
           </ul>
         </div>
       </details>
@@ -853,7 +923,9 @@
 
     <div class="support-box">
       <p>Please send bug reports and feature requests to <strong>Brandon (Endoria)</strong>.</p>
-      <p style="margin-top: 1.1rem; font-size: 0.92rem; color: var(--text-muted); line-height: 1.6;">We apologize to players outside our direct circles who may not have a direct way to reach out—there are currently no plans to establish a public Discord or community channel at this time.</p>
+      <p style="margin-top: 1.1rem; font-size: 0.92rem; color: var(--text-muted); line-height: 1.6;">We apologize to
+        players outside our direct circles who may not have a direct way to reach out—there are currently no plans to
+        establish a public Discord or community channel at this time.</p>
     </div>
   </main>
 
@@ -863,4 +935,5 @@
   </footer>
 
 </body>
+
 </html>

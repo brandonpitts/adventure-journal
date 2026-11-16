@@ -22,11 +22,22 @@ local Constants = {
     ATLAS = {
         DUNGEON = "Dungeon",
         RAID = "Raid",
+        TAXI_NEUTRAL = "TaxiNode_Neutral",
+        TAXI_ALLIANCE = "TaxiNode_Alliance",
+        TAXI_HORDE = "TaxiNode_Horde",
+    },
+
+    -- Flight path colors
+    FLIGHT_COLORS = {
+        ALLIANCE = { 0.25, 0.60, 1.00, "4099ff" }, -- Blue
+        HORDE = { 1.00, 0.25, 0.25, "ff4040" },    -- Red
+        NEUTRAL = { 1.00, 0.82, 0.00, "ffd100" },  -- Gold
     },
 
     -- Pin dimensions on the World Map canvas
     PIN = {
         SIZE = 42,
+        FLIGHT_SIZE = 30,
         HIT_SCALE = 0.8,
         POI_SCALE = 0.70,
         FRAME_STRATA = "HIGH",

@@ -194,9 +194,11 @@ function SettingsPanel:Init()
     self:CreateMinimapToggleRow(scrollChild)
     self:CreateAddonCompartmentToggleRow(scrollChild)
     self:CreateCompareItemsToggleRow(scrollChild)
+    self:CreateLockWindowToggleRow(scrollChild)
     self:CreateAdvancedSearchSection(scrollChild)
     self:CreateInstalledPluginsSection(scrollChild)
     self:CreateDungeonModuleSection(scrollChild)
+    self:CreateQuestsModuleSection(scrollChild)
     self:CreateMapIconsModuleSection(scrollChild)
 
     -- Populate immediately and on OnShow so the first view in 16001 is never blank.
@@ -463,7 +465,7 @@ end
 function SettingsPanel:CreateCompareItemsToggleRow(panel)
     local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     label:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -140)
-    label:SetText("Automatically compare items on mouseover")
+    label:SetText("Automatically Compare Items on Mouseover")
     self.CompareItemsLabel = label
 
     local checkbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
@@ -498,12 +500,50 @@ function SettingsPanel:CreateCompareItemsToggleRow(panel)
     self.CompareItemsCheckbox = checkbox
 end
 
+--- Builds the "Lock Adventure Journal Window (shift + click and drag to move)" checkbox row.
+--- @param panel Frame
+function SettingsPanel:CreateLockWindowToggleRow(panel)
+    local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -168)
+    label:SetText("Lock Adventure Journal Window (shift + click and drag to move)")
+    self.LockWindowLabel = label
+
+    local checkbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+    checkbox:SetSize(28, 28)
+    checkbox:SetPoint("RIGHT", panel, "RIGHT", -24, 0)
+    checkbox:SetPoint("CENTER", label, "CENTER", 0, 0)
+
+    checkbox:SetScript("OnEnter", function(cb)
+        if GameTooltip then
+            GameTooltip:SetOwner(cb, "ANCHOR_RIGHT")
+            GameTooltip:AddLine("Lock Adventure Journal Window", 1.0, 0.82, 0.0)
+            GameTooltip:AddLine("When enabled, the Adventure Journal window cannot be moved by normal dragging.\n\nHold Shift while clicking and dragging the window header to move the window while locked.", 1.0, 1.0, 1.0, true)
+            GameTooltip:Show()
+        end
+    end)
+    checkbox:SetScript("OnLeave", function()
+        if GameTooltip then
+            GameTooltip:Hide()
+        end
+    end)
+
+    checkbox:SetScript("OnClick", function(cb)
+        local isChecked = cb:GetChecked() and true or false
+        if PlaySound then
+            PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
+        end
+        ns.Database:SetWindowLocked(isChecked)
+    end)
+
+    self.LockWindowCheckbox = checkbox
+end
+
 --- Builds the compartmentalized "Advanced Searching" section with definition help text
 --- and a performance/memory usage warning.
 --- @param panel Frame
 function SettingsPanel:CreateAdvancedSearchSection(panel)
     local sectionHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    sectionHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 18, -184)
+    sectionHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 18, -212)
     sectionHeader:SetText("Advanced Searching")
     self.AdvancedSearchHeader = sectionHeader
 
@@ -670,7 +710,7 @@ function SettingsPanel:CreateDungeonModuleSection(panel)
     -- Row 1: "Sort Dungeon Grid By" (dropdown: "Level Bracket (Default)", "Alphabetical (A-Z)")
     local sortLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     sortLabel:SetPoint("TOPLEFT", divider, "BOTTOMLEFT", 6, -16)
-    sortLabel:SetText("Sort Dungeon Grid By")
+    sortLabel:SetText("Sort Dungeon Grid by")
     self.DungeonSortLabel = sortLabel
 
     local sortDropdown = CreateFrame("Frame", "AdventureJournalDungeonSortDropdown", panel, "UIDropDownMenuTemplate")
@@ -985,11 +1025,73 @@ function SettingsPanel:CreateDungeonModuleSection(panel)
     self.ChallengeBossesLabel = challengeLabel
 end
 
+--- Builds the "Quests Module" section with options and display preferences for quests.
+--- @param panel Frame
+function SettingsPanel:CreateQuestsModuleSection(panel)
+    local sectionHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    sectionHeader:SetPoint("TOPLEFT", self.ChallengeBossesLabel, "BOTTOMLEFT", -6, -26)
+    sectionHeader:SetText("Quests Module")
+    self.QuestsSectionHeader = sectionHeader
+
+    local subNote = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    subNote:SetPoint("LEFT", sectionHeader, "RIGHT", 12, 0)
+    subNote:SetText("Options and display preferences for the Quests tab.")
+    subNote:SetTextColor(0.68, 0.64, 0.56)
+
+    local divider = panel:CreateTexture(nil, "ARTWORK")
+    divider:SetHeight(1)
+    divider:SetPoint("TOPLEFT", sectionHeader, "BOTTOMLEFT", 0, -6)
+    divider:SetPoint("RIGHT", panel, "RIGHT", -18, 0)
+    divider:SetTexture(Constants.ASSETS.WHITE_8X8)
+    divider:SetVertexColor(0.68, 0.52, 0.20, 0.35)
+
+    -- Row 1: "Show Both Faction's Instance Quests"
+    local bothFactionLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    bothFactionLabel:SetPoint("TOPLEFT", divider, "BOTTOMLEFT", 6, -14)
+    bothFactionLabel:SetText("Show Both Faction's Instance Quests")
+    self.BothFactionQuestsLabel = bothFactionLabel
+
+    local bothFactionCheckbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+    bothFactionCheckbox:SetSize(28, 28)
+    bothFactionCheckbox:SetPoint("RIGHT", panel, "RIGHT", -24, 0)
+    bothFactionCheckbox:SetPoint("CENTER", bothFactionLabel, "CENTER", 0, 0)
+
+    bothFactionCheckbox:SetScript("OnEnter", function(cb)
+        if GameTooltip then
+            GameTooltip:SetOwner(cb, "ANCHOR_RIGHT")
+            GameTooltip:AddLine("Show Both Faction's Instance Quests", 1.0, 0.82, 0.0)
+            GameTooltip:AddLine("When enabled, quests for both Alliance and Horde will appear in instance quest tabs (with opposing faction quests grouped below a divider). When disabled, only your faction's and neutral quests are shown.", 1.0, 1.0, 1.0, true)
+            GameTooltip:Show()
+        end
+    end)
+    bothFactionCheckbox:SetScript("OnLeave", function()
+        if GameTooltip then
+            GameTooltip:Hide()
+        end
+    end)
+
+    bothFactionCheckbox:SetScript("OnClick", function(cb)
+        local isChecked = cb:GetChecked() and true or false
+        if PlaySound then
+            PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
+        end
+        ns.Database:SetQuestSetting("showBothFactionData", isChecked)
+
+        if _G.JournalBase and _G.JournalBase.SetQuestSetting then
+            _G.JournalBase:SetQuestSetting("showBothFactionData", isChecked)
+        elseif _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
+            _G.JournalBase:OnDungeonSettingChanged("showBothFactionData", isChecked)
+        end
+    end)
+
+    self.BothFactionQuestsCheckbox = bothFactionCheckbox
+end
+
 --- Builds the "Map Icons Module" section with options for world map markers.
 --- @param panel Frame
 function SettingsPanel:CreateMapIconsModuleSection(panel)
     local sectionHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    sectionHeader:SetPoint("TOPLEFT", self.ChallengeBossesLabel, "BOTTOMLEFT", -6, -26)
+    sectionHeader:SetPoint("TOPLEFT", self.BothFactionQuestsLabel, "BOTTOMLEFT", -6, -26)
     sectionHeader:SetText("Map Icons Module")
 
     local subNote = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
@@ -1004,10 +1106,216 @@ function SettingsPanel:CreateMapIconsModuleSection(panel)
     divider:SetTexture(Constants.ASSETS.WHITE_8X8)
     divider:SetVertexColor(0.68, 0.52, 0.20, 0.35)
 
-    -- Row 1: "Dungeon icons on world map" (with blue swirl portal icon and dropdown)
+    -- Row 1: "Show Zone Levels on World Map"
+    local zoneLevelsLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    zoneLevelsLabel:SetPoint("TOPLEFT", divider, "BOTTOMLEFT", 6, -14)
+    zoneLevelsLabel:SetText("Show Zone Levels on World Map")
+    self.ZoneLevelsLabel = zoneLevelsLabel
+
+    local zoneLevelsCheckbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+    zoneLevelsCheckbox:SetSize(28, 28)
+    zoneLevelsCheckbox:SetPoint("RIGHT", panel, "RIGHT", -24, 0)
+    zoneLevelsCheckbox:SetPoint("CENTER", zoneLevelsLabel, "CENTER", 0, 0)
+
+    zoneLevelsCheckbox:SetScript("OnEnter", function(cb)
+        if GameTooltip then
+            GameTooltip:SetOwner(cb, "ANCHOR_RIGHT")
+            GameTooltip:AddLine("Show Zone Levels on World Map", 1.0, 0.82, 0.0)
+            GameTooltip:AddLine("When enabled, hovering over a zone on the World Map displays the zone's recommended level bracket dynamically colored by difficulty.", 1.0, 1.0, 1.0, true)
+            GameTooltip:Show()
+        end
+    end)
+    zoneLevelsCheckbox:SetScript("OnLeave", function()
+        if GameTooltip then GameTooltip:Hide() end
+    end)
+    zoneLevelsCheckbox:SetScript("OnClick", function(cb)
+        local isChecked = cb:GetChecked()
+        if PlaySound then
+            PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
+        end
+        if ns.Database and ns.Database.SetMapIconsSetting then
+            ns.Database:SetMapIconsSetting("showZoneLevels", isChecked)
+        end
+    end)
+    self.ZoneLevelsCheckbox = zoneLevelsCheckbox
+
+    -- Row 2: "Show Fishing Levels on World Map"
+    local fishingLevelsLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    fishingLevelsLabel:SetPoint("TOPLEFT", zoneLevelsLabel, "BOTTOMLEFT", 0, -18)
+    fishingLevelsLabel:SetText("Show Fishing Levels on World Map")
+    self.FishingLevelsLabel = fishingLevelsLabel
+
+    local fishingLevelsCheckbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+    fishingLevelsCheckbox:SetSize(28, 28)
+    fishingLevelsCheckbox:SetPoint("RIGHT", panel, "RIGHT", -24, 0)
+    fishingLevelsCheckbox:SetPoint("CENTER", fishingLevelsLabel, "CENTER", 0, 0)
+
+    fishingLevelsCheckbox:SetScript("OnEnter", function(cb)
+        if GameTooltip then
+            GameTooltip:SetOwner(cb, "ANCHOR_RIGHT")
+            GameTooltip:AddLine("Show Fishing Levels on World Map", 1.0, 0.82, 0.0)
+            GameTooltip:AddLine("When enabled, hovering over a zone on the World Map displays the required fishing skill level below the zone title.", 1.0, 1.0, 1.0, true)
+            GameTooltip:Show()
+        end
+    end)
+    fishingLevelsCheckbox:SetScript("OnLeave", function()
+        if GameTooltip then GameTooltip:Hide() end
+    end)
+    fishingLevelsCheckbox:SetScript("OnClick", function(cb)
+        local isChecked = cb:GetChecked()
+        if PlaySound then
+            PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
+        end
+        if ns.Database and ns.Database.SetMapIconsSetting then
+            ns.Database:SetMapIconsSetting("showFishingLevels", isChecked)
+        end
+    end)
+    self.FishingLevelsCheckbox = fishingLevelsCheckbox
+
+    -- Row 3: "Show Flight Paths on World Map"
+    local flightPathsLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    flightPathsLabel:SetPoint("TOPLEFT", fishingLevelsLabel, "BOTTOMLEFT", 0, -18)
+    flightPathsLabel:SetText("Show Flight Paths on World Map")
+    self.FlightPathsLabel = flightPathsLabel
+
+    local flightPathsCheckbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+    flightPathsCheckbox:SetSize(28, 28)
+    flightPathsCheckbox:SetPoint("RIGHT", panel, "RIGHT", -24, 0)
+    flightPathsCheckbox:SetPoint("CENTER", flightPathsLabel, "CENTER", 0, 0)
+
+    flightPathsCheckbox:SetScript("OnEnter", function(cb)
+        if GameTooltip then
+            GameTooltip:SetOwner(cb, "ANCHOR_RIGHT")
+            GameTooltip:AddLine("Show Flight Paths on World Map", 1.0, 0.82, 0.0)
+            GameTooltip:AddLine("When enabled, flight master locations are marked on the World Map with winged boot icons.", 1.0, 1.0, 1.0, true)
+            GameTooltip:Show()
+        end
+    end)
+    flightPathsCheckbox:SetScript("OnLeave", function()
+        if GameTooltip then GameTooltip:Hide() end
+    end)
+    flightPathsCheckbox:SetScript("OnClick", function(cb)
+        local isChecked = cb:GetChecked()
+        if PlaySound then
+            PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
+        end
+        if ns.Database and ns.Database.SetMapIconsSetting then
+            ns.Database:SetMapIconsSetting("showFlightPaths", isChecked)
+        end
+        if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
+            _G.JournalBase:OnDungeonSettingChanged("showFlightPaths", isChecked)
+        end
+        if self.UpdateFlightPathDependencies then
+            self:UpdateFlightPathDependencies()
+        end
+        if ns.MapPinProvider and ns.MapPinProvider.Refresh then
+            ns.MapPinProvider:Refresh()
+        end
+    end)
+    self.FlightPathsCheckbox = flightPathsCheckbox
+
+    -- Row 4a: Sub-option "Use Faction Colors for Faction Specific Flight Paths" (Indented)
+    local factionColorsLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    factionColorsLabel:SetPoint("TOPLEFT", flightPathsLabel, "BOTTOMLEFT", 18, -16)
+    factionColorsLabel:SetText("Use Faction Colors for Faction Specific Flight Paths")
+    self.FactionColorsLabel = factionColorsLabel
+
+    local factionColorsCheckbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+    factionColorsCheckbox:SetSize(28, 28)
+    factionColorsCheckbox:SetPoint("RIGHT", panel, "RIGHT", -24, 0)
+    factionColorsCheckbox:SetPoint("CENTER", factionColorsLabel, "CENTER", 0, 0)
+
+    factionColorsCheckbox:SetScript("OnEnter", function(cb)
+        if GameTooltip then
+            GameTooltip:SetOwner(cb, "ANCHOR_RIGHT")
+            GameTooltip:AddLine("Use Faction Colors for Faction Specific Flight Paths", 1.0, 0.82, 0.0)
+            GameTooltip:AddLine("When enabled, Alliance flight masters appear in blue and Horde in red (neutral in gold). When disabled, all flight paths appear in uniform gold.", 1.0, 1.0, 1.0, true)
+            GameTooltip:Show()
+        end
+    end)
+    factionColorsCheckbox:SetScript("OnLeave", function()
+        if GameTooltip then GameTooltip:Hide() end
+    end)
+    factionColorsCheckbox:SetScript("OnClick", function(cb)
+        local isChecked = cb:GetChecked()
+        if PlaySound then
+            PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
+        end
+        if ns.Database and ns.Database.SetMapIconsSetting then
+            ns.Database:SetMapIconsSetting("useFactionColorsForFlightPaths", isChecked)
+        end
+        if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
+            _G.JournalBase:OnDungeonSettingChanged("useFactionColorsForFlightPaths", isChecked)
+        end
+        if ns.MapPinProvider and ns.MapPinProvider.Refresh then
+            ns.MapPinProvider:Refresh()
+        end
+    end)
+    self.FactionColorsCheckbox = factionColorsCheckbox
+
+    -- Row 4b: Sub-option "Show Enemy Faction Flight Paths" (Indented, default: off)
+    local enemyFactionLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    enemyFactionLabel:SetPoint("TOPLEFT", factionColorsLabel, "BOTTOMLEFT", 0, -14)
+    enemyFactionLabel:SetText("Show Enemy Faction Flight Paths")
+    self.EnemyFactionLabel = enemyFactionLabel
+
+    local enemyFactionCheckbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+    enemyFactionCheckbox:SetSize(28, 28)
+    enemyFactionCheckbox:SetPoint("RIGHT", panel, "RIGHT", -24, 0)
+    enemyFactionCheckbox:SetPoint("CENTER", enemyFactionLabel, "CENTER", 0, 0)
+
+    enemyFactionCheckbox:SetScript("OnEnter", function(cb)
+        if GameTooltip then
+            GameTooltip:SetOwner(cb, "ANCHOR_RIGHT")
+            GameTooltip:AddLine("Show Enemy Faction Flight Paths", 1.0, 0.82, 0.0)
+            GameTooltip:AddLine("When enabled, flight master locations for the opposing faction are shown on your map. When disabled, only your faction's and neutral flight paths are displayed.", 1.0, 1.0, 1.0, true)
+            GameTooltip:Show()
+        end
+    end)
+    enemyFactionCheckbox:SetScript("OnLeave", function()
+        if GameTooltip then GameTooltip:Hide() end
+    end)
+    enemyFactionCheckbox:SetScript("OnClick", function(cb)
+        local isChecked = cb:GetChecked()
+        if PlaySound then
+            PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
+        end
+        if ns.Database and ns.Database.SetMapIconsSetting then
+            ns.Database:SetMapIconsSetting("showEnemyFactionFlightPaths", isChecked)
+        end
+        if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
+            _G.JournalBase:OnDungeonSettingChanged("showEnemyFactionFlightPaths", isChecked)
+        end
+        if ns.MapPinProvider and ns.MapPinProvider.Refresh then
+            ns.MapPinProvider:Refresh()
+        end
+    end)
+    self.EnemyFactionCheckbox = enemyFactionCheckbox
+
+    -- Dependency controller for flight path sub-settings
+    local function updateFlightPathDependencies()
+        local isParentChecked = flightPathsCheckbox:GetChecked() and true or false
+        local function setSubControl(cb, lbl)
+            if not cb or not lbl then return end
+            if isParentChecked then
+                cb:Enable()
+                lbl:SetFontObject("GameFontNormal")
+                lbl:SetTextColor(1.0, 0.82, 0.0)
+            else
+                cb:Disable()
+                lbl:SetFontObject("GameFontDisable")
+                lbl:SetTextColor(0.50, 0.50, 0.50)
+            end
+        end
+        setSubControl(factionColorsCheckbox, factionColorsLabel)
+        setSubControl(enemyFactionCheckbox, enemyFactionLabel)
+    end
+    self.UpdateFlightPathDependencies = updateFlightPathDependencies
+
+    -- Row 5: "Dungeon Icons on World Map" (with blue swirl portal icon and dropdown)
     local mapIconsLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    mapIconsLabel:SetPoint("TOPLEFT", divider, "BOTTOMLEFT", 6, -14)
-    mapIconsLabel:SetText("Dungeon icons on world map")
+    mapIconsLabel:SetPoint("TOPLEFT", enemyFactionLabel, "BOTTOMLEFT", -18, -24)
+    mapIconsLabel:SetText("Dungeon Icons on World Map")
     self.WorldMapIconsLabel = mapIconsLabel
 
     local dungeonSwirl = panel:CreateTexture(nil, "ARTWORK")
@@ -1084,10 +1392,10 @@ function SettingsPanel:CreateMapIconsModuleSection(panel)
 
     self.WorldMapIconsDropdown = dropdown
 
-    -- Row 2: "Raid icons on world map" (with green swirl portal icon, "(Under Construction)" tag, and disabled dropdown)
+    -- Row 6: "Raid Icons on World Map" (with green swirl portal icon, "(Under Construction)" tag, and disabled dropdown)
     local raidIconsLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     raidIconsLabel:SetPoint("TOPLEFT", mapIconsLabel, "BOTTOMLEFT", 0, -28)
-    raidIconsLabel:SetText("Raid icons on world map")
+    raidIconsLabel:SetText("Raid Icons on World Map")
     raidIconsLabel:SetTextColor(0.60, 0.58, 0.54)
     self.WorldMapRaidIconsLabel = raidIconsLabel
 
@@ -1509,14 +1817,16 @@ function SettingsPanel:Refresh()
         if self.MinimapLabel then self.MinimapLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -118) end
         if self.AddonCompartmentLabel then self.AddonCompartmentLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -146) end
         if self.CompareItemsLabel then self.CompareItemsLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -174) end
-        if self.AdvancedSearchHeader then self.AdvancedSearchHeader:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 18, -218) end
+        if self.LockWindowLabel then self.LockWindowLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -202) end
+        if self.AdvancedSearchHeader then self.AdvancedSearchHeader:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 18, -246) end
     else
         if self.AlertBanner then self.AlertBanner:Hide() end
         if self.KeybindLabel then self.KeybindLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -56) end
         if self.MinimapLabel then self.MinimapLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -84) end
         if self.AddonCompartmentLabel then self.AddonCompartmentLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -112) end
         if self.CompareItemsLabel then self.CompareItemsLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -140) end
-        if self.AdvancedSearchHeader then self.AdvancedSearchHeader:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 18, -184) end
+        if self.LockWindowLabel then self.LockWindowLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -168) end
+        if self.AdvancedSearchHeader then self.AdvancedSearchHeader:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 18, -212) end
     end
 
     if self.KeybindButton then
@@ -1538,6 +1848,9 @@ function SettingsPanel:Refresh()
     end
     if self.AddonCompartmentCheckbox then
         self.AddonCompartmentCheckbox:SetChecked(ns.Database:IsAddonCompartmentShown())
+    end
+    if self.LockWindowCheckbox then
+        self.LockWindowCheckbox:SetChecked(ns.Database:IsWindowLocked())
     end
     if self.AdvancedSearchCheckbox then
         self.AdvancedSearchCheckbox:SetChecked(ns.Database:IsAdvancedSearchEnabled())
@@ -1586,6 +1899,27 @@ function SettingsPanel:Refresh()
             UIDropDownMenu_SetText(self.DungeonSortDropdown, labelText)
         end
     end
+    if self.BothFactionQuestsCheckbox then
+        self.BothFactionQuestsCheckbox:SetChecked(ns.Database:GetQuestSetting("showBothFactionData", false) == true)
+    end
+    if self.ZoneLevelsCheckbox then
+        self.ZoneLevelsCheckbox:SetChecked(ns.Database:GetMapIconsSetting("showZoneLevels", true) ~= false)
+    end
+    if self.FishingLevelsCheckbox then
+        self.FishingLevelsCheckbox:SetChecked(ns.Database:GetMapIconsSetting("showFishingLevels", true) ~= false)
+    end
+    if self.FlightPathsCheckbox then
+        self.FlightPathsCheckbox:SetChecked(ns.Database:GetMapIconsSetting("showFlightPaths", true) ~= false)
+    end
+    if self.FactionColorsCheckbox then
+        self.FactionColorsCheckbox:SetChecked(ns.Database:GetMapIconsSetting("useFactionColorsForFlightPaths", true) ~= false)
+    end
+    if self.EnemyFactionCheckbox then
+        self.EnemyFactionCheckbox:SetChecked(ns.Database:GetMapIconsSetting("showEnemyFactionFlightPaths", false) == true)
+    end
+    if self.UpdateFlightPathDependencies then
+        self:UpdateFlightPathDependencies()
+    end
     if self.WorldMapIconsDropdown then
         local val = (ns.Database and ns.Database.GetMapIconsSetting and ns.Database:GetMapIconsSetting("worldMapDungeonIcons", "min_level"))
             or (ns.Database and ns.Database.GetDungeonSetting and ns.Database:GetDungeonSetting("worldMapDungeonIcons", "min_level"))
@@ -1610,9 +1944,9 @@ function SettingsPanel:Refresh()
     end
     self:RefreshPluginRows()
 
-    local totalH = 970
+    local totalH = 1300
     if status and status.isMismatch then
-        totalH = 1010
+        totalH = 1340
     end
     if self.scrollChild and self.scrollFrame then
         local w = self.scrollFrame:GetWidth()

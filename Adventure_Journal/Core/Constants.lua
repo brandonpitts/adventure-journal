@@ -20,7 +20,7 @@ local SOUNDKIT = SOUNDKIT
 local Constants = {
     ADDON_NAME = addonName,
     TITLE = "Adventure Journal",
-    VERSION = "0.6.0",
+    VERSION = "0.7.0",
     AUTHOR = "Brandon (Endoria)",
     PLUGIN_API_VERSION = 1,
 
@@ -85,13 +85,12 @@ local Constants = {
         NAV_CHEVRON_ARROW = "Interface\\ChatFrame\\ChatFrameExpandArrow",
     },
 
-    -- Canonical ecosystem catalog displayed in Settings (even before a plugin is installed)
-    -- and merged with live `description`, `version`, and `lastUpdated` registered by loaded plugins.
+    -- Canonical module catalog for installed modules within Adventure Journal.
     KNOWN_PLUGINS = {
         {
             id = "dungeons",
             title = "Dungeons",
-            addonName = "Journal_Dungeons",
+            addonName = "Adventure_Journal",
             defaultOrder = 10,
             icon = "Interface\\Icons\\INV_Misc_Key_03",
             description = "Explore 5-player dungeons across Classic and WoW Forever, including level brackets, boss encounters, role notes, and loot drops.",
@@ -99,34 +98,15 @@ local Constants = {
             lastUpdated = "2026-11-14",
         },
         {
-            id = "raids",
-            title = "Raids",
-            addonName = "Journal_Raids",
-            defaultOrder = 20,
-            icon = "Interface\\Icons\\INV_Misc_Head_Dragon_01",
-            description = "Prepare for 10, 20, and 40-player raid tiers with multi-phase encounter strategies, boss abilities, and tier set loot tables.",
-            version = "0.0.0",
-            lastUpdated = "2026-11-13",
-        },
-        {
-            id = "professions",
-            title = "Professions",
-            addonName = "Journal_Professions",
-            defaultOrder = 30,
-            icon = "Interface\\Icons\\Trade_BlackSmithing",
-            description = "Browse primary and secondary professions, recipe and schematic sources, trainer locations, and crafting reagent breakdowns.",
-            version = "0.0.0",
-            lastUpdated = "2026-11-13",
-        },
-        {
-            id = "quests",
+            id = "utility_quests",
             title = "Quests",
-            addonName = "Journal_Quests",
-            defaultOrder = 40,
+            addonName = "Utility_Quests",
+            defaultOrder = 850,
             icon = "Interface\\Icons\\INV_Misc_Book_08",
-            description = "Track dungeon questlines, raid attunement chains, class quests, and notable reward paths across Azeroth.",
-            version = "0.0.0",
-            lastUpdated = "2026-11-13",
+            description = "Provides dungeon quest catalogs, prerequisite chain tracking, map markers, and level-relative reward XP calculations.",
+            version = "0.6.0",
+            lastUpdated = "2026-11-14",
+            isUtility = true,
         },
         {
             id = "map_icons",
@@ -164,6 +144,7 @@ local Constants = {
             homePluginId = "dungeons",
             defaultLandingPluginId = "dungeons",
             point = nil,
+            lockWindow = false,
         },
         disabledPlugins = {},
         pluginOrder = {},
@@ -176,7 +157,15 @@ local Constants = {
             worldMapDungeonIcons = "min_level",
             dungeonGridSort = "level",
         },
+        quests = {
+            showBothFactionData = false,
+        },
         map_icons = {
+            showZoneLevels = true,
+            showFishingLevels = true,
+            showFlightPaths = true,
+            useFactionColorsForFlightPaths = true,
+            showEnemyFactionFlightPaths = false,
             worldMapDungeonIcons = "min_level",
             worldMapRaidIcons = "disabled",
         },
@@ -188,4 +177,3 @@ local Constants = {
 -- ----------------------------------------------------------------------------
 ns.Constants = Constants
 ns.UI = ns.UI or {}
-

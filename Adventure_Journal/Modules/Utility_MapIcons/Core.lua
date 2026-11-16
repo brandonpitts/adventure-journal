@@ -48,6 +48,15 @@ function MapIconsPlugin:OnUnload()
         table.wipe(ns.EntranceCoordinates)
         ns.EntranceCoordinates = nil
     end
+    if ns.ZoneLevels and type(ns.ZoneLevels) == "table" then
+        table.wipe(ns.ZoneLevels)
+        ns.ZoneLevels = nil
+    end
+    if ns.FlightPaths and type(ns.FlightPaths) == "table" then
+        table.wipe(ns.FlightPaths)
+        ns.FlightPaths = nil
+    end
+    ns.AreaLabelProvider = nil
     ns.MapIconsConstants = nil
     ns.OpenDungeon = nil
     ns.GetDungeonMapLocation = nil
@@ -140,7 +149,7 @@ function ns.OpenDungeon(dungeonID)
 end
 
 -- ----------------------------------------------------------------------------
--- 3. Event Listener Frame
+-- 4. Event Listener Frame
 -- ----------------------------------------------------------------------------
 eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("PLAYER_LEVEL_UP")
@@ -150,13 +159,16 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         if ns.MapPinProvider then
             ns.MapPinProvider:Init()
         end
+        if ns.AreaLabelProvider then
+            ns.AreaLabelProvider:Init()
+        end
         if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
             local prevHook = _G.JournalBase.OnDungeonSettingChanged
             _G.JournalBase.OnDungeonSettingChanged = function(jBase, key, val)
                 if prevHook then
                     prevHook(jBase, key, val)
                 end
-                if key == "worldMapDungeonIcons" and ns.MapPinProvider then
+                if (key == "worldMapDungeonIcons" or key == "showFlightPaths" or key == "useFactionColorsForFlightPaths" or key == "showEnemyFactionFlightPaths") and ns.MapPinProvider then
                     ns.MapPinProvider:Refresh()
                 end
             end
