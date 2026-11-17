@@ -1,0 +1,35 @@
+name: Announce release on Discord
+
+# Runs when the addon's .toc changes on main; posts only if the version number changed.
+# "Run workflow" on the Actions tab posts the current version on demand (for testing).
+on:
+  push:
+    branches: [main]
+    paths: ["Adventure_Journal/Adventure_Journal.toc"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ADDON_NAME: Adventure Journal
+  TOC_PATH: Adventure_Journal/Adventure_Journal.toc
+  CHANGELOG_FILE: changelog.html
+  SITE_URL: https://brandonpitts.github.io/adventure-journal/
+  ZIP_PATTERN: Adventure_Journal-v{version}.zip
+  EMBED_COLOR: "13015866" # Bronze gold (#C69B3A)
+
+jobs:
+  announce:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Announce if version changed
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python3 .github/scripts/announce_release.py
