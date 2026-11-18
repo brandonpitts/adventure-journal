@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Changelog — Adventure Journal</title>
+  <meta name="description"
+    content="Completed features and release history for the Adventure Journal addon for World of Warcraft Forever.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0c0d10;
+      --bg-panel: #13141a;
+      --bg-card: #181a24;
+      --border-gold: #c69b3a;
+      --border-dark: #2c2f3d;
+      --gold-bright: #ffd100;
+      --gold-soft: #d4af37;
+      --gold-dim: #9c834a;
+      --text-main: #e6e3da;
+      --text-muted: #9f9da6;
+      --btn-red: #6d1b1b;
+      --btn-red-hover: #8f2323;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6;
+      background-image:
+        radial-gradient(circle at 50% 0%, rgba(198, 155, 58, 0.15) 0%, transparent 60%),
+        linear-gradient(to bottom, rgba(12, 13, 16, 0.8), #0c0d10);
+      background-attachment: fixed;
+      min-height: 100vh;
+    }
+
+    code {
+      white-space: nowrap;
+    }
+
+    header {
+      padding: 3rem 1.5rem 2rem;
+      text-align: center;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* Top Early Development Notice Banner */
+    .early-dev-banner {
+      background: linear-gradient(90deg, #2a1b08 0%, #3d260c 50%, #2a1b08 100%);
+      border-bottom: 2px solid var(--border-gold);
+      padding: 0.9rem 1.5rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+      position: relative;
+      z-index: 100;
+    }
+
+    .banner-inner {
+      max-width: 1050px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.85rem;
+      text-align: center;
+      font-size: 0.94rem;
+      color: #f5edd8;
+      line-height: 1.5;
+    }
+
+    .banner-badge {
+      background: #c69b3a;
+      color: #0c0d10;
+      font-weight: 800;
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .banner-text strong {
+      color: var(--gold-bright);
+    }
+
+    /* Top Site Navigation Bar */
+    .site-nav {
+      background: rgba(14, 15, 20, 0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(198, 155, 58, 0.28);
+      position: sticky;
+      top: 0;
+      z-index: 95;
+    }
+
+    .site-nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .site-nav-brand {
+      font-family: 'Cinzel', serif;
+      font-weight: 800;
+      font-size: 1.05rem;
+      color: var(--gold-bright);
+      text-decoration: none;
+      letter-spacing: 0.05em;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .site-nav-logo {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      display: block;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    }
+
+    .site-nav-brand span {
+      color: #fff;
+    }
+
+    .site-nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .site-nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 0.45rem 0.9rem;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .site-nav-link:hover {
+      color: #fff;
+      background: rgba(198, 155, 58, 0.1);
+      border-color: rgba(198, 155, 58, 0.3);
+    }
+
+    .site-nav-link.active {
+      color: var(--gold-bright);
+      background: rgba(198, 155, 58, 0.14);
+      border-color: rgba(198, 155, 58, 0.55);
+    }
+
+    .badge-version {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(198, 155, 58, 0.12);
+      border: 1px solid var(--border-gold);
+      color: var(--gold-bright);
+      padding: 0.35rem 0.9rem;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      text-decoration: none;
+      margin-bottom: 1.5rem;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .badge-version:hover {
+      background: rgba(198, 155, 58, 0.25);
+      border-color: #ffd866;
+      transform: translateY(-1px);
+      box-shadow: 0 0 14px rgba(255, 209, 0, 0.35);
+    }
+
+    .badge-repo-arrow {
+      font-size: 0.85rem;
+      color: var(--gold-soft);
+      margin-left: 0.15rem;
+    }
+
+    .badge-version::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      background: #38ef7d;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #38ef7d;
+    }
+
+    h1 {
+      font-family: 'Cinzel', serif;
+      font-size: 3.2rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: 0.04em;
+      text-shadow: 0 4px 18px rgba(0, 0, 0, 0.8), 0 0 30px rgba(198, 155, 58, 0.35);
+      margin-bottom: 1rem;
+    }
+
+    h1 span {
+      background: linear-gradient(135deg, #fff7d1 0%, #ffd100 50%, #b8860b 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      font-size: 1.2rem;
+      color: #bfbcc7;
+      max-width: 720px;
+      margin: 0 auto 2.2rem;
+      font-weight: 400;
+      line-height: 1.65;
+    }
+
+    .cta-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 3.5rem;
+    }
+
+    .btn-download {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.85rem;
+      background: linear-gradient(180deg, #9b2828 0%, #681515 100%);
+      color: #fff;
+      text-decoration: none;
+      font-family: 'Cinzel', serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      padding: 1.1rem 2.6rem;
+      border-radius: 6px;
+      border: 2px solid #dfa13d;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 0 25px rgba(223, 161, 61, 0.35);
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .btn-download:hover {
+      background: linear-gradient(180deg, #b83232 0%, #7d1a1a 100%);
+      box-shadow: 0 8px 26px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 35px rgba(223, 161, 61, 0.6);
+      transform: translateY(-2px);
+      border-color: #ffd866;
+    }
+
+    .btn-download svg {
+      width: 24px;
+      height: 24px;
+      fill: currentColor;
+    }
+
+    .download-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .download-meta code {
+      color: var(--gold-bright);
+      background: rgba(255, 255, 255, 0.06);
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+    }
+
+    .download-help-note {
+      font-size: 0.86rem;
+      color: #dfa13d;
+      max-width: 650px;
+      line-height: 1.5;
+      background: rgba(198, 155, 58, 0.08);
+      border: 1px solid rgba(198, 155, 58, 0.28);
+      border-radius: 6px;
+      padding: 0.6rem 1rem;
+      text-align: center;
+    }
+
+    .download-help-note strong {
+      color: var(--gold-bright);
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1.5rem 4rem;
+    }
+
+    .section-title {
+      font-family: 'Cinzel', serif;
+      font-size: 1.9rem;
+      text-align: center;
+      color: #fff;
+      margin-bottom: 0.5rem;
+      position: relative;
+    }
+
+    .section-title span {
+      color: var(--gold-bright);
+    }
+
+    .section-divider {
+      width: 140px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--border-gold), transparent);
+      margin: 0 auto 3rem;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3.5rem;
+    }
+
+    .roadmap-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 4rem;
+    }
+
+    .roadmap-next {
+      border-color: rgba(198, 155, 58, 0.7);
+      background: linear-gradient(180deg, rgba(198, 155, 58, 0.08) 0%, var(--bg-panel) 100%);
+    }
+
+    .roadmap-next .card-tag {
+      color: #55e670;
+    }
+
+    /* Future Candidates Box */
+    .future-candidates-box {
+      background: rgba(19, 20, 26, 0.7);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      padding: 2rem 2.4rem;
+      margin: -1.5rem auto 4rem;
+      max-width: 800px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    .future-candidates-header {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .future-badge {
+      background: rgba(198, 155, 58, 0.15);
+      border: 1px solid rgba(198, 155, 58, 0.4);
+      color: var(--gold-bright);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+    }
+
+    .future-candidates-header h3 {
+      font-family: 'Cinzel', serif;
+      font-size: 1.15rem;
+      color: #fff;
+    }
+
+    .future-intro {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      margin-bottom: 1rem;
+      line-height: 1.6;
+    }
+
+    .future-candidates-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+    }
+
+    .future-candidates-list li {
+      font-size: 0.92rem;
+      color: #b3b1ba;
+      position: relative;
+      padding-left: 1.3rem;
+      line-height: 1.55;
+    }
+
+    .future-candidates-list li::before {
+      content: "•";
+      color: var(--border-gold);
+      position: absolute;
+      left: 0;
+      font-size: 1.1rem;
+      line-height: 1.4;
+    }
+
+    .future-candidates-list li strong {
+      color: var(--gold-bright);
+    }
+
+    .card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      padding: 1.8rem;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.25s ease, transform 0.25s ease;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--border-gold), transparent);
+      opacity: 0.4;
+    }
+
+    .card:hover {
+      border-color: rgba(198, 155, 58, 0.6);
+      transform: translateY(-3px);
+    }
+
+    .card-tag {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--gold-bright);
+      margin-bottom: 0.5rem;
+    }
+
+    .card h3 {
+      font-family: 'Cinzel', serif;
+      font-size: 1.25rem;
+      color: #fff;
+      margin-bottom: 0.65rem;
+    }
+
+    .card p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    /* Disclaimer Box */
+    .disclaimer-box {
+      background: rgba(19, 20, 26, 0.85);
+      border: 1px solid rgba(198, 155, 58, 0.35);
+      border-left: 4px solid var(--border-gold);
+      border-radius: 8px;
+      padding: 1.8rem 2rem;
+      margin: 0 auto 4rem;
+      max-width: 900px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .disclaimer-header {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .disclaimer-badge {
+      background: rgba(198, 155, 58, 0.2);
+      border: 1px solid var(--border-gold);
+      color: var(--gold-bright);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+    }
+
+    .disclaimer-header h3 {
+      font-family: 'Cinzel', serif;
+      font-size: 1.15rem;
+      color: #fff;
+    }
+
+    .disclaimer-box p {
+      color: #b3b1ba;
+      font-size: 0.94rem;
+      line-height: 1.65;
+    }
+
+    .disclaimer-box strong {
+      color: var(--gold-bright);
+      font-weight: 600;
+    }
+
+    /* Installation Box */
+    .install-box {
+      background: var(--bg-panel);
+      border: 1px solid rgba(198, 155, 58, 0.4);
+      border-radius: 8px;
+      padding: 2.5rem;
+      max-width: 800px;
+      margin: 0 auto;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .steps-list {
+      list-style: none;
+      counter-reset: install-counter;
+      display: flex;
+      flex-direction: column;
+      gap: 1.4rem;
+      margin-top: 1.5rem;
+    }
+
+    .steps-list li {
+      counter-increment: install-counter;
+      display: flex;
+      align-items: flex-start;
+      gap: 1.2rem;
+    }
+
+    .steps-list li::before {
+      content: counter(install-counter);
+      background: var(--border-gold);
+      color: #0c0d10;
+      font-weight: 800;
+      font-family: 'Cinzel', serif;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .step-content>strong:first-child {
+      display: block;
+      color: #fff;
+      font-size: 1.05rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .step-content p strong {
+      display: inline;
+      color: #fff;
+      font-size: inherit;
+      margin-bottom: 0;
+    }
+
+    .step-content p {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+    }
+
+    .step-content code {
+      background: #090a0d;
+      border: 1px solid #232634;
+      padding: 0.25rem 0.55rem;
+      border-radius: 4px;
+      color: #49c4ff;
+      font-family: Consolas, monospace;
+      font-size: 0.88rem;
+      white-space: nowrap;
+    }
+
+    /* Accordion Section */
+    .accordion-section {
+      max-width: 900px;
+      margin: 4rem auto 2rem;
+      padding: 0 1.5rem;
+    }
+
+    details.accordion-item {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+      transition: border-color 0.2s ease;
+    }
+
+    details.accordion-item[open] {
+      border-color: var(--border-gold);
+    }
+
+    summary.accordion-header {
+      padding: 1rem 1.4rem;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text-main);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      list-style: none;
+      user-select: none;
+    }
+
+    summary.accordion-header::-webkit-details-marker {
+      display: none;
+    }
+
+    summary.accordion-header::after {
+      content: "+";
+      font-size: 1.3rem;
+      color: var(--gold-soft);
+      line-height: 1;
+    }
+
+    details.accordion-item[open] summary.accordion-header::after {
+      content: "−";
+      color: var(--gold-bright);
+    }
+
+    summary.accordion-header:hover {
+      background: rgba(198, 155, 58, 0.08);
+      color: var(--gold-bright);
+    }
+
+    .accordion-content {
+      padding: 1.2rem 1.4rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    .changelog-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .changelog-entry {
+      border-left: 2px solid var(--border-gold);
+      padding-left: 0.9rem;
+    }
+
+    .changelog-tag {
+      color: var(--gold-bright);
+      font-weight: 700;
+      font-size: 0.9rem;
+      font-family: Consolas, monospace;
+      margin-right: 0.4rem;
+    }
+
+    .completed-features-list {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .completed-feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      color: var(--text-main);
+      font-size: 0.92rem;
+    }
+
+    .completed-feature-item::before {
+      content: "✓";
+      color: #38ef7d;
+      font-weight: 800;
+    }
+
+    /* Support & Feedback Box */
+    .support-box {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      padding: 1.8rem 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .support-box p {
+      color: var(--text-main);
+      font-size: 1.05rem;
+    }
+
+    .support-box strong {
+      color: var(--gold-bright);
+      font-weight: 700;
+    }
+
+    footer {
+      text-align: center;
+      padding: 3rem 1.5rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      color: #706e78;
+      font-size: 0.85rem;
+    }
+
+    footer p+p {
+      margin-top: 0.5rem;
+    }
+
+    footer a {
+      color: var(--gold-soft);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Changelog page: always-visible panel for Completed Features */
+    .static-panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-gold);
+      border-radius: 8px;
+      padding: 1.2rem 1.4rem;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Top Early Development Notice Banner -->
+  <aside class="early-dev-banner" aria-label="Development Notice">
+    <div class="banner-inner">
+      <span class="banner-badge">Early Development</span>
+      <span class="banner-text">Adventure Journal is an independent project created for personal, close friend, and
+        friend-of-friend use. Anyone is welcome to use it with that understanding! Report any issues to <strong>Brandon
+          (Endoria)</strong>.</span>
+      <span class="banner-badge">Early Development</span>
+    </div>
+  </aside>
+
+  <!-- Primary Site Navigation -->
+  <nav class="site-nav" aria-label="Primary Navigation">
+    <div class="site-nav-inner">
+      <a href="index.html" class="site-nav-brand"><img src="favicon.svg" alt="" class="site-nav-logo"><span>Adventure
+          Journal</span></a>
+      <div class="site-nav-links">
+        <a href="index.html" class="site-nav-link">Home</a>
+        <a href="architecture.html" class="site-nav-link">Architecture &amp; Data Engine</a>
+        <a href="changelog.html" class="site-nav-link active">Changelog</a>
+      </div>
+    </div>
+  </nav>
+
+  <header>
+    <h1><span>Changelog</span></h1>
+    <p class="subtitle">Completed features at a glance, followed by the full release history grouped by major version.</p>
+  </header>
+
+  <main>
+    <!-- Completed Features: quick snapshot of everything shipped -->
+    <section id="completed-features" class="accordion-section" aria-label="Completed Features">
+      <h2 class="section-title">Completed <span>Features</span></h2>
+      <div class="section-divider"></div>
+      <div class="static-panel">
+      <ul class="completed-features-list">
+        <li class="completed-feature-item">Dungeon Quest System with multi-step chain accordions, quest givers, objectives, and interactive map pins</li>
+        <li class="completed-feature-item">World Map Zone Level Overlays with level brackets &amp; fishing skill indicators</li>
+        <li class="completed-feature-item">Central Item Storage Engine with 8-dimension multi-tag &amp; level-range
+          search</li>
+        <li class="completed-feature-item">True Module Memory Unloading with /reload-gated lifecycle</li>
+        <li class="completed-feature-item">Interactive Dungeon Catalog &amp; Browser Grid across Classic and WoW
+          Forever instances</li>
+        <li class="completed-feature-item">Open-Book Split View with Multi-Tier Boss Rosters &amp; Encounter Drops
+        </li>
+        <li class="completed-feature-item">World &amp; Zone Map Entrance Indicators with level-bracket filtering
+        </li>
+        <li class="completed-feature-item">Unified Breadcrumb Navigation (Home &gt; Dungeons &gt; Instance &gt;
+          Boss)</li>
+        <li class="completed-feature-item">Native In-Game Settings Panel with Keybinding Recorder &amp; Default
+          Landing Tab Radio Selector</li>
+        <li class="completed-feature-item">Minimap Shortcut Button with orbit positioning &amp; visibility toggles
+        </li>
+        <li class="completed-feature-item">Live Real-Time Search across instances, bosses, and loot drops</li>
+        <li class="completed-feature-item">Dungeon Set 2 (Tier 0.5) Challenge Boss Rosters &amp; Medallion Frames
+        </li>
+      </ul>
+      </div>
+    </section>
+
+    <!-- Release History: one accordion per major version, newest first; newest is open -->
+    <section id="release-history" class="accordion-section" aria-label="Release History">
+      <h2 class="section-title">Release <span>History</span></h2>
+      <div class="section-divider"></div>
+
+      <details class="accordion-item" open>
+        <summary class="accordion-header">v0.x — Early Development</summary>
+        <div class="accordion-content">
+        <ul class="changelog-list">
+          <li class="changelog-entry">
+            <span class="changelog-tag">v0.7.2</span> Made the Journal fully standalone by removing all optional integrations with other addons, and streamlined the Settings panel.
+          </li>
+          <li class="changelog-entry">
+            <span class="changelog-tag">v0.7.1</span> Added global frame naming for third-party minimap button collector compatibility (MinimapButtonButton) and decoupled the Blizzard Addon Compartment setting with independent unchecked default.
+          </li>
+          <li class="changelog-entry">
+            <span class="changelog-tag">v0.7.0</span> Added World Map Zone Level Overlays with recommended level ranges and fishing skill requirements, flight path indicators, and native Character Frame close button styling.
+          </li>
+          <li class="changelog-entry">
+            <span class="changelog-tag">v0.6.0</span> Added Central Item Storage Engine with opt-in multi-tag and
+            level-range search, true memory unloading for disabled modules (/reload lifecycle), and default landing
+            tab radio selection.
+          </li>
+          <li class="changelog-entry">
+            <span class="changelog-tag">v0.5.1</span> Resolved custom keybinding reservation conflicts, added
+            persistent agent automation rules, and verified clean fresh installs.
+          </li>
+          <li class="changelog-entry">
+            <span class="changelog-tag">v0.5.0</span> Consolidated unified addon versioning across all modules,
+            shortened default landing tab selector, and added catalog notice.
+          </li>
+          <li class="changelog-entry">
+            <span class="changelog-tag">v0.4.0</span> Initial public release with 35 Classic and custom WoW Forever
+            dungeons, open-book split view, and world map entrance markers.
+          </li>
+        </ul>
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <footer>
+    <p>Adventure Journal is an open-source community project developed for the World of Warcraft Forever client.</p>
+    <p>World of Warcraft and Blizzard Entertainment are registered trademarks of Blizzard Entertainment, Inc.</p>
+  </footer>
+
+</body>
+
+</html>

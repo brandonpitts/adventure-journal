@@ -25,9 +25,9 @@ local DEFAULT_PLUGIN_ORDER = 100
 
 --- Returns the effective sort order for a plugin (user's custom drag-and-drop
 --- order from `Database`, falling back to `plugin.defaultOrder`).
---- Pinned utility/development modules always use their static `defaultOrder`.
+--- Pinned utility modules always use their static `defaultOrder`.
 local function getEffectiveOrder(plugin)
-    if not plugin.isUtility and not plugin.pinLast then
+    if not plugin.isUtility then
         local custom = ns.Database and ns.Database:GetPluginCustomOrder(plugin.id)
         if type(custom) == "number" then
             return custom
@@ -37,14 +37,8 @@ local function getEffectiveOrder(plugin)
 end
 
 --- Comparator for sorting plugins left-to-right by effective order then `title`.
---- Utility modules (`isUtility == true`) are pinned to the bottom, and `pinLast == true`
---- modules (such as Development) are always pinned as the very last entry.
+--- Utility modules (`isUtility == true`) are pinned to the bottom.
 local function comparePlugins(a, b)
-    local aLast = (a.pinLast == true)
-    local bLast = (b.pinLast == true)
-    if aLast ~= bLast then
-        return not aLast
-    end
     local aUtil = (a.isUtility == true)
     local bUtil = (b.isUtility == true)
     if aUtil ~= bUtil then
@@ -142,8 +136,6 @@ function PluginRegistry:Register(pluginDef)
     local defaultOrder = tonumber(pluginDef.order) or DEFAULT_PLUGIN_ORDER
     local isUtility = (pluginDef.isUtility == true)
     local hasTab = (pluginDef.hasTab == true) or (not isUtility)
-    local alignRight = (pluginDef.alignRight == true)
-    local pinLast = (pluginDef.pinLast == true)
     local plugin = {
         id = id,
         title = title,
@@ -157,8 +149,6 @@ function PluginRegistry:Register(pluginDef)
         order = defaultOrder,
         isUtility = isUtility,
         hasTab = hasTab,
-        alignRight = alignRight,
-        pinLast = pinLast,
         OnInitialize = pluginDef.OnInitialize,
         OnActivate = pluginDef.OnActivate,
         OnDeactivate = pluginDef.OnDeactivate,
@@ -281,8 +271,6 @@ function PluginRegistry:GetCatalogPlugins()
             defaultOrder = live.defaultOrder or DEFAULT_PLUGIN_ORDER,
             isUtility = (live.isUtility == true) or false,
             hasTab = (live.hasTab == true) or false,
-            alignRight = (live.alignRight == true) or false,
-            pinLast = (live.pinLast == true) or false,
             isInstalled = true,
             isLoaded = not isUnloaded,
             isUnloaded = isUnloaded,

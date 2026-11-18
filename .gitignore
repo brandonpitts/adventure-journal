@@ -22,4 +22,7 @@ Adventure_Journal/Modules/Journal_Raids/
 Adventure_Journal/Modules/Journal_Professions/
 Adventure_Journal/Modules/Journal_Quests/
 Adventure_Journal/Modules/Utility_Quests/
-Adventure_Journal/Modules/Utility_Development/
+
+# Python cache
+__pycache__/
+*.py[cod]

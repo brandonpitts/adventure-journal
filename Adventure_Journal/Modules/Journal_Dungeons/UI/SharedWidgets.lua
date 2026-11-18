@@ -14,10 +14,7 @@ local type = type
 local CreateFrame = CreateFrame
 local SetPortraitToTexture = SetPortraitToTexture
 local SetPortraitTextureFromCreatureDisplayID = SetPortraitTextureFromCreatureDisplayID
-local GetFileIDFromPath = GetFileIDFromPath
 local Constants = ns.Constants
-
-local FDJ_PORTRAIT_PATH = "Interface\\AddOns\\ForeverDungeonJournal\\Media\\Portraits\\"
 
 -- ----------------------------------------------------------------------------
 -- 2. Private Helper Functions
@@ -385,7 +382,7 @@ function SharedWidgets:CreateCircularMedallion(parent, iconSize, ringSize)
 end
 
 --- Sets the classification dragon overlay for a circular medallion using
---- Blizzard's isolated target portrait atlases (as used in Leatrix Plus).
+--- Blizzard's isolated target portrait atlases.
 --- Gold Elite for dungeon bosses, Silver Rare for rare spawns, none for normal/special mobs.
 --- @param medallion Frame
 --- @param boss table|nil
@@ -414,7 +411,7 @@ function SharedWidgets:SetMedallionClassification(medallion, boss)
     local parent = medallion.dragonFrame or medallion
     local applied = false
 
-    -- 1. Query C_Texture for the isolated Blizzard dragon atlas (Leatrix Plus modern style)
+    -- 1. Query C_Texture for the isolated Blizzard dragon atlas
     if C_Texture and C_Texture.GetAtlasInfo then
         local info = C_Texture.GetAtlasInfo(atlas)
         if info then
@@ -617,7 +614,7 @@ function SharedWidgets:StyleBossSlabButton(btn)
     baseRim:SetVertexColor(0.12, 0.09, 0.06, 0.95)
     btn._baseRim = baseRim
 
-    -- 3. Textured Achievement Parchment fill (#9 from DevTools)
+    -- 3. Textured Achievement Parchment fill
     local fill = btn:CreateTexture(nil, "BACKGROUND", nil, -3)
     fill:SetPoint("TOPLEFT", btn, "TOPLEFT", 1, -1)
     fill:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -1, 1)
@@ -779,39 +776,8 @@ function SharedWidgets:SetBossMedallionPortrait(medallion, boss, dungeon)
         end
     end
 
-    -- 3. Legacy ForeverDungeonJournal baked portrait fallback if loaded
-    local fdj = _G.ForeverDungeonJournal_NS
-    if displayID and fdj and fdj.BAKED_PORTRAITS and fdj.BAKED_PORTRAITS[displayID] then
-        local pPath = FDJ_PORTRAIT_PATH .. displayID
-        if SetPortraitToTexture then
-            local ok = pcall(SetPortraitToTexture, tex, pPath)
-            if not ok then
-                tex:SetTexture(pPath)
-            end
-        else
-            tex:SetTexture(pPath)
-        end
-        return
-    end
-
-    if displayID and type(GetFileIDFromPath) == "function" then
-        local candidate = FDJ_PORTRAIT_PATH .. displayID .. ".tga"
-        local ok, fid = pcall(GetFileIDFromPath, candidate)
-        if ok and fid and fid > 0 then
-            if SetPortraitToTexture then
-                local sOk = pcall(SetPortraitToTexture, tex, candidate)
-                if not sOk then
-                    tex:SetTexture(candidate)
-                end
-            else
-                tex:SetTexture(candidate)
-            end
-            return
-        end
-    end
-
-    -- 4. Clean circular dungeon icon fallback
-    local fallback = (dungeon and dungeon.icon) or Constants.ASSETS.ICON
+    -- 3. Dungeon icon, or the missing-icon question mark when the dungeon has none
+    local fallback = (dungeon and dungeon.icon) or Constants.ASSETS.MISSING_ICON
     if SetPortraitToTexture then
         local ok = pcall(SetPortraitToTexture, tex, fallback)
         if not ok then
@@ -829,7 +795,6 @@ local KNOWN_VALID_FILE_IDS = {
     [131826] = true, -- LoadScreenBlackrockSpire (LBRS / UBRS)
     [131834] = true, -- LoadScreenDeadmines
     [131836] = true, -- LoadScreenDireMaul (East / West / North)
-    [131839] = true, -- LoadScreenDungeon (Universal Fallback)
     [131842] = true, -- LoadScreenGnomeregan
     [131851] = true, -- LoadScreenMaraudon
     [131853] = true, -- LoadScreenMonastery (Scarlet Monastery all wings)
@@ -855,22 +820,19 @@ local KNOWN_VALID_FILE_IDS = {
 }
 
 --- Helper function to resolve the best valid loading screen texture for a dungeon.
---- Returns the resolved texture path or FileDataID.
+--- Returns the resolved texture path or FileDataID, or nil when the dungeon has no art.
 local function ResolveDungeonArtTexture(dungeon)
-    if not dungeon then return "Interface\\Glues\\LoadingScreens\\LoadScreenDungeon" end
+    if not dungeon then return nil end
     for _, candidate in ipairs(dungeon.art or {}) do
         if candidate and candidate ~= "" then
-            local isExternal = (type(candidate) == "string" and candidate:find("ForeverDungeonJournal"))
-            if not isExternal then
-                if type(candidate) == "number" and (KNOWN_VALID_FILE_IDS[candidate] or candidate > 0) then
-                    return candidate
-                elseif type(candidate) == "string" then
-                    return candidate
-                end
+            if type(candidate) == "number" and (KNOWN_VALID_FILE_IDS[candidate] or candidate > 0) then
+                return candidate
+            elseif type(candidate) == "string" then
+                return candidate
             end
         end
     end
-    return "Interface\\Glues\\LoadingScreens\\LoadScreenDungeon"
+    return nil
 end
 
 --- Sets the dungeon circular medallion portrait on the left page header.
@@ -910,11 +872,27 @@ function SharedWidgets:ApplyDungeonArtwork(artTexture, dungeon)
         return false
     end
 
-    local tc = dungeon.texCoord or { 0.02, 0.98, 0.25, 0.81 }
     local art = ResolveDungeonArtTexture(dungeon)
 
-    artTexture:SetTexture(art)
-    artTexture:SetTexCoord(tc[1], tc[2], tc[3], tc[4])
+    if art then
+        local tc = dungeon.texCoord or { 0.02, 0.98, 0.25, 0.81 }
+        artTexture:SetTexture(art)
+        artTexture:SetTexCoord(tc[1], tc[2], tc[3], tc[4])
+        if artTexture.missingIcon then
+            artTexture.missingIcon:Hide()
+        end
+    else
+        -- Missing art: black panel with the missing-icon question mark centered
+        artTexture:SetColorTexture(0, 0, 0, 1)
+        if not artTexture.missingIcon then
+            local missingIcon = artTexture:GetParent():CreateTexture(nil, "OVERLAY")
+            missingIcon:SetSize(40, 40)
+            missingIcon:SetPoint("CENTER", artTexture, "CENTER", 0, 0)
+            missingIcon:SetTexture(Constants.ASSETS.MISSING_ICON)
+            artTexture.missingIcon = missingIcon
+        end
+        artTexture.missingIcon:Show()
+    end
     artTexture:Show()
     return true
 end

@@ -17,8 +17,6 @@ local pcall = pcall
 local CreateFrame = CreateFrame
 local UnitClass = UnitClass
 local C_Item = C_Item
-local C_AddOns = C_AddOns
-local GetAddOnMetadata = GetAddOnMetadata
 local strfind = string.find
 local strlower = string.lower
 local strmatch = string.match
@@ -267,7 +265,7 @@ end
 -- ----------------------------------------------------------------------------
 
 --- Initializes the central item catalog. Defers full inverted tag and source indexing
---- until Advanced Searching is enabled or the Development inspector requests it.
+--- until Advanced Searching is enabled.
 function ItemDatabase:Init()
     if self.isUnloaded then
         return
@@ -416,51 +414,6 @@ function ItemDatabase:EnsureAdvancedIndex()
 
     indexSourceTable(ns.DropsDungeons, "dungeon")
     indexSourceTable(ns.SourcesOverrides, "dungeon")
-
-    -- 4. Merge any persisted DevTelemetry scanned items from SavedVariables
-    self:MergeSavedDevTelemetry()
-end
-
---- Merges previously scanned item telemetry from `JournalBaseDB.DevTelemetry.scannedItems` into the live catalog.
-function ItemDatabase:MergeSavedDevTelemetry()
-    local rawDB = _G.JournalBaseDB
-    local devTel = rawDB and rawDB.DevTelemetry
-    local scanned = devTel and devTel.scannedItems
-    if type(scanned) ~= "table" then
-        return
-    end
-    for itemID, data in pairs(scanned) do
-        local numID = tonumber(itemID)
-        if numID then
-            self:ApplyScannedItemData(numID, data)
-        end
-    end
-end
-
---- Applies enriched metadata and tags discovered by the tooltip scanner to an item record.
---- @param itemID number
---- @param data table `{ name, q, reqLevel, iLevel, slot, subType, cat, tags = {...} }`
-function ItemDatabase:ApplyScannedItemData(itemID, data)
-    if not itemID or type(data) ~= "table" then
-        return
-    end
-    local rec = ensureCatalogRecord(itemID)
-    if data.name and data.name ~= "" then rec.name = data.name end
-    if data.q ~= nil then rec.q = data.q end
-    if data.reqLevel and data.reqLevel > 0 then rec.reqLevel = data.reqLevel end
-    if data.iLevel and data.iLevel > 0 then rec.iLevel = data.iLevel end
-    if data.slot and data.slot ~= "" then rec.slot = data.slot end
-    if data.subType and data.subType ~= "" then rec.subType = data.subType end
-    if data.cat and data.cat ~= "" and not (ns.ItemCategoryOverrides and ns.ItemCategoryOverrides[itemID]) then
-        rec.cat = data.cat
-    end
-    if type(data.tags) == "table" then
-        for _, tag in ipairs(data.tags) do
-            addTagToRecord(rec, tag)
-        end
-    end
-    rec.verified = true
-    rec.tooltipScanned = true
 end
 
 -- ----------------------------------------------------------------------------
@@ -1209,22 +1162,6 @@ function ItemDatabase:GetItemCategory(itemType, itemSubType, itemEquipLoc, itemI
     end
 
     return "MISC"
-end
-
-function ItemDatabase:GetAtlasLootVersionStatus()
-    local getMeta = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
-    local installedVersion = getMeta and (getMeta("AtlasLootClassic", "Version") or getMeta("AtlasLoot", "Version"))
-    local syncedVersion = ns.ItemsMetadata and ns.ItemsMetadata.syncedVersion or "v1.3.8"
-
-    local isInstalled = installedVersion ~= nil and installedVersion ~= ""
-    local isMismatch = isInstalled and (installedVersion ~= syncedVersion)
-
-    return {
-        isInstalled = isInstalled,
-        installedVersion = installedVersion,
-        syncedVersion = syncedVersion,
-        isMismatch = isMismatch,
-    }
 end
 
 -- ----------------------------------------------------------------------------

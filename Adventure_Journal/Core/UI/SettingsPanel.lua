@@ -189,7 +189,6 @@ function SettingsPanel:Init()
     self.scrollChild = scrollChild
 
     self:CreateCatalogDisclaimerBanner(scrollChild)
-    self:CreateAlertBanner(scrollChild)
     self:CreateKeybindRow(scrollChild)
     self:CreateMinimapToggleRow(scrollChild)
     self:CreateAddonCompartmentToggleRow(scrollChild)
@@ -313,49 +312,6 @@ function SettingsPanel:CreateCatalogDisclaimerBanner(panel)
     banner.text = text
 
     self.CatalogDisclaimerBanner = banner
-end
-
---- Builds the alert banner for notifying about out-of-date or mismatched AtlasLoot versions.
---- Placed beneath the Catalog Disclaimer banner when triggered.
---- @param panel Frame
-function SettingsPanel:CreateAlertBanner(panel)
-    local banner = CreateFrame("Frame", nil, panel)
-    banner:SetPoint("TOPLEFT", panel, "TOPLEFT", 18, -48)
-    banner:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -18, -48)
-    banner:SetHeight(28)
-    banner:Hide()
-
-    local bg = banner:CreateTexture(nil, "BACKGROUND")
-    bg:SetAllPoints(banner)
-    bg:SetTexture(Constants.ASSETS.WHITE_8X8)
-    bg:SetVertexColor(0.22, 0.12, 0.04, 0.88)
-
-    local borderTop = banner:CreateTexture(nil, "BORDER")
-    borderTop:SetHeight(1)
-    borderTop:SetPoint("TOPLEFT", banner, "TOPLEFT", 0, 0)
-    borderTop:SetPoint("TOPRIGHT", banner, "TOPRIGHT", 0, 0)
-    borderTop:SetTexture(Constants.ASSETS.WHITE_8X8)
-    borderTop:SetVertexColor(0.85, 0.55, 0.15, 0.80)
-
-    local borderBottom = banner:CreateTexture(nil, "BORDER")
-    borderBottom:SetHeight(1)
-    borderBottom:SetPoint("BOTTOMLEFT", banner, "BOTTOMLEFT", 0, 0)
-    borderBottom:SetPoint("BOTTOMRIGHT", banner, "BOTTOMRIGHT", 0, 0)
-    borderBottom:SetTexture(Constants.ASSETS.WHITE_8X8)
-    borderBottom:SetVertexColor(0.85, 0.55, 0.15, 0.80)
-
-    local icon = banner:CreateTexture(nil, "ARTWORK")
-    icon:SetSize(18, 18)
-    icon:SetPoint("LEFT", banner, "LEFT", 8, 0)
-    icon:SetTexture("Interface\\DialogFrame\\UI-Dialog-Icon-AlertNew")
-
-    local text = banner:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    text:SetPoint("LEFT", icon, "RIGHT", 8, 0)
-    text:SetPoint("RIGHT", banner, "RIGHT", -8, 0)
-    text:SetJustifyH("LEFT")
-    banner.text = text
-
-    self.AlertBanner = banner
 end
 
 --- Builds the interactive "Toggle Journal Keybind" row using `ns.UI.KeybindButton`.
@@ -1780,45 +1736,12 @@ end
 
 --- Refreshes all controls on the Settings panel.
 function SettingsPanel:Refresh()
-    local status
-    local itemsMgr = _G.JournalDungeons and _G.JournalDungeons.ItemsManager
-    if itemsMgr and itemsMgr.GetAtlasLootVersionStatus then
-        status = itemsMgr:GetAtlasLootVersionStatus()
-    else
-        local getMeta = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
-        local installed = getMeta and getMeta("AtlasLoot", "Version")
-        if installed then
-            status = {
-                isInstalled = true,
-                installedVersion = installed,
-                syncedVersion = "v8.13.01",
-                isMismatch = (installed ~= "v8.13.01"),
-            }
-        end
-    end
-
-    if status and status.isMismatch and self.AlertBanner then
-        self.AlertBanner.text:SetText(string.format(
-            "|cffffcc00AtlasLoot Version Mismatch:|r Installed v|cffffffff%s|r vs Synced v|cffffffff%s|r. New loot tables may be available. Run |cff80d0ffitem_sync|r to update.",
-            status.installedVersion or "Unknown",
-            status.syncedVersion or "Unknown"
-        ))
-        self.AlertBanner:Show()
-        if self.KeybindLabel then self.KeybindLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -90) end
-        if self.MinimapLabel then self.MinimapLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -118) end
-        if self.AddonCompartmentLabel then self.AddonCompartmentLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -146) end
-        if self.CompareItemsLabel then self.CompareItemsLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -174) end
-        if self.LockWindowLabel then self.LockWindowLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -202) end
-        if self.AdvancedSearchHeader then self.AdvancedSearchHeader:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 18, -246) end
-    else
-        if self.AlertBanner then self.AlertBanner:Hide() end
-        if self.KeybindLabel then self.KeybindLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -56) end
-        if self.MinimapLabel then self.MinimapLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -84) end
-        if self.AddonCompartmentLabel then self.AddonCompartmentLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -112) end
-        if self.CompareItemsLabel then self.CompareItemsLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -140) end
-        if self.LockWindowLabel then self.LockWindowLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -168) end
-        if self.AdvancedSearchHeader then self.AdvancedSearchHeader:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 18, -212) end
-    end
+    if self.KeybindLabel then self.KeybindLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -56) end
+    if self.MinimapLabel then self.MinimapLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -84) end
+    if self.AddonCompartmentLabel then self.AddonCompartmentLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -112) end
+    if self.CompareItemsLabel then self.CompareItemsLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -140) end
+    if self.LockWindowLabel then self.LockWindowLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -168) end
+    if self.AdvancedSearchHeader then self.AdvancedSearchHeader:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 18, -212) end
 
     if self.KeybindButton then
         self.KeybindButton:Refresh()

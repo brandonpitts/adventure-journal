@@ -2,10 +2,9 @@
 ## Title: Adventure Journal
 ## Notes: Complete in-game adventure guide, dungeon and raid reference for WoW Forever.
 ## Author: Brand
-## Version: 0.7.1
+## Version: 0.7.2
 ## IconTexture: Interface\Icons\INV_Misc_Book_09
 ## SavedVariables: JournalBaseDB
-## OptionalDeps: AtlasLoot, AtlasLootClassic
 ## AddonCompartmentFunc: AdventureJournal_OnAddonCompartmentClick
 ## AddonCompartmentFuncOnEnter: AdventureJournal_OnAddonCompartmentEnter
 ## AddonCompartmentFuncOnLeave: AdventureJournal_OnAddonCompartmentLeave
@@ -14,7 +13,6 @@
 Core\Constants.lua
 Core\Database.lua
 Core\Data\TagTaxonomy.lua
-Core\Data\Sources\Items_Metadata.lua
 Core\Data\Sources\Sources_Overrides.lua
 Core\Data\Sources\Drops_Dungeons.lua
 Core\Data\Items_Catalog.lua

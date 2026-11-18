@@ -23,7 +23,7 @@ local Constants = ns.Constants
 -- ----------------------------------------------------------------------------
 
 --- Applies native Blizzard tab sizing strictly fitted to the tab's text string width
---- so right-aligned or detached tabs never stretch across empty space.
+--- so tabs never stretch across empty space.
 local function resizeTabButton(tabButton)
     local tabName = tabButton:GetName()
     local fs = tabButton:GetFontString()
@@ -90,36 +90,25 @@ function TabBar:Init(parentFrame)
     end
 end
 
---- Positions all active tabs, clearing any points injected by Blizzard's PanelTemplates
---- so that `alignRight` tabs remain compact and detached on the far right.
+--- Positions all active tabs left-to-right, clearing any points injected by Blizzard's PanelTemplates.
 function TabBar:PositionTabs()
     if not self.parentFrame then
         return
     end
 
-    local prevLeftTab = nil
-    local prevRightTab = nil
+    local prevTab = nil
 
     for _, tab in ipairs(self.tabs) do
         if tab:IsShown() and tab.pluginId then
             tab:ClearAllPoints()
             resizeTabButton(tab)
 
-            if tab.alignRight then
-                if not prevRightTab then
-                    tab:SetPoint("TOPRIGHT", self.parentFrame, "BOTTOMRIGHT", -11, 2)
-                else
-                    tab:SetPoint("RIGHT", prevRightTab, "LEFT", 14, 0)
-                end
-                prevRightTab = tab
+            if not prevTab then
+                tab:SetPoint("TOPLEFT", self.parentFrame, "BOTTOMLEFT", 11, 2)
             else
-                if not prevLeftTab then
-                    tab:SetPoint("TOPLEFT", self.parentFrame, "BOTTOMLEFT", 11, 2)
-                else
-                    tab:SetPoint("LEFT", prevLeftTab, "RIGHT", -14, 0)
-                end
-                prevLeftTab = tab
+                tab:SetPoint("LEFT", prevTab, "RIGHT", -14, 0)
             end
+            prevTab = tab
         end
     end
 end
@@ -159,8 +148,7 @@ function TabBar:AcquireTab(index)
 end
 
 --- Rebuilds and positions bottom tabs to match the currently registered plugins.
---- Standard tabs anchor left-to-right from `BOTTOMLEFT`; plugins with `alignRight = true`
---- break from the group and anchor to the far right (`BOTTOMRIGHT`).
+--- Tabs anchor left-to-right from `BOTTOMLEFT`.
 --- @param orderedPlugins table[]
 function TabBar:RefreshTabs(orderedPlugins)
     if not self.parentFrame then
@@ -170,7 +158,6 @@ function TabBar:RefreshTabs(orderedPlugins)
     for _, tab in ipairs(self.tabs) do
         tab:Hide()
         tab.pluginId = nil
-        tab.alignRight = false
     end
 
     local count = #orderedPlugins
@@ -181,7 +168,6 @@ function TabBar:RefreshTabs(orderedPlugins)
     for index, plugin in ipairs(orderedPlugins) do
         local tab = self:AcquireTab(index)
         tab.pluginId = plugin.id
-        tab.alignRight = (plugin.alignRight == true)
         tab:SetText(plugin.title)
         tab:Show()
     end

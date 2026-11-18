@@ -12,7 +12,6 @@ local ns = parent.Dungeons or {} ; parent.Dungeons = ns
 local ItemDB = parent.ItemDatabase
 
 -- Backwards-compatible namespace aliases pointing to Core/Data/Sources/
-ns.ItemsMetadata = parent.ItemsMetadata
 ns.ItemCategoryOverrides = parent.ItemCategoryOverrides
 ns.ItemsClassic = parent.DropsDungeons
 ns.ItemsOverrides = parent.SourcesOverrides
@@ -65,13 +64,6 @@ end
 function ItemsManager:GetEncounterDrops(dungeonID, bossIdentifier)
     if not ItemDB then return {} end
     return ItemDB:GetEncounterDrops(dungeonID, bossIdentifier)
-end
-
-function ItemsManager:GetAtlasLootVersionStatus()
-    if not ItemDB then
-        return { isInstalled = false, syncedVersion = "v1.3.8", isMismatch = false }
-    end
-    return ItemDB:GetAtlasLootVersionStatus()
 end
 
 -- ----------------------------------------------------------------------------

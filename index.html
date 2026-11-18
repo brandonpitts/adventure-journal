@@ -766,6 +766,7 @@
       <div class="site-nav-links">
         <a href="index.html" class="site-nav-link active">Home</a>
         <a href="architecture.html" class="site-nav-link">Architecture &amp; Data Engine</a>
+        <a href="changelog.html" class="site-nav-link">Changelog</a>
       </div>
     </div>
   </nav>
@@ -773,7 +774,7 @@
   <header>
     <a href="https://github.com/brandonpitts/adventure-journal" target="_blank" rel="noopener noreferrer"
       class="badge-version" title="View Source & Releases on GitHub">
-      Release v0.7.1 • WoW Forever Client <span class="badge-repo-arrow">↗</span>
+      Release v0.7.2 • WoW Forever Client <span class="badge-repo-arrow">↗</span>
     </a>
     <h1><span>Adventure Journal</span></h1>
     <p class="subtitle">A modular in-game journal framework for World of Warcraft Forever. Currently providing
@@ -781,14 +782,14 @@
       quests, and more.</p>
 
     <div class="cta-container">
-      <a href="Adventure_Journal-v0.7.1.zip" class="btn-download">
+      <a href="Adventure_Journal-v0.7.2.zip" class="btn-download">
         <svg viewBox="0 0 24 24">
           <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
         </svg>
         Download Adventure Journal
       </a>
       <div class="download-meta">
-        Version <code>0.7.1</code> • Extract directly to <code>Interface\AddOns\</code>
+        Version <code>0.7.2</code> • Extract directly to <code>Interface\AddOns\</code>
       </div>
       <p class="download-help-note">
         <strong>Important:</strong> It is strongly recommended when updating the Adventure_Journal that all old files and folders are completely removed before adding the newly downloaded ones.
@@ -854,8 +855,8 @@
         <h3>Built with Agentic Coding</h3>
       </div>
       <p>Adventure Journal was developed through agentic AI workflows to explore, test, and refine agent-driven software
-        engineering workflows, skills, and practices using Google models, including <strong>Flash 3.8</strong>,
-        <strong>Hydrogen</strong>, and <strong>Argon</strong>.</p>
+        engineering workflows, skills, and practices using models from <strong>Google (Gemini)</strong> and
+        <strong>Anthropic (Claude)</strong>.</p>
     </div>
 
     <!-- Development Roadmap -->
@@ -905,7 +906,7 @@
         <li>
           <div class="step-content">
             <strong>Download the Addon Zip</strong>
-            <p>Click the download button above to grab <code>Adventure_Journal-v0.7.1.zip</code>.</p>
+            <p>Click the download button above to grab <code>Adventure_Journal-v0.7.2.zip</code>.</p>
           </div>
         </li>
         <li>
@@ -932,7 +933,7 @@
       </ol>
     </div>
 
-    <!-- Project Accordion (FAQ, Changelog, Completed Features) -->
+    <!-- Project Accordion (FAQ, Changelog link) -->
     <section class="accordion-section" aria-label="Project Information & History">
       <!-- Item 1: FAQ -->
       <details class="accordion-item">
@@ -943,64 +944,11 @@
         </div>
       </details>
 
-      <!-- Item 2: Changelog -->
+      <!-- Item 2: Changelog link (full changelog & completed features live on changelog.html) -->
       <details class="accordion-item">
-        <summary class="accordion-header">Changelog & Release History</summary>
+        <summary class="accordion-header">Changelog &amp; Completed Features</summary>
         <div class="accordion-content">
-          <ul class="changelog-list">
-            <li class="changelog-entry">
-              <span class="changelog-tag">v0.7.1</span> Added global frame naming for third-party minimap button collector compatibility (MinimapButtonButton) and decoupled the Blizzard Addon Compartment setting with independent unchecked default.
-            </li>
-            <li class="changelog-entry">
-              <span class="changelog-tag">v0.7.0</span> Added World Map Zone Level Overlays with recommended level ranges and fishing skill requirements, flight path indicators, and native Character Frame close button styling.
-            </li>
-            <li class="changelog-entry">
-              <span class="changelog-tag">v0.6.0</span> Added Central Item Storage Engine with opt-in multi-tag and
-              level-range search, true memory unloading for disabled modules (/reload lifecycle), and default landing
-              tab radio selection.
-            </li>
-            <li class="changelog-entry">
-              <span class="changelog-tag">v0.5.1</span> Resolved custom keybinding reservation conflicts, added
-              persistent agent automation rules, and verified clean fresh installs.
-            </li>
-            <li class="changelog-entry">
-              <span class="changelog-tag">v0.5.0</span> Consolidated unified addon versioning across all modules,
-              shortened default landing tab selector, and added catalog notice.
-            </li>
-            <li class="changelog-entry">
-              <span class="changelog-tag">v0.4.0</span> Initial public release with 35 Classic and custom WoW Forever
-              dungeons, open-book split view, and world map entrance markers.
-            </li>
-          </ul>
-        </div>
-      </details>
-
-      <!-- Item 3: Completed Features -->
-      <details class="accordion-item">
-        <summary class="accordion-header">Completed Roadmap Features</summary>
-        <div class="accordion-content">
-          <ul class="completed-features-list">
-            <li class="completed-feature-item">Dungeon Quest System with multi-step chain accordions, quest givers, objectives, and interactive map pins</li>
-            <li class="completed-feature-item">World Map Zone Level Overlays with level brackets &amp; fishing skill indicators</li>
-            <li class="completed-feature-item">Central Item Storage Engine with 8-dimension multi-tag &amp; level-range
-              search</li>
-            <li class="completed-feature-item">True Module Memory Unloading with /reload-gated lifecycle</li>
-            <li class="completed-feature-item">Interactive Dungeon Catalog &amp; Browser Grid across Classic and WoW
-              Forever instances</li>
-            <li class="completed-feature-item">Open-Book Split View with Multi-Tier Boss Rosters &amp; Encounter Drops
-            </li>
-            <li class="completed-feature-item">World &amp; Zone Map Entrance Indicators with level-bracket filtering
-            </li>
-            <li class="completed-feature-item">Unified Breadcrumb Navigation (Home &gt; Dungeons &gt; Instance &gt;
-              Boss)</li>
-            <li class="completed-feature-item">Native In-Game Settings Panel with Keybinding Recorder &amp; Default
-              Landing Tab Radio Selector</li>
-            <li class="completed-feature-item">Minimap Shortcut Button with orbit positioning &amp; visibility toggles
-            </li>
-            <li class="completed-feature-item">Live Real-Time Search across instances, bosses, and loot drops</li>
-            <li class="completed-feature-item">Dungeon Set 2 (Tier 0.5) Challenge Boss Rosters &amp; Medallion Frames
-            </li>
-          </ul>
+          <p><span class="changelog-tag">Latest: v0.7.2</span> See the <a href="changelog.html">full changelog</a> for completed features and release history.</p>
         </div>
       </details>
     </section>

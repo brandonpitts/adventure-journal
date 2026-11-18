@@ -1,14 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Architecture &amp; Data Engine — Adventure Journal</title>
-  <meta name="description" content="Technical architecture of the Adventure Journal Core Item Storage Engine, Legacy vs. New comparison, Inverted Tag Index, and 8-Dimension Query Evaluator for World of Warcraft Forever.">
+  <meta name="description"
+    content="Technical architecture of the Adventure Journal Core Item Storage Engine, Legacy vs. New comparison, Inverted Tag Index, and 8-Dimension Query Evaluator for World of Warcraft Forever.">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
   <style>
     :root {
       --bg-dark: #0c0d10;
@@ -383,6 +387,7 @@
         opacity: 0;
         transform: translateY(8px);
       }
+
       to {
         opacity: 1;
         transform: translateY(0);
@@ -687,11 +692,25 @@
       white-space: pre;
     }
 
-    .code-comment { color: #676f7d; }
-    .code-key { color: #ffd100; }
-    .code-str { color: #98c379; }
-    .code-num { color: #d19a66; }
-    .code-kw { color: #c678dd; }
+    .code-comment {
+      color: #676f7d;
+    }
+
+    .code-key {
+      color: #ffd100;
+    }
+
+    .code-str {
+      color: #98c379;
+    }
+
+    .code-num {
+      color: #d19a66;
+    }
+
+    .code-kw {
+      color: #c678dd;
+    }
 
     /* Argon Model Spotlight Box */
     .model-spotlight-box {
@@ -821,18 +840,21 @@
       font-size: 0.85rem;
     }
 
-    footer p + p {
+    footer p+p {
       margin-top: 0.5rem;
     }
   </style>
 </head>
+
 <body>
 
   <!-- Top Early Development Notice Banner -->
   <aside class="early-dev-banner" aria-label="Development Notice">
     <div class="banner-inner">
       <span class="banner-badge">Early Development</span>
-      <span class="banner-text">Adventure Journal is an independent project created for personal, close friend, and friend-of-friend use. Anyone is welcome to use it with that understanding! Report any issues to <strong>Brandon (Endoria)</strong>.</span>
+      <span class="banner-text">Adventure Journal is an independent project created for personal, close friend, and
+        friend-of-friend use. Anyone is welcome to use it with that understanding! Report any issues to <strong>Brandon
+          (Endoria)</strong>.</span>
       <span class="banner-badge">Early Development</span>
     </div>
   </aside>
@@ -840,10 +862,12 @@
   <!-- Primary Site Navigation -->
   <nav class="site-nav" aria-label="Primary Navigation">
     <div class="site-nav-inner">
-      <a href="index.html" class="site-nav-brand"><img src="favicon.svg" alt="" class="site-nav-logo"><span>Adventure Journal</span></a>
+      <a href="index.html" class="site-nav-brand"><img src="favicon.svg" alt="" class="site-nav-logo"><span>Adventure
+          Journal</span></a>
       <div class="site-nav-links">
         <a href="index.html" class="site-nav-link">Home</a>
         <a href="architecture.html" class="site-nav-link active">Architecture &amp; Data Engine</a>
+        <a href="changelog.html" class="site-nav-link">Changelog</a>
       </div>
     </div>
   </nav>
@@ -851,16 +875,20 @@
   <header>
     <div class="eyebrow">System Architecture &amp; Data Engineering</div>
     <h1><span>Core Item Storage Engine</span></h1>
-    <p class="subtitle">An under-the-hood look at how Adventure Journal evolved from a dungeon-only loot list into a normalized, module-agnostic database capable of evaluating multi-tag and level-range queries in sub-millisecond time.</p>
+    <p class="subtitle">An under-the-hood look at how Adventure Journal evolved from a dungeon-only loot list into a
+      normalized, module-agnostic database capable of evaluating multi-tag and level-range queries in sub-millisecond
+      time.</p>
 
     <!-- Transitional Era Switcher Tabs -->
     <div class="arch-switcher-wrap">
       <div class="arch-switcher" role="tablist" aria-label="Architecture Generation Switcher">
-        <button type="button" class="arch-tab-btn" role="tab" aria-selected="false" aria-controls="pane-legacy" id="tab-legacy" onclick="switchArchTab('legacy')">
+        <button type="button" class="arch-tab-btn" role="tab" aria-selected="false" aria-controls="pane-legacy"
+          id="tab-legacy" onclick="switchArchTab('legacy')">
           <span class="tab-pill legacy">v0.1 – v0.5</span>
           Legacy Siloed Method
         </button>
-        <button type="button" class="arch-tab-btn active" role="tab" aria-selected="true" aria-controls="pane-current" id="tab-current" onclick="switchArchTab('current')">
+        <button type="button" class="arch-tab-btn active" role="tab" aria-selected="true" aria-controls="pane-current"
+          id="tab-current" onclick="switchArchTab('current')">
           <span class="tab-pill new">v0.6+ Active</span>
           Central Storage Engine
         </button>
@@ -868,7 +896,8 @@
       <span class="info-tip" tabindex="0" aria-label="What do these tabs compare?">?
         <span class="info-tip-box">
           <strong>Architecture Evolution Tabs</strong>
-          Switch between our current <strong>v0.6+ Central Storage Engine</strong> and the original <strong>v0.1–v0.5 Legacy Siloed Method</strong> to see how item storage, memory usage, and search speed were redesigned.
+          Switch between our current <strong>v0.6+ Central Storage Engine</strong> and the original <strong>v0.1–v0.5
+            Legacy Siloed Method</strong> to see how item storage, memory usage, and search speed were redesigned.
         </span>
       </span>
     </div>
@@ -885,9 +914,14 @@
       <div class="model-spotlight-box">
         <div class="model-spotlight-header">
           <span class="model-spotlight-badge">Engineered with Argon</span>
-          <h3>Architected with Google Argon</h3>
+          <h3>Architected with Gemini 4 Argon</h3>
         </div>
-        <p>The <strong>v0.6+ Central Item Storage Engine</strong> was designed and developed through agentic workflows utilizing Google's <strong>Argon</strong> model. Argon was leveraged for complex architectural reasoning: transforming legacy siloed dungeon loot tables into a normalized relational data model (<code>Items_Catalog.lua</code>), formulating the 8-dimension inverted tag taxonomy, and engineering the sub-millisecond O(1) query evaluation engine and true <code>:OnUnload()</code> memory reclamation pipeline.</p>
+        <p>The <strong>v0.6+ Central Item Storage Engine</strong> was designed and developed through agentic workflows
+          utilizing Google's <strong>Argon</strong> model. Argon was leveraged for complex architectural reasoning:
+          transforming legacy siloed dungeon loot tables into a normalized relational data model
+          (<code>Items_Catalog.lua</code>), formulating the 8-dimension inverted tag taxonomy, and engineering the
+          sub-millisecond O(1) query evaluation engine and true <code>:OnUnload()</code> memory reclamation pipeline.
+        </p>
       </div>
 
       <h2 class="section-title" style="margin-top: 0.5rem;">
@@ -895,7 +929,9 @@
         <span class="info-tip" tabindex="0">?
           <span class="info-tip-box">
             <strong>What is Runtime Topology?</strong>
-            This diagram shows how item data travels from static files saved in the addon folder (Tier 1), into fast searchable memory tables when the game loads (Tier 2), and finally out to the UI tabs you click in-game (Tier 3).
+            This diagram shows how item data travels from static files saved in the addon folder (Tier 1), into fast
+            searchable memory tables when the game loads (Tier 2), and finally out to the UI tabs you click in-game
+            (Tier 3).
           </span>
         </span>
       </h2>
@@ -911,7 +947,8 @@
                 <span class="info-tip" tabindex="0">?
                   <span class="info-tip-box">
                     <strong>Normalized Static Data Layer</strong>
-                    "Normalized" means we never copy-paste the same item into multiple files. One master catalog holds item details, while separate drop lists only store item ID numbers.
+                    "Normalized" means we never copy-paste the same item into multiple files. One master catalog holds
+                    item details, while separate drop lists only store item ID numbers.
                   </span>
                 </span>
               </span>
@@ -924,11 +961,13 @@
                   <span class="info-tip" tabindex="0">?
                     <span class="info-tip-box">
                       <strong>Master Item Dictionary</strong>
-                      A single central lookup table where each unique item ID is defined once with its name, quality color, equipment slot, required level, and search tags.
+                      A single central lookup table where each unique item ID is defined once with its name, quality
+                      color, equipment slot, required level, and search tags.
                     </span>
                   </span>
                 </div>
-                <p>Master dictionary defining each unique <code>itemID</code> exactly once using an Elastic Progressive Record Schema (name, category, quality, slot, subtype, reqLevel, and canonical tags).</p>
+                <p>Master dictionary defining each unique <code>itemID</code> exactly once using an Elastic Progressive
+                  Record Schema (name, category, quality, slot, subtype, reqLevel, and canonical tags).</p>
               </div>
               <div class="arch-node">
                 <div class="arch-node-title">
@@ -936,11 +975,13 @@
                   <span class="info-tip" tabindex="0">?
                     <span class="info-tip-box">
                       <strong>Dungeon Drop Lists</strong>
-                      Maps each dungeon and boss name to a simple list of item ID numbers (e.g. <code>{ 1482, 1935 }</code>) instead of repeating item names or stats.
+                      Maps each dungeon and boss name to a simple list of item ID numbers (e.g.
+                      <code>{ 1482, 1935 }</code>) instead of repeating item names or stats.
                     </span>
                   </span>
                 </div>
-                <p>Domain association table mapping 35 Classic and WoW Forever dungeons and encounter keys to lightweight numeric <code>itemID</code> arrays without duplicating item metadata.</p>
+                <p>Domain association table mapping 35 Classic and WoW Forever dungeons and encounter keys to
+                  lightweight numeric <code>itemID</code> arrays without duplicating item metadata.</p>
               </div>
               <div class="arch-node">
                 <div class="arch-node-title">
@@ -948,11 +989,13 @@
                   <span class="info-tip" tabindex="0">?
                     <span class="info-tip-box">
                       <strong>Aliases &amp; Category Overrides</strong>
-                      Cleans up messy data—such as merging multiple chest or trash drop tables into one clean "Zone Drops" page, or flagging special quest items and recipes.
+                      Cleans up messy data—such as merging multiple chest or trash drop tables into one clean "Zone
+                      Drops" page, or flagging special quest items and recipes.
                     </span>
                   </span>
                 </div>
-                <p>Canonical encounter alias resolution (folding chests, coffers, and trash pools into unified keys), composite boss definitions, and explicit category overrides.</p>
+                <p>Canonical encounter alias resolution (folding chests, coffers, and trash pools into unified keys),
+                  composite boss definitions, and explicit category overrides.</p>
               </div>
               <div class="arch-node">
                 <div class="arch-node-title">
@@ -960,11 +1003,13 @@
                   <span class="info-tip" tabindex="0">?
                     <span class="info-tip-box">
                       <strong>Search Dictionary &amp; Scanner</strong>
-                      Translates player search terms (like <code>"1h"</code>, <code>"sp"</code>, or <code>"plate"</code>) into standardized tags and reads in-game item tooltips to detect stats.
+                      Translates player search terms (like <code>"1h"</code>, <code>"sp"</code>, or
+                      <code>"plate"</code>) into standardized tags and reads in-game item tooltips to detect stats.
                     </span>
                   </span>
                 </div>
-                <p>Canonical 8-dimension tag registry, 120+ natural-language search synonyms, synchronous DBC classifiers, and live tooltip line parsers.</p>
+                <p>Canonical 8-dimension tag registry, 120+ natural-language search synonyms, synchronous DBC
+                  classifiers, and live tooltip line parsers.</p>
               </div>
             </div>
           </div>
@@ -979,7 +1024,8 @@
                 <span class="info-tip" tabindex="0">?
                   <span class="info-tip-box">
                     <strong>Central Indexing Engine</strong>
-                    The brain of the database in <code>Core/ItemDatabase.lua</code>. When Advanced Search is enabled, it organizes items into instant lookup buckets so searching never freezes your game.
+                    The brain of the database in <code>Core/ItemDatabase.lua</code>. When Advanced Search is enabled, it
+                    organizes items into instant lookup buckets so searching never freezes your game.
                   </span>
                 </span>
               </span>
@@ -992,12 +1038,16 @@
                   <span class="info-tip" tabindex="0">?
                     <span class="info-tip-box">
                       <strong>What is an Inverted Tag Index?</strong>
-                      Like the index at the back of a book: instead of checking all 1,602 items one-by-one when you type <code>"sword"</code>, the engine jumps straight to the pre-built <code>"sword"</code> bucket in a single step (<code>O(1)</code>).
+                      Like the index at the back of a book: instead of checking all 1,602 items one-by-one when you type
+                      <code>"sword"</code>, the engine jumps straight to the pre-built <code>"sword"</code> bucket in a
+                      single step (<code>O(1)</code>).
                     </span>
                   </span>
                 </div>
                 <div class="arch-node-sub"><code>TagIndex[tag]</code></div>
-                <p>O(1) hash-set buckets mapping every canonical tag (e.g. <code>"one-hand"</code>, <code>"sword"</code>, <code>"spell-power"</code>) to matching item IDs for instant set intersection.</p>
+                <p>O(1) hash-set buckets mapping every canonical tag (e.g. <code>"one-hand"</code>,
+                  <code>"sword"</code>, <code>"spell-power"</code>) to matching item IDs for instant set intersection.
+                </p>
               </div>
               <div class="arch-node">
                 <div class="arch-node-title">
@@ -1005,23 +1055,28 @@
                   <span class="info-tip" tabindex="0">?
                     <span class="info-tip-box">
                       <strong>What is a Reverse Source Graph?</strong>
-                      Normally, a boss knows what items it drops. A reverse graph flips that around so any item also knows every dungeon, boss, quest, or holiday event it comes from.
+                      Normally, a boss knows what items it drops. A reverse graph flips that around so any item also
+                      knows every dungeon, boss, quest, or holiday event it comes from.
                     </span>
                   </span>
                 </div>
                 <div class="arch-node-sub"><code>ItemSources[id]</code></div>
-                <p>Links every item back to all bosses, zone drop tables, quests, and seasonal events that award it—enabling cross-module provenance lookups.</p>
+                <p>Links every item back to all bosses, zone drop tables, quests, and seasonal events that award
+                  it—enabling cross-module provenance lookups.</p>
               </div>
               <div class="arch-node">
                 <div class="arch-node-title">
-                  <span>Hybrid Cache &amp; <span style="white-space: nowrap;">Tooltip Hydrator&nbsp;<span class="info-tip" tabindex="0">?
-                    <span class="info-tip-box">
-                      <strong>How Does Hybrid Hydration Work?</strong>
-                      Combines three layers: (1) static data bundled with the addon, (2) instant local WoW client files (<code>DBC</code>), and (3) live server tooltips scanned in the background.
-                    </span>
-                  </span></span></span>
+                  <span>Hybrid Cache &amp; <span style="white-space: nowrap;">Tooltip Hydrator&nbsp;<span
+                        class="info-tip" tabindex="0">?
+                        <span class="info-tip-box">
+                          <strong>How Does Hybrid Hydration Work?</strong>
+                          Combines three layers: (1) static data bundled with the addon, (2) instant local WoW client
+                          files (<code>DBC</code>), and (3) live server tooltips scanned in the background.
+                        </span>
+                      </span></span></span>
                 </div>
-                <p>Combines static catalog fields with synchronous <code>C_Item.GetItemInfoInstant</code> DBC lookups and asynchronous <code>GET_ITEM_INFO_RECEIVED</code> tooltip parsing.</p>
+                <p>Combines static catalog fields with synchronous <code>C_Item.GetItemInfoInstant</code> DBC lookups
+                  and asynchronous <code>GET_ITEM_INFO_RECEIVED</code> tooltip parsing.</p>
               </div>
             </div>
           </div>
@@ -1036,7 +1091,8 @@
                 <span class="info-tip" tabindex="0">?
                   <span class="info-tip-box">
                     <strong>Modular Consumers &amp; Memory Unloading</strong>
-                    Every Journal module queries the central engine through one shared API. If you disable a module in Settings, its data and UI frames are completely unloaded from memory.
+                    Every Journal module queries the central engine through one shared API. If you disable a module in
+                    Settings, its data and UI frames are completely unloaded from memory.
                   </span>
                 </span>
               </span>
@@ -1045,7 +1101,8 @@
             <div class="arch-nodes">
               <div class="arch-node">
                 <div class="arch-node-title">Dungeons Module</div>
-                <p>Filters the 35-dungeon grid, left-hand encounter list, and right-hand categorized loot rows simultaneously using compound tag and level queries.</p>
+                <p>Filters the 35-dungeon grid, left-hand encounter list, and right-hand categorized loot rows
+                  simultaneously using compound tag and level queries.</p>
               </div>
               <div class="arch-node">
                 <div class="arch-node-title">World &amp; Zone Map Pins</div>
@@ -1053,7 +1110,8 @@
               </div>
               <div class="arch-node">
                 <div class="arch-node-title">Planned Raid &amp; Quest Modules</div>
-                <p>Attach new domain source tables (<code>Drops_Raids.lua</code>, <code>Rewards_Quests.lua</code>) that reference the same master item store with zero schema changes.</p>
+                <p>Attach new domain source tables (<code>Drops_Raids.lua</code>, <code>Rewards_Quests.lua</code>) that
+                  reference the same master item store with zero schema changes.</p>
               </div>
             </div>
           </div>
@@ -1066,7 +1124,8 @@
         <span class="info-tip" tabindex="0">?
           <span class="info-tip-box">
             <strong>Why Did We Rebuild the Item Engine?</strong>
-            This side-by-side comparison shows how the v0.6+ Central Engine solved the search blind spots, memory overhead, and module silos of the earlier v0.1–v0.5 architecture.
+            This side-by-side comparison shows how the v0.6+ Central Engine solved the search blind spots, memory
+            overhead, and module silos of the earlier v0.1–v0.5 architecture.
           </span>
         </span>
       </h2>
@@ -1094,11 +1153,14 @@
               </td>
               <td class="col-old">
                 <span class="status-pill old">Siloed &amp; Duplicated</span><br>
-                Item tables lived inside <code>Journal_Dungeons/Data/Items/</code> alongside hardcoded boss <code>loot = {...}</code> arrays inside <code>DungeonsData.lua</code>. Shared drops had to be repeated across every boss entry.
+                Item tables lived inside <code>Journal_Dungeons/Data/Items/</code> alongside hardcoded boss
+                <code>loot = {...}</code> arrays inside <code>DungeonsData.lua</code>. Shared drops had to be repeated
+                across every boss entry.
               </td>
               <td class="col-new">
                 <span class="status-pill new">Normalized Master Store</span><br>
-                Every unique item is defined once in <code>Core/Data/Items_Catalog.lua</code>. Domain files (<code>Drops_Dungeons.lua</code>) store only lightweight numeric <code>itemID</code> arrays.
+                Every unique item is defined once in <code>Core/Data/Items_Catalog.lua</code>. Domain files
+                (<code>Drops_Dungeons.lua</code>) store only lightweight numeric <code>itemID</code> arrays.
               </td>
             </tr>
             <tr>
@@ -1107,17 +1169,20 @@
                 <span class="info-tip" tabindex="0">?
                   <span class="info-tip-box">
                     <strong>Cross-Module Access</strong>
-                    Whether future tabs (like Quests, Raids, and Professions) can look up items without depending on the Dungeons module.
+                    Whether future tabs (like Quests, Raids, and Professions) can look up items without depending on the
+                    Dungeons module.
                   </span>
                 </span>
               </td>
               <td class="col-old">
                 <span class="status-pill old">Locked to Dungeons</span><br>
-                Owned exclusively by <code>Journal_Dungeons</code>. Disabling Dungeons or building a standalone Quest or Raid tab meant losing access to the item resolver.
+                Owned exclusively by <code>Journal_Dungeons</code>. Disabling Dungeons or building a standalone Quest or
+                Raid tab meant losing access to the item resolver.
               </td>
               <td class="col-new">
                 <span class="status-pill new">Core Shared Service</span><br>
-                Hosted in <code>Core/ItemDatabase.lua</code> (<code>JournalBase.Items</code>). Any module—Dungeons, Quests, Raids, or Professions—can query items and reverse-lookup all drop sources.
+                Hosted in <code>Core/ItemDatabase.lua</code> (<code>JournalBase.Items</code>). Any module—Dungeons,
+                Quests, Raids, or Professions—can query items and reverse-lookup all drop sources.
               </td>
             </tr>
             <tr>
@@ -1132,11 +1197,14 @@
               </td>
               <td class="col-old">
                 <span class="status-pill old">Single Substring Only</span><br>
-                Could only match a single text substring against a dungeon name, boss name, or cached item name. Could not combine weapon type + stat or filter by usable character level.
+                Could only match a single text substring against a dungeon name, boss name, or cached item name. Could
+                not combine weapon type + stat or filter by usable character level.
               </td>
               <td class="col-new">
                 <span class="status-pill new">8-Dimension Multi-Tag + Level</span><br>
-                Supports compound multi-tag queries (e.g. <code>"two handed sword strength"</code> or <code>"cloth, intellect, lvl 30-40"</code>) with 120+ shorthand aliases and minimum required level filtering.
+                Supports compound multi-tag queries (e.g. <code>"two handed sword strength"</code> or
+                <code>"cloth, intellect, lvl 30-40"</code>) with 120+ shorthand aliases and minimum required level
+                filtering.
               </td>
             </tr>
             <tr>
@@ -1145,17 +1213,20 @@
                 <span class="info-tip" tabindex="0">?
                   <span class="info-tip-box">
                     <strong>What is Cold-Cache Behavior?</strong>
-                    How search behaves right after installing the addon or clearing your WoW <code>Cache/WDB</code> folder, before your character has moused over every item in the game.
+                    How search behaves right after installing the addon or clearing your WoW <code>Cache/WDB</code>
+                    folder, before your character has moused over every item in the game.
                   </span>
                 </span>
               </td>
               <td class="col-old">
                 <span class="status-pill old">Uncached Items Invisible</span><br>
-                Relied on live <code>C_Item.GetItemInfo</code> calls during search. If an item wasn't in your local WoW WDB cache yet, searching for its stats returned nothing until you manually found and hovered over it.
+                Relied on live <code>C_Item.GetItemInfo</code> calls during search. If an item wasn't in your local WoW
+                WDB cache yet, searching for its stats returned nothing until you manually found and hovered over it.
               </td>
               <td class="col-new">
                 <span class="status-pill new">Pre-Hydrated + Instant DBC</span><br>
-                Combines pre-baked static catalog names/tags with 100% synchronous <code>GetItemInfoInstant</code> DBC classification and targeted candidate tooltip scanning—working immediately on a cold cache.
+                Combines pre-baked static catalog names/tags with 100% synchronous <code>GetItemInfoInstant</code> DBC
+                classification and targeted candidate tooltip scanning—working immediately on a cold cache.
               </td>
             </tr>
             <tr>
@@ -1170,11 +1241,13 @@
               </td>
               <td class="col-old">
                 <span class="status-pill old">Linear Scan Every Keystroke</span><br>
-                Scanned nested dungeon &rarr; boss &rarr; item tables on every single character typed, firing unthrottled API lookups that could stutter the game client.
+                Scanned nested dungeon &rarr; boss &rarr; item tables on every single character typed, firing
+                unthrottled API lookups that could stutter the game client.
               </td>
               <td class="col-new">
                 <span class="status-pill new">Debounced + O(1) Tag Buckets</span><br>
-                Uses a snappy <code>180ms</code> input debounce, skips hidden grid rebuilds when viewing a dungeon book, and intersects pre-indexed <code>TagIndex</code> hash buckets in sub-millisecond time.
+                Uses a snappy <code>180ms</code> input debounce, skips hidden grid rebuilds when viewing a dungeon book,
+                and intersects pre-indexed <code>TagIndex</code> hash buckets in sub-millisecond time.
               </td>
             </tr>
             <tr>
@@ -1189,11 +1262,14 @@
               </td>
               <td class="col-old">
                 <span class="status-pill old">Always Loaded in RAM</span><br>
-                Disabling a module only hid its bottom tab—all of its Lua data tables, loot arrays, and UI frames remained permanently allocated in memory.
+                Disabling a module only hid its bottom tab—all of its Lua data tables, loot arrays, and UI frames
+                remained permanently allocated in memory.
               </td>
               <td class="col-new">
                 <span class="status-pill new">True Memory Unloading</span><br>
-                Advanced Search indexing is opt-in, and disabling any module executes <code>:OnUnload()</code> + garbage collection to literally purge its data tables from RAM (requiring a UI <code>/reload</code> to re-enable).
+                Advanced Search indexing is opt-in, and disabling any module executes <code>:OnUnload()</code> + garbage
+                collection to literally purge its data tables from RAM (requiring a UI <code>/reload</code> to
+                re-enable).
               </td>
             </tr>
           </tbody>
@@ -1207,43 +1283,70 @@
         <div class="card">
           <div class="card-tag">Normalization vs. Duplication</div>
           <h3>
-            Item Store + Domain Source <span style="white-space: nowrap;">Tables&nbsp;<span class="info-tip" tabindex="0">?
-              <span class="info-tip-box">
-                <strong>Elastic Progressive Record Schema</strong>
-                Each item in <code>Items_Catalog.lua</code> only stores the fields it needs (no bloated empty keys), and automatically enriches itself with live tooltip stats when seen in-game.
-              </span>
-            </span></span>
+            Item Store + Domain Source <span style="white-space: nowrap;">Tables&nbsp;<span class="info-tip"
+                tabindex="0">?
+                <span class="info-tip-box">
+                  <strong>Elastic Progressive Record Schema</strong>
+                  Each item in <code>Items_Catalog.lua</code> only stores the fields it needs (no bloated empty keys),
+                  and automatically enriches itself with live tooltip stats when seen in-game.
+                </span>
+              </span></span>
           </h3>
-          <p>In World of Warcraft, a single item can be acquired from multiple distinct sources: shared dungeon boss pools, zone-wide trash drops, seasonal holiday bosses, or quest rewards. Storing item metadata inline inside individual dungeon or quest files either causes data drift or slows down global searches.</p>
-          <p>Adventure Journal solves this with a relational split: every item is defined <strong>once</strong> in <code>Items_Catalog.lua</code>, while domain source files store only compact arrays of numeric <code>itemID</code>s. At load time, <code>ItemDatabase</code> links both directions in memory.</p>
+          <p>In World of Warcraft, a single item can be acquired from multiple distinct sources: shared dungeon boss
+            pools, zone-wide trash drops, seasonal holiday bosses, or quest rewards. Storing item metadata inline inside
+            individual dungeon or quest files either causes data drift or slows down global searches.</p>
+          <p>Adventure Journal solves this with a relational split: every item is defined <strong>once</strong> in
+            <code>Items_Catalog.lua</code>, while domain source files store only compact arrays of numeric
+            <code>itemID</code>s. At load time, <code>ItemDatabase</code> links both directions in memory.</p>
           <div class="code-block"><span class="code-comment">-- Core/Data/Items_Catalog.lua (Defined Once)</span>
-[<span class="code-num">1482</span>] = {
-  <span class="code-key">name</span> = <span class="code-str">"Shadowfang"</span>, <span class="code-key">cat</span> = <span class="code-str">"LOOT"</span>, <span class="code-key">q</span> = <span class="code-num">3</span>, <span class="code-key">reqLevel</span> = <span class="code-num">19</span>,
-  <span class="code-key">slot</span> = <span class="code-str">"Main Hand"</span>, <span class="code-key">subType</span> = <span class="code-str">"Sword"</span>,
-  <span class="code-key">tags</span> = { <span class="code-str">"agility"</span>, <span class="code-str">"boe"</span>, <span class="code-str">"chance-on-hit"</span>, <span class="code-str">"dungeon"</span>,
-           <span class="code-str">"loot"</span>, <span class="code-str">"main-hand"</span>, <span class="code-str">"one-hand"</span>, <span class="code-str">"shadow-damage"</span>,
-           <span class="code-str">"sword"</span>, <span class="code-str">"weapon"</span>, <span class="code-str">"zone-drop"</span> },
-  <span class="code-key">verified</span> = <span class="code-kw">true</span>
-}</div>
+            [<span class="code-num">1482</span>] = {
+            <span class="code-key">name</span> = <span class="code-str">"Shadowfang"</span>, <span
+              class="code-key">cat</span> = <span class="code-str">"LOOT"</span>, <span class="code-key">q</span> =
+            <span class="code-num">3</span>, <span class="code-key">reqLevel</span> = <span class="code-num">19</span>,
+            <span class="code-key">slot</span> = <span class="code-str">"Main Hand"</span>, <span
+              class="code-key">subType</span> = <span class="code-str">"Sword"</span>,
+            <span class="code-key">tags</span> = { <span class="code-str">"agility"</span>, <span
+              class="code-str">"boe"</span>, <span class="code-str">"chance-on-hit"</span>, <span
+              class="code-str">"dungeon"</span>,
+            <span class="code-str">"loot"</span>, <span class="code-str">"main-hand"</span>, <span
+              class="code-str">"one-hand"</span>, <span class="code-str">"shadow-damage"</span>,
+            <span class="code-str">"sword"</span>, <span class="code-str">"weapon"</span>, <span
+              class="code-str">"zone-drop"</span> },
+            <span class="code-key">verified</span> = <span class="code-kw">true</span>
+            }
+          </div>
         </div>
 
         <div class="card">
           <div class="card-tag">Client Cache Constraints</div>
           <h3>
-            Cold-Cache Resilience in <span style="white-space: nowrap;">WoW 16001&nbsp;<span class="info-tip" tabindex="0">?
-              <span class="info-tip-box">
-                <strong>DBC vs. WDB Server Cache</strong>
-                <code>GetItemInfoInstant</code> reads local game files (<code>DBC</code>) that are always available offline. <code>GetItemInfo</code> reads the server cache (<code>WDB</code>), which only populates after the server sends item details.
-              </span>
-            </span></span>
+            Cold-Cache Resilience in <span style="white-space: nowrap;">WoW 16001&nbsp;<span class="info-tip"
+                tabindex="0">?
+                <span class="info-tip-box">
+                  <strong>DBC vs. WDB Server Cache</strong>
+                  <code>GetItemInfoInstant</code> reads local game files (<code>DBC</code>) that are always available
+                  offline. <code>GetItemInfo</code> reads the server cache (<code>WDB</code>), which only populates
+                  after the server sends item details.
+                </span>
+              </span></span>
           </h3>
-          <p>The WoW client splits item APIs into two tiers: <code>C_Item.GetItemInfoInstant(itemID)</code> reads local client DBC tables synchronously (returning class, subclass, equip location, and icon), whereas <code>C_Item.GetItemInfo(itemID)</code> and tooltip scanning require the item to exist in the player's local <code>WDB</code> cache.</p>
-          <p>By filtering on instant DBC tags first and immediately hydrating and scanning candidate item tooltips on demand, compound searches like <code>"two handed sword strength"</code> work seamlessly without requiring you to browse and mouse over items beforehand.</p>
+          <p>The WoW client splits item APIs into two tiers: <code>C_Item.GetItemInfoInstant(itemID)</code> reads local
+            client DBC tables synchronously (returning class, subclass, equip location, and icon), whereas
+            <code>C_Item.GetItemInfo(itemID)</code> and tooltip scanning require the item to exist in the player's local
+            <code>WDB</code> cache.</p>
+          <p>By filtering on instant DBC tags first and immediately hydrating and scanning candidate item tooltips on
+            demand, compound searches like <code>"two handed sword strength"</code> work seamlessly without requiring
+            you to browse and mouse over items beforehand.</p>
           <div class="code-block"><span class="code-comment">-- Compound Query Parser Examples</span>
-<span class="code-str">"one handed, sword, dungeon"</span>  <span class="code-comment">--&gt; tags: {"one-hand", "sword", "dungeon"}</span>
-<span class="code-str">"cloth, intellect, lvl 30-40"</span> <span class="code-comment">--&gt; tags: {"cloth", "intellect"}, min: 30, max: 40</span>
-<span class="code-str">"1h mace &gt;=45"</span>                <span class="code-comment">--&gt; tags: {"one-hand", "mace"}, min: 45</span>
-<span class="code-str">"sp, crit, trinket"</span>           <span class="code-comment">--&gt; tags: {"spell-power", "crit", "trinket"}</span></div>
+            <span class="code-str">"one handed, sword, dungeon"</span> <span class="code-comment">--&gt; tags:
+              {"one-hand", "sword", "dungeon"}</span>
+            <span class="code-str">"cloth, intellect, lvl 30-40"</span> <span class="code-comment">--&gt; tags:
+              {"cloth", "intellect"}, min: 30, max: 40</span>
+            <span class="code-str">"1h mace &gt;=45"</span> <span class="code-comment">--&gt; tags: {"one-hand",
+              "mace"}, min: 45</span>
+            <span class="code-str">"sp, crit, trinket"</span> <span class="code-comment">--&gt; tags: {"spell-power",
+              "crit", "trinket"}</span>
+          </div>
         </div>
       </div>
 
@@ -1252,7 +1355,8 @@
         <span class="info-tip" tabindex="0">?
           <span class="info-tip-box">
             <strong>What is the 8-Dimension Tag Taxonomy?</strong>
-            Every searchable property of an item is organized into 8 clear categories ("dimensions"). When you type multiple words in Advanced Search, the engine matches items that satisfy all of your tags at once.
+            Every searchable property of an item is organized into 8 clear categories ("dimensions"). When you type
+            multiple words in Advanced Search, the engine matches items that satisfy all of your tags at once.
           </span>
         </span>
       </h2>
@@ -1266,7 +1370,8 @@
             <span class="info-tip" tabindex="0">?
               <span class="info-tip-box">
                 <strong>Category &amp; Source Tags</strong>
-                Identifies what kind of reward an item is (regular gear loot, quest item, crafting recipe, key, mount, or pet) and where it drops (boss drop, zone trash drop, or holiday event).
+                Identifies what kind of reward an item is (regular gear loot, quest item, crafting recipe, key, mount,
+                or pet) and where it drops (boss drop, zone trash drop, or holiday event).
               </span>
             </span>
           </h4>
@@ -1293,7 +1398,8 @@
             <span class="info-tip" tabindex="0">?
               <span class="info-tip-box">
                 <strong>Equipment Slot &amp; Handedness</strong>
-                Filters gear by where it equips on your character (Head, Chest, Trinket, Finger) or how a weapon is wielded (One-Hand, Two-Hand, Main Hand, Off Hand, Ranged).
+                Filters gear by where it equips on your character (Head, Chest, Trinket, Finger) or how a weapon is
+                wielded (One-Hand, Two-Hand, Main Hand, Off Hand, Ranged).
               </span>
             </span>
           </h4>
@@ -1326,7 +1432,8 @@
             <span class="info-tip" tabindex="0">?
               <span class="info-tip-box">
                 <strong>Weapon &amp; Armor Proficiency</strong>
-                Filters by armor weight (Cloth, Leather, Mail, Plate, Shield) or specific weapon family (Sword, Axe, Mace, Dagger, Staff, Polearm, Bow, Wand).
+                Filters by armor weight (Cloth, Leather, Mail, Plate, Shield) or specific weapon family (Sword, Axe,
+                Mace, Dagger, Staff, Polearm, Bow, Wand).
               </span>
             </span>
           </h4>
@@ -1357,7 +1464,8 @@
             <span class="info-tip" tabindex="0">?
               <span class="info-tip-box">
                 <strong>Base Character Stats</strong>
-                Matches the five classic primary stats on gear. Supports shorthand like <code>"str"</code>, <code>"agi"</code>, <code>"stam"</code>, <code>"int"</code>, and <code>"spi"</code>.
+                Matches the five classic primary stats on gear. Supports shorthand like <code>"str"</code>,
+                <code>"agi"</code>, <code>"stam"</code>, <code>"int"</code>, and <code>"spi"</code>.
               </span>
             </span>
           </h4>
@@ -1377,7 +1485,8 @@
             <span class="info-tip" tabindex="0">?
               <span class="info-tip-box">
                 <strong>Melee, Ranged &amp; Tanking Stats</strong>
-                Covers green "Equip:" bonuses for physical DPS and tanks, including Attack Power (<code>"ap"</code>), Critical Strike, Hit Chance, Defense, Dodge, Parry, and Shield Block.
+                Covers green "Equip:" bonuses for physical DPS and tanks, including Attack Power (<code>"ap"</code>),
+                Critical Strike, Hit Chance, Defense, Dodge, Parry, and Shield Block.
               </span>
             </span>
           </h4>
@@ -1402,7 +1511,8 @@
             <span class="info-tip" tabindex="0">?
               <span class="info-tip-box">
                 <strong>Spellcaster &amp; Healer Stats</strong>
-                Tracks Spell Damage &amp; Healing (<code>"sp"</code>, <code>"spellpower"</code>), Bonus Healing, Spell Crit, Spell Hit, Mana per 5 seconds (<code>"mp5"</code>), and Health per 5 seconds (<code>"hp5"</code>).
+                Tracks Spell Damage &amp; Healing (<code>"sp"</code>, <code>"spellpower"</code>), Bonus Healing, Spell
+                Crit, Spell Hit, Mana per 5 seconds (<code>"mp5"</code>), and Health per 5 seconds (<code>"hp5"</code>).
               </span>
             </span>
           </h4>
@@ -1424,7 +1534,8 @@
             <span class="info-tip" tabindex="0">?
               <span class="info-tip-box">
                 <strong>School-Specific Damage &amp; Resistances</strong>
-                Finds gear that boosts specific magic schools (e.g. Shadow or Fire spell damage) or grants elemental resistance for raid/dungeon preparation.
+                Finds gear that boosts specific magic schools (e.g. Shadow or Fire spell damage) or grants elemental
+                resistance for raid/dungeon preparation.
               </span>
             </span>
           </h4>
@@ -1451,7 +1562,8 @@
             <span class="info-tip" tabindex="0">?
               <span class="info-tip-box">
                 <strong>Special Effects, Binding &amp; Role Tags</strong>
-                Filters by item binding (Bind on Equip <code>"boe"</code> vs. Bind on Pickup <code>"bop"</code>), proc/use effects (<code>"chance-on-hit"</code>, <code>"on-use"</code>), set pieces, and role presets.
+                Filters by item binding (Bind on Equip <code>"boe"</code> vs. Bind on Pickup <code>"bop"</code>),
+                proc/use effects (<code>"chance-on-hit"</code>, <code>"on-use"</code>), set pieces, and role presets.
               </span>
             </span>
           </h4>
@@ -1483,7 +1595,8 @@
         <span class="info-tip" tabindex="0">?
           <span class="info-tip-box">
             <strong>How the Original System Worked</strong>
-            In versions v0.1 through v0.5, item data lived strictly inside the Dungeons module. There was no central item catalog or pre-computed tag index.
+            In versions v0.1 through v0.5, item data lived strictly inside the Dungeons module. There was no central
+            item catalog or pre-computed tag index.
           </span>
         </span>
       </h2>
@@ -1498,7 +1611,8 @@
                 <span class="info-tip" tabindex="0">?
                   <span class="info-tip-box">
                     <strong>Siloed Inside Dungeons</strong>
-                    All item tables were nested inside <code>Modules/Journal_Dungeons/</code>, meaning no other module could use them without loading the entire Dungeons module first.
+                    All item tables were nested inside <code>Modules/Journal_Dungeons/</code>, meaning no other module
+                    could use them without loading the entire Dungeons module first.
                   </span>
                 </span>
               </span>
@@ -1507,11 +1621,13 @@
             <div class="arch-nodes">
               <div class="arch-node">
                 <div class="arch-node-title"><code>DungeonsData.lua</code></div>
-                <p>Contained 35 dungeon tables with inline <code>loot = { itemID, ... }</code> arrays embedded directly inside each boss definition.</p>
+                <p>Contained 35 dungeon tables with inline <code>loot = { itemID, ... }</code> arrays embedded directly
+                  inside each boss definition.</p>
               </div>
               <div class="arch-node">
                 <div class="arch-node-title"><code>Items/Items_Classic.lua</code></div>
-                <p>Mapped <code>[instanceID][encounterKey]</code> to raw item IDs, duplicating any item that dropped from multiple bosses or wings.</p>
+                <p>Mapped <code>[instanceID][encounterKey]</code> to raw item IDs, duplicating any item that dropped
+                  from multiple bosses or wings.</p>
               </div>
               <div class="arch-node">
                 <div class="arch-node-title"><code>Items/Items_Overrides.lua</code></div>
@@ -1529,7 +1645,8 @@
                 <span class="info-tip" tabindex="0">?
                   <span class="info-tip-box">
                     <strong>Why Linear Search Slowed Down</strong>
-                    Every keystroke looped through every dungeon, every boss, and every item ID in that boss's loot table, calling WoW APIs on the fly.
+                    Every keystroke looped through every dungeon, every boss, and every item ID in that boss's loot
+                    table, calling WoW APIs on the fly.
                   </span>
                 </span>
               </span>
@@ -1538,15 +1655,18 @@
             <div class="arch-nodes">
               <div class="arch-node">
                 <div class="arch-node-title"><code>ItemsManager:GetItemInfo(id)</code></div>
-                <p>Queried <code>C_Item.GetItemInfo(id)</code> on demand. If the player's local WoW WDB cache did not have the item yet, its name and stats were unknown.</p>
+                <p>Queried <code>C_Item.GetItemInfo(id)</code> on demand. If the player's local WoW WDB cache did not
+                  have the item yet, its name and stats were unknown.</p>
               </div>
               <div class="arch-node">
                 <div class="arch-node-title"><code>O(D × B × L)</code> Keystroke Loop</div>
-                <p>Iterated across all dungeons (<code>D</code>), bosses (<code>B</code>), and loot arrays (<code>L</code>) on every character typed into the search bar.</p>
+                <p>Iterated across all dungeons (<code>D</code>), bosses (<code>B</code>), and loot arrays
+                  (<code>L</code>) on every character typed into the search bar.</p>
               </div>
               <div class="arch-node">
                 <div class="arch-node-title">Dormant Memory Footprint</div>
-                <p>Even when a module was disabled in Settings, all of its Lua tables and UI frames stayed permanently loaded in memory.</p>
+                <p>Even when a module was disabled in Settings, all of its Lua tables and UI frames stayed permanently
+                  loaded in memory.</p>
               </div>
             </div>
           </div>
@@ -1563,12 +1683,18 @@
             Uncached Items Couldn't Be Searched&nbsp;<span class="info-tip" tabindex="0">?
               <span class="info-tip-box">
                 <strong>The "Mouseover First" Problem</strong>
-                In WoW, if you haven't seen an item yet, the client doesn't have its tooltip cached. Relying purely on live client queries meant uncached items were invisible to stat searches.
+                In WoW, if you haven't seen an item yet, the client doesn't have its tooltip cached. Relying purely on
+                live client queries meant uncached items were invisible to stat searches.
               </span>
             </span>
           </h3>
-          <p>In the legacy model, item names, subtypes, and stats were resolved purely at runtime from the game client's local <code>WDB</code> cache. On a fresh install—or after clearing the game cache—searching for an item name or stat only matched items the player had already encountered or manually moused over inside a dungeon book.</p>
-          <p>Moving to the <strong>v0.6+ Central Engine</strong> solved this by pre-hydrating static item names, quality tiers, and tags in <code>Items_Catalog.lua</code> while pairing synchronous <code>GetItemInfoInstant</code> DBC classification with on-demand candidate tooltip scanning.</p>
+          <p>In the legacy model, item names, subtypes, and stats were resolved purely at runtime from the game client's
+            local <code>WDB</code> cache. On a fresh install—or after clearing the game cache—searching for an item name
+            or stat only matched items the player had already encountered or manually moused over inside a dungeon book.
+          </p>
+          <p>Moving to the <strong>v0.6+ Central Engine</strong> solved this by pre-hydrating static item names, quality
+            tiers, and tags in <code>Items_Catalog.lua</code> while pairing synchronous <code>GetItemInfoInstant</code>
+            DBC classification with on-demand candidate tooltip scanning.</p>
         </div>
 
         <div class="card">
@@ -1577,12 +1703,17 @@
             Preparing for Quests, Raids &amp; Professions&nbsp;<span class="info-tip" tabindex="0">?
               <span class="info-tip-box">
                 <strong>One Item, Many Sources</strong>
-                An item might drop in a dungeon, be required for a quest chain, and be crafted by a profession. Centralizing items in <code>Core/</code> lets every module share one truth.
+                An item might drop in a dungeon, be required for a quest chain, and be crafted by a profession.
+                Centralizing items in <code>Core/</code> lets every module share one truth.
               </span>
             </span>
           </h3>
-          <p>Because the original item tables lived inside <code>Modules/Journal_Dungeons/</code>, upcoming modules like <strong>Quests</strong>, <strong>Raids</strong>, and <strong>Professions</strong> would have either depended on the Dungeons module being loaded or duplicated thousands of item definitions.</p>
-          <p>By lifting item storage into <code>Core/ItemDatabase.lua</code> and introducing true <code>:OnUnload()</code> memory reclamation, modules are now genuinely independent and only consume memory when enabled.</p>
+          <p>Because the original item tables lived inside <code>Modules/Journal_Dungeons/</code>, upcoming modules like
+            <strong>Quests</strong>, <strong>Raids</strong>, and <strong>Professions</strong> would have either depended
+            on the Dungeons module being loaded or duplicated thousands of item definitions.</p>
+          <p>By lifting item storage into <code>Core/ItemDatabase.lua</code> and introducing true
+            <code>:OnUnload()</code> memory reclamation, modules are now genuinely independent and only consume memory
+            when enabled.</p>
         </div>
       </div>
 
@@ -1616,4 +1747,5 @@
   </script>
 
 </body>
+
 </html>

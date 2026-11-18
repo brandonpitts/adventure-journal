@@ -41,7 +41,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\INV_Hammer_04",
         art = {
             7963781,
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "hot", "thanes", "ironforge" },
@@ -89,7 +88,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\Spell_Fire_Fire",
         art = {
             LOAD_SCREEN .. "LoadScreenRagefireChasm",
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "rfc", "ragefire" },
@@ -138,7 +136,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\INV_Misc_Bone_HumanSkull_01",
         art = {
             7963782,
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "rol", "lordaeron", "ruins" },
@@ -208,7 +205,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\Spell_Nature_Purge",
         art = {
             LOAD_SCREEN .. "LoadScreenWailingCaverns",
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "wc", "wailing" },
@@ -238,7 +234,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\INV_Pick_02",
         art = {
             LOAD_SCREEN .. "LoadScreenDeadmines",
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "dm", "vc", "deadmines", "vancleef" },
@@ -268,7 +263,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\Spell_Shadow_ChillTouch",
         art = {
             LOAD_SCREEN .. "LoadScreenShadowFangKeep",
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "sfk", "shadowfang", "arugal" },
@@ -301,7 +295,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\Spell_Frost_Stun",
         art = {
             LOAD_SCREEN .. "LoadScreenBlackFathomDeeps",
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "bfd", "blackfathom" },
@@ -340,7 +333,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\INV_Misc_Key_04",
         art = {
             131870,
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "stocks", "stockade", "stormwind stockade" },
@@ -365,7 +357,7 @@ local DUNGEONS = {
         location = "Whelgar's Excavation Site, Wetlands",
         description = "Explorers' League diggers in the Wetlands have broken into a sealed subterranean complex teeming with prehistoric beasts and ancient titanic relics.",
         icon = "Interface\\Icons\\INV_Misc_Bone_DwarfSkull_01",
-        art = { 7963777, LOAD_SCREEN .. "LoadScreenDungeon" },
+        art = { 7963777 },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "esw", "excavation", "wetlands", "whelgar" },
         bosses = {
@@ -386,7 +378,7 @@ local DUNGEONS = {
         location = "Alterac Mountains",
         description = "Behind Dalaran's arcane wards, unstable ley-line rifts, rogue constructs, and remnants of the Scourge assault threaten the wizards' sanctum.",
         icon = "Interface\\Icons\\Spell_Holy_MagicalSentry",
-        art = { 7963775, LOAD_SCREEN .. "LoadScreenDungeon" },
+        art = { 7963775 },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "dal", "dalaran" },
         bosses = {
@@ -414,7 +406,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\INV_Gizmo_02",
         art = {
             LOAD_SCREEN .. "LoadScreenGnomeregan",
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "gnomer", "gnomeregan", "thermaplugg" },
@@ -442,7 +433,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\INV_Misc_Head_Quillboar_01",
         art = {
             131865,
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "rfk", "kraul" },
@@ -472,7 +462,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\Spell_Shadow_Haunting",
         art = {
             LOAD_SCREEN .. "LoadScreenMonastery",
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "sm gy", "sm graveyard", "graveyard" },
@@ -499,7 +488,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\INV_Misc_Book_11",
         art = {
             LOAD_SCREEN .. "LoadScreenMonastery",
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "sm lib", "sm library", "library", "doan" },
@@ -522,7 +510,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\INV_Helmet_03",
         art = {
             LOAD_SCREEN .. "LoadScreenMonastery",
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "sm arm", "sm armory", "armory", "herod" },
@@ -544,7 +531,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\Spell_Frost_SummonWaterElemental",
         art = {
             7963741,
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "tdc", "drowned city", "ilalai" },
@@ -572,7 +558,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\Spell_Holy_Resurrection",
         art = {
             LOAD_SCREEN .. "LoadScreenMonastery",
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "sm cath", "sm cathedral", "cathedral", "mograine", "whitemane" },
@@ -596,7 +581,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\Spell_Frost_FrostArmor02",
         art = {
             LOAD_SCREEN .. "LoadScreenRazorfenDowns",
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "rfd", "downs" },
@@ -624,7 +608,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\INV_Misc_StoneTablet_11",
         art = {
             LOAD_SCREEN .. "LoadScreenUldaman",
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "ulda", "uldaman" },
@@ -655,7 +638,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\INV_Misc_Key_13",
         art = {
             7963780,
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "krol", "kroldok", "riverglades" },
@@ -681,7 +663,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\INV_Misc_Head_Troll_01",
         art = {
             LOAD_SCREEN .. "LoadScreenZulFarrak",
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "zf", "zulfarrak", "zul'farrak" },
@@ -715,7 +696,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\Spell_Nature_Acid_01",
         art = {
             LOAD_SCREEN .. "LoadScreenMaraudon",
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "mara", "maraudon", "theradras" },
@@ -751,7 +731,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\INV_Misc_Key_07",
         art = {
             7963784,
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "alcaz", "alcaz island" },
@@ -776,7 +755,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\Spell_Nature_Thorns",
         art = {
             LOAD_SCREEN .. "LoadScreenSunkenTemple",
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "st", "sunken temple", "atal'hakkar", "atalhakkar" },
@@ -808,7 +786,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\INV_Hammer_Unique_Sulfuras",
         art = {
             LOAD_SCREEN .. "LoadScreenBlackrockDepths",
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "brd", "depths", "shadowforge" },
@@ -857,7 +834,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\INV_Misc_Head_Dragon_Black",
         art = {
             LOAD_SCREEN .. "LoadScreenBlackrockSpire",
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "lbrs", "lower spire" },
@@ -895,7 +871,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\INV_Misc_Head_Dragon_Black",
         art = {
             LOAD_SCREEN .. "LoadScreenBlackrockSpire",
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "ubrs", "upper spire", "rend", "drakkisath" },
@@ -925,7 +900,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\Spell_Nature_Preservation",
         art = {
             LOAD_SCREEN .. "LoadScreenDireMaul",
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "dme", "dm east", "warpwood" },
@@ -952,7 +926,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\INV_Misc_MonsterClaw_04",
         art = {
             7963784,
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "bmh", "blackmaw", "furbolg" },
@@ -981,7 +954,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\Spell_Nature_Preservation",
         art = {
             LOAD_SCREEN .. "LoadScreenDireMaul",
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "dmw", "dm west", "capital gardens" },
@@ -1009,7 +981,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\Spell_Nature_Preservation",
         art = {
             LOAD_SCREEN .. "LoadScreenDireMaul",
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "dmn", "dm north", "tribute", "gordok" },
@@ -1037,7 +1008,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\Spell_Holy_CrusaderStrike",
         art = {
             131871,
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "strat live", "strat living", "living", "balnazzar" },
@@ -1070,7 +1040,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\Spell_Holy_CrusaderStrike",
         art = {
             131871,
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "strat ud", "strat undead", "undead", "rivendare" },
@@ -1099,7 +1068,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\Spell_Shadow_RaiseDead",
         art = {
             LOAD_SCREEN .. "LoadScreenScholomance",
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "scholo", "scholomance", "gandling" },
@@ -1136,7 +1104,6 @@ local DUNGEONS = {
         icon = "Interface\\Icons\\Ability_Hunter_Pet_Raptor",
         art = {
             7963783,
-            LOAD_SCREEN .. "LoadScreenDungeon",
         },
         texCoord = { 0.02, 0.98, 0.25, 0.81 },
         aliases = { "shapers", "terrace", "ungoro" },
@@ -1155,41 +1122,7 @@ local DUNGEONS = {
     },
 }
 
-local DungeonsData = {
-    hasMergedExternal = false,
-}
-
---- Optional runtime enrichment: if `ForeverDungeonJournal` is installed & loaded,
---- merges any additional boss descriptions into our catalog so the user gets
---- complete lore descriptions automatically while staying fully standalone.
-function DungeonsData:EnrichFromExternalIfAvailable()
-    if self.hasMergedExternal then
-        return
-    end
-    local fdj = _G.ForeverDungeonJournal_NS
-    if type(fdj) ~= "table" or type(fdj.DB) ~= "table" then
-        return
-    end
-    self.hasMergedExternal = true
-
-    for _, dungeon in ipairs(DUNGEONS) do
-        local extDungeon = fdj.DB[dungeon.name]
-        if type(extDungeon) == "table" and type(extDungeon.bosses) == "table" then
-            local extBossByName = {}
-            for _, eb in ipairs(extDungeon.bosses) do
-                if eb and eb.name then
-                    extBossByName[eb.name] = eb
-                end
-            end
-            for _, boss in ipairs(dungeon.bosses or {}) do
-                local eb = extBossByName[boss.name]
-                if eb and eb.description and eb.description ~= "" and (not boss.description or boss.description == "") then
-                    boss.description = eb.description
-                end
-            end
-        end
-    end
-end
+local DungeonsData = {}
 
 --- Comparator that sorts dungeons strictly by the top end of their level range (maxLevel),
 --- then minimum level, then name.
@@ -1214,7 +1147,6 @@ end
 
 --- Returns the full ordered list of all 35 dungeons sorted by level range.
 function DungeonsData:GetAll()
-    self:EnrichFromExternalIfAvailable()
     sort(DUNGEONS, compareDungeonsByLevel)
     return DUNGEONS
 end
@@ -1241,7 +1173,6 @@ end
 --- @param sortOrder string|nil
 --- @return table[]
 function DungeonsData:GetFiltered(searchQuery, sortOrder)
-    self:EnrichFromExternalIfAvailable()
     if sortOrder == "alphabetical" or sortOrder == "name" then
         sort(DUNGEONS, compareDungeonsByName)
     else

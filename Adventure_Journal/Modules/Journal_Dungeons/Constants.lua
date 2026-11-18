@@ -64,6 +64,7 @@ local Constants = {
         PARCHMENT_ATLAS = "Spellbook-Page-1",
         PARCHMENT_FALLBACK = "Interface\\Spellbook\\Spellbook-Page-1",
         WARNING_ICON = "Interface\\DialogFrame\\UI-Dialog-Icon-AlertNew",
+        MISSING_ICON = "Interface\\Icons\\INV_Misc_QuestionMark",
     },
 
     SOUNDS = {
