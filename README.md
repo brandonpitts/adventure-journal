@@ -26,13 +26,13 @@ Adventure Journal was developed through agentic AI workflows to assist, explore,
 
 ## Quick Installation
 
-1. Download **[`Adventure_Journal-v0.7.2.zip`](Adventure_Journal-v0.7.2.zip)**.
+1. Download **[`Adventure_Journal-v0.8.0.zip`](Adventure_Journal-v0.8.0.zip)**.
 2. Extract the archive into your WoW Forever AddOns directory:
    ```text
    World of Warcraft\_forever_\Interface\AddOns\
    ```
    > **Tip:** You can easily locate your game folder by clicking the gear icon next to the Play button in the Battle.net launcher for your WoW Forever client and selecting **"Show in Explorer"**.
-3. Confirm that the folder is named `Adventure_Journal` (not `Adventure_Journal-v0.7.2` or a nested folder).
+3. Confirm that the folder is named `Adventure_Journal` (not `Adventure_Journal-v0.8.0` or a nested folder).
 4. Launch or `/reload` in World of Warcraft.
 5. Open your journal with `/aj`, `/journal`, or by clicking the gold Minimap button!
 
@@ -40,6 +40,7 @@ Adventure Journal was developed through agentic AI workflows to assist, explore,
 
 ## Changelog & Release History
 
+* **`v0.8.0`**: Added Dungeon Quests: quest lists, multi-step quest chains, quest givers and turn-ins with map pins, and an option to show both factions' quests.
 * **`v0.7.2`**: Made the Journal fully standalone by removing all optional integrations with other addons, and streamlined the Settings panel.
 * **`v0.7.1`**: Added global frame naming for third-party minimap button collector compatibility (MinimapButtonButton) and decoupled the Blizzard Addon Compartment setting with an independent unchecked default.
 * **`v0.7.0`**: Added World Map Zone Level Overlays with recommended level ranges and fishing skill requirements, flight path indicators, and native Character Frame close button styling.

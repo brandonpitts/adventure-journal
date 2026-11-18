@@ -20,7 +20,7 @@ local SOUNDKIT = SOUNDKIT
 local Constants = {
     ADDON_NAME = addonName,
     TITLE = "Adventure Journal",
-    VERSION = "0.7.2",
+    VERSION = "0.8.0",
     AUTHOR = "Brandon (Endoria)",
     PLUGIN_API_VERSION = 1,
 

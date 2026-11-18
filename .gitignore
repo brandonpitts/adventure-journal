@@ -14,14 +14,6 @@ desktop.ini
 *.bak
 *.swp
 
-# ==============================================================================
-# UNFINISHED & PRIVATE MODULE BOUNDARY - DO NOT COMMIT TO PUBLIC REPOSITORY
-# Only Core, Journal_Dungeons, and Utility_MapIcons are currently public.
-# ==============================================================================
-Adventure_Journal/Modules/Journal_Raids/
-Adventure_Journal/Modules/Journal_Professions/
-Adventure_Journal/Modules/Journal_Quests/
-Adventure_Journal/Modules/Utility_Quests/
 
 # Python cache
 __pycache__/

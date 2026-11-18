@@ -328,17 +328,6 @@ _G.SlashCmdList.JOURNALBASE = function(msg)
     JournalBase:Toggle()
 end
 
--- Convenient quick reload command (/rl)
-if not _G.SLASH_AJ_RELOAD1 then
-    _G.SLASH_AJ_RELOAD1 = "/rl"
-    _G.SlashCmdList["AJ_RELOAD"] = function()
-        local reload = _G.ReloadUI or (_G.C_UI and _G.C_UI.Reload)
-        if reload then
-            reload()
-        end
-    end
-end
-
 -- ----------------------------------------------------------------------------
 -- 4. Namespace Attachment
 -- ----------------------------------------------------------------------------

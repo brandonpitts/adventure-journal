@@ -54,7 +54,37 @@ function MainView:Init(parentCanvas, headerBar)
         onSelectDungeonOverview = function()
             self:ReturnToDungeonOverview()
         end,
+        onTabChanged = function(tabKey)
+            self:UpdateBreadcrumbs()
+        end,
     })
+end
+
+--- Synchronizes the breadcrumb track to the current view state:
+--- Home > <Dungeon Name> (> <Boss Name> | > Dungeon Quests)
+function MainView:UpdateBreadcrumbs()
+    if not self.headerBar or not self.headerBar.PopToIndex or not self.headerBar.PushStep then
+        return
+    end
+    if not self.currentDungeon then
+        self.headerBar:ResetBreadcrumbs("Home", function()
+            self:ShowRoot()
+        end)
+        return
+    end
+
+    self.headerBar:PopToIndex(2)
+
+    if self.selectedBoss then
+        local boss = self.selectedBoss
+        self.headerBar:PushStep(boss.name, function()
+            self:SelectBoss(boss)
+        end)
+    elseif ns.UI.DungeonBookView and ns.UI.DungeonBookView.activeRightTab == "quests" then
+        self.headerBar:PushStep("Dungeon Quests", function()
+            -- Already on Dungeon Quests tab
+        end)
+    end
 end
 
 --- Displays the root 4-column Dungeon Browser Grid,
@@ -114,17 +144,14 @@ function MainView:SelectDungeon(dungeon)
     ns.UI.DungeonBookView:Show()
 
     if ns.UI.DungeonBookView.selectedBoss then
-        local boss = ns.UI.DungeonBookView.selectedBoss
-        self.selectedBoss = boss
-        if self.headerBar and self.headerBar.PushStep then
-            self.headerBar:PushStep(boss.name, function()
-                self:SelectBoss(boss)
-            end)
-        end
+        self.selectedBoss = ns.UI.DungeonBookView.selectedBoss
     end
+    self:UpdateBreadcrumbs()
 end
 
---- Returns from a selected boss back to the Dungeon Overview (`Home > <Dungeon Name>`).
+--- Returns from a selected boss or quest tab back to the main Dungeon page (`Home > <Dungeon Name>`).
+--- If currently viewing the Loot tab, preserves the Loot tab to show Full Dungeon Loot
+--- while re-enabling the Overview tab so the user can switch back.
 function MainView:ReturnToDungeonOverview()
     if not self.currentDungeon then
         self:ShowRoot()
@@ -132,13 +159,12 @@ function MainView:ReturnToDungeonOverview()
     end
     self.selectedBoss = nil
 
-    if self.headerBar and self.headerBar.PopToIndex then
-        self.headerBar:PopToIndex(2)
-    end
-
     local query = self.searchQuery or ""
-    ns.UI.DungeonBookView:SetContext(self.currentDungeon, nil, query)
-    ns.UI.DungeonBookView:Show()
+    local bookView = ns.UI.DungeonBookView
+    local preserveRightTab = (bookView and bookView.activeRightTab == "loot")
+    bookView:SetContext(self.currentDungeon, nil, query, preserveRightTab)
+    bookView:Show()
+    self:UpdateBreadcrumbs()
 end
 
 --- Selects a boss on the Left Page and pushes `<Boss Name>` to the breadcrumb bar
@@ -149,14 +175,7 @@ function MainView:SelectBoss(boss)
         return
     end
     self.selectedBoss = boss
-
-    if self.headerBar and self.headerBar.PopToIndex and self.headerBar.PushStep then
-        self.headerBar:PopToIndex(2)
-        self.headerBar:PushStep(boss.name, function()
-            self:SelectBoss(boss)
-        end)
-    end
-
+    self:UpdateBreadcrumbs()
     ns.UI.DungeonBookView:SetSelectedBoss(boss)
 end
 
@@ -169,17 +188,10 @@ function MainView:OnSearch(queryText)
         local selected = ns.UI.DungeonBookView.selectedBoss
         if selected and self.selectedBoss ~= selected then
             self.selectedBoss = selected
-            if self.headerBar and self.headerBar.PopToIndex and self.headerBar.PushStep then
-                self.headerBar:PopToIndex(2)
-                self.headerBar:PushStep(selected.name, function()
-                    self:SelectBoss(selected)
-                end)
-            end
+            self:UpdateBreadcrumbs()
         elseif not selected and self.selectedBoss then
             self.selectedBoss = nil
-            if self.headerBar and self.headerBar.PopToIndex then
-                self.headerBar:PopToIndex(2)
-            end
+            self:UpdateBreadcrumbs()
         end
     else
         ns.UI.DungeonGridView:SetSearchQuery(queryText or "")

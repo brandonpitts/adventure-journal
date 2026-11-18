@@ -139,23 +139,32 @@ local DungeonBookView = {
     frame = nil,
     currentDungeon = nil,
     selectedBoss = nil,
+    activeRightTab = "overview", -- "overview" | "loot"
+    sideTabHolder = nil,
+    overviewTabBtn = nil,
+    lootTabBtn = nil,
+    questsTabBtn = nil,
     bossButtonPool = {},
     categoryHeaderPool = {},
     itemRowPool = {},
+    questButtonPool = {},
+    selectedQuest = nil,
     zoneBossEntry = nil,
     onSelectBoss = nil,
     onSelectDungeonOverview = nil,
+    onTabChanged = nil,
 }
 
 --- Initializes the Open-Book Split View inside `parent`.
 --- @param parent Frame
---- @param callbacks table `{ onSelectBoss, onSelectDungeonOverview }`
+--- @param callbacks table `{ onSelectBoss, onSelectDungeonOverview, onTabChanged }`
 function DungeonBookView:Init(parent, callbacks)
     if self.frame then
         return
     end
     self.onSelectBoss = callbacks and callbacks.onSelectBoss
     self.onSelectDungeonOverview = callbacks and callbacks.onSelectDungeonOverview
+    self.onTabChanged = callbacks and callbacks.onTabChanged
 
     local SharedWidgets = ns.UI.SharedWidgets
     local bookCfg = Constants.BOOK
@@ -173,14 +182,15 @@ function DungeonBookView:Init(parent, callbacks)
     leftPage:SetWidth(bookCfg.LEFT_WIDTH)
     self.leftPage = leftPage
 
-    -- Dedicated Clickable Dungeon Portrait Medallion (focused specifically on portrait)
+    -- Dedicated Clickable Dungeon Portrait & Title Header Region
     local dungeonMedallion = SharedWidgets:CreateCircularMedallion(leftPage, 38, 52)
     dungeonMedallion:SetPoint("TOPLEFT", leftPage, "TOPLEFT", 2, -7)
     self.dungeonMedallion = dungeonMedallion
 
-    local portraitBtn = CreateFrame("Button", nil, dungeonMedallion)
-    portraitBtn:SetSize(48, 48)
-    portraitBtn:SetPoint("CENTER", dungeonMedallion, "CENTER", 0, 0)
+    local portraitBtn = CreateFrame("Button", nil, leftPage)
+    portraitBtn:SetPoint("TOPLEFT", dungeonMedallion, "TOPLEFT", -6, 6)
+    portraitBtn:SetPoint("BOTTOMLEFT", dungeonMedallion, "BOTTOMLEFT", -6, -6)
+    portraitBtn:SetPoint("RIGHT", leftPage, "RIGHT", -50, 0)
     portraitBtn:SetFrameLevel(dungeonMedallion:GetFrameLevel() + 10)
     portraitBtn:RegisterForClicks("LeftButtonUp")
 
@@ -197,18 +207,32 @@ function DungeonBookView:Init(parent, callbacks)
         if self.dungeonMedallion and self.dungeonMedallion.SetHighlighted then
             self.dungeonMedallion:SetHighlighted(true)
         end
+        if self.dungeonTitle then
+            self.dungeonTitle:SetTextColor(1.0, 0.96, 0.72)
+        end
         if not GameTooltip or not self.currentDungeon then
             return
         end
         GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
         GameTooltip:AddLine(self.currentDungeon.name, 1.0, 0.82, 0.0)
-        GameTooltip:AddLine("Click to view Dungeon Overview", 0.30, 0.92, 0.38)
+        if self.selectedBoss then
+            if self.activeRightTab == "loot" then
+                GameTooltip:AddLine("Click to view All Dungeon Loot & enable Overview tab", 0.30, 0.92, 0.38)
+            else
+                GameTooltip:AddLine("Click to return to Dungeon Overview", 0.30, 0.92, 0.38)
+            end
+        else
+            GameTooltip:AddLine("Main Dungeon Page selected", 0.75, 0.75, 0.75)
+        end
         GameTooltip:Show()
     end)
 
     portraitBtn:SetScript("OnLeave", function()
         if self.dungeonMedallion and self.dungeonMedallion.SetHighlighted then
             self.dungeonMedallion:SetHighlighted(false)
+        end
+        if self.dungeonTitle then
+            self.dungeonTitle:SetTextColor(1.0, 1.0, 1.0)
         end
         if GameTooltip then
             GameTooltip:Hide()
@@ -319,6 +343,11 @@ function DungeonBookView:Init(parent, callbacks)
     trashDivider:Hide()
     self.trashDivider = trashDivider
 
+    -- Divider bar between player faction quests and opposing faction quests
+    local questFactionDivider = SharedWidgets:CreateHorizontalDividerBar(bossScrollChild, 4)
+    questFactionDivider:Hide()
+    self.questFactionDivider = questFactionDivider
+
     local noEncountersText = bossScrollChild:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     noEncountersText:SetPoint("TOPLEFT", bossScrollChild, "TOPLEFT", 16, -40)
     noEncountersText:SetPoint("TOPRIGHT", bossScrollChild, "TOPRIGHT", -16, -40)
@@ -397,21 +426,105 @@ function DungeonBookView:Init(parent, callbacks)
     noDropsText:Hide()
     self.noDropsText = noDropsText
 
+    -- Sub-Container 3: Selected Quest Detail View on the Right Page
+    local questDetailContainer = CreateFrame("Frame", nil, rightPage)
+    questDetailContainer:SetAllPoints(rightPage)
+    questDetailContainer:Hide()
+    self.questDetailContainer = questDetailContainer
+
+    -- Horizontal divider line aligning directly with self.leftDivider on the Left Page
+    local questDivider = SharedWidgets:CreateHorizontalDividerBar(questDetailContainer, 4)
+    questDivider:SetPoint("TOP", leftDivider, "TOP", 0, 0)
+    questDivider:SetPoint("LEFT", questDetailContainer, "LEFT", 6, 0)
+    questDivider:SetPoint("RIGHT", questDetailContainer, "RIGHT", -12, 0)
+    questDivider:SetHeight(4)
+    self.questDivider = questDivider
+
+    -- Circular Medallion for Quest Giver (hidden per user instruction)
+    local questGiverMedallion = SharedWidgets:CreateCircularMedallion(questDetailContainer, 38, 52)
+    questGiverMedallion:SetPoint("TOP", dungeonMedallion, "TOP", 0, 0)
+    questGiverMedallion:SetPoint("LEFT", questDetailContainer, "LEFT", 2, 0)
+    questGiverMedallion:Hide()
+    self.questGiverMedallion = questGiverMedallion
+
+    -- Faction Crest for Quest Header (prominent 38x38 crest on the right side of the quest header)
+    local questFactionCrest = questDetailContainer:CreateTexture(nil, "OVERLAY", nil, 6)
+    questFactionCrest:SetSize(38, 38)
+    questFactionCrest:SetPoint("RIGHT", questDetailContainer, "RIGHT", -12, 0)
+    questFactionCrest:SetPoint("CENTER", dungeonMedallion, "CENTER", 0, 0)
+    questFactionCrest:Hide()
+    self.questFactionCrest = questFactionCrest
+
+    -- Quest name matching dungeonTitle baseline and shifted flush left into portrait spot
+    local questHeaderTitle = questDetailContainer:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
+    questHeaderTitle:SetPoint("TOP", dungeonTitle, "TOP", 0, 0)
+    questHeaderTitle:SetPoint("LEFT", questDetailContainer, "LEFT", 6, 0)
+    questHeaderTitle:SetPoint("RIGHT", questDetailContainer, "RIGHT", -12, 0)
+    questHeaderTitle:SetJustifyH("LEFT")
+    questHeaderTitle:SetWordWrap(true)
+    questHeaderTitle:SetSpacing(2)
+    questHeaderTitle:SetTextColor(1.0, 0.82, 0.0)
+    questHeaderTitle:SetShadowColor(0, 0, 0, 1.0)
+    questHeaderTitle:SetShadowOffset(1, -1)
+    self.questHeaderTitle = questHeaderTitle
+
+    -- Subheader Meta matching dungeonMeta font and exact vertical spacing
+    local questHeaderMeta = questDetailContainer:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    questHeaderMeta:SetPoint("TOPLEFT", questHeaderTitle, "BOTTOMLEFT", 0, -3)
+    questHeaderMeta:SetPoint("RIGHT", questDetailContainer, "RIGHT", -12, 0)
+    questHeaderMeta:SetJustifyH("LEFT")
+    questHeaderMeta:SetWordWrap(false)
+    questHeaderMeta:SetTextColor(0.82, 0.72, 0.52)
+    questHeaderMeta:SetShadowColor(0, 0, 0, 1.0)
+    questHeaderMeta:SetShadowOffset(1, -1)
+    self.questHeaderMeta = questHeaderMeta
+    self.questHeaderLevel = questHeaderMeta
+
+    -- Scrollable Quest Body Frame spanning from below questDivider to bottom margin
+    local questBodyScroll = CreateFrame("ScrollFrame", "JournalDungeonsQuestBodyScrollFrame", questDetailContainer, "UIPanelScrollFrameTemplate")
+    questBodyScroll:SetPoint("TOPLEFT", questDivider, "BOTTOMLEFT", 0, -8)
+    questBodyScroll:SetPoint("BOTTOMRIGHT", questDetailContainer, "BOTTOMRIGHT", -22, 10)
+    questBodyScroll.scrollBarHideable = true
+    self.questBodyScroll = questBodyScroll
+
+    local questBodyChild = CreateFrame("Frame", nil, questBodyScroll)
+    questBodyChild:SetWidth(bookCfg.RIGHT_CONTENT_WIDTH or 340)
+    questBodyChild:SetHeight(100)
+    questBodyScroll:SetScrollChild(questBodyChild)
+    self.questBodyChild = questBodyChild
+
+    self.questBodyWidgets = {}
+
+    -- Right-Side Vertical Tabs (#V6 — Pop-Out SpellBook Flap 32x32 + Active Shift Right)
+    self:BuildRightSideTabs(frame)
+
     local dropUpdateTimer = nil
     if ns.ItemsManager and ns.ItemsManager.RegisterUpdateListener then
         ns.ItemsManager:RegisterUpdateListener(function()
-            if self.frame and self.frame:IsShown() and self.selectedBoss and self.currentDungeon then
+            if self.frame and self.frame:IsShown() and self.currentDungeon and (self.selectedBoss or self.activeRightTab == "loot" or self.activeRightTab == "quests") then
                 if dropUpdateTimer and dropUpdateTimer.Cancel then
                     dropUpdateTimer:Cancel()
                 end
                 if C_Timer and C_Timer.NewTimer then
                     dropUpdateTimer = C_Timer.NewTimer(0.08, function()
-                        if self.frame and self.frame:IsShown() and self.selectedBoss and self.currentDungeon then
-                            self:RenderItemDrops(self.currentDungeon, self.selectedBoss)
+                        if self.frame and self.frame:IsShown() and self.currentDungeon then
+                            if self.selectedBoss then
+                                self:RenderItemDrops(self.currentDungeon, self.selectedBoss)
+                            elseif self.activeRightTab == "loot" then
+                                self:RenderDungeonItemDrops(self.currentDungeon)
+                            elseif self.activeRightTab == "quests" then
+                                self:RefreshRightPage()
+                            end
                         end
                     end)
                 else
-                    self:RenderItemDrops(self.currentDungeon, self.selectedBoss)
+                    if self.selectedBoss then
+                        self:RenderItemDrops(self.currentDungeon, self.selectedBoss)
+                    elseif self.activeRightTab == "loot" then
+                        self:RenderDungeonItemDrops(self.currentDungeon)
+                    elseif self.activeRightTab == "quests" then
+                        self:RefreshRightPage()
+                    end
                 end
             end
         end)
@@ -435,13 +548,23 @@ function DungeonBookView:Init(parent, callbacks)
         if self.trashDivider and self.trashDivider:IsShown() then
             SharedWidgets:SyncQuestDividerBar(self.trashDivider)
         end
+        if self.questFactionDivider and self.questFactionDivider:IsShown() then
+            SharedWidgets:SyncQuestDividerBar(self.questFactionDivider)
+        end
         if self.overviewDivider then
             SharedWidgets:SyncQuestDividerBar(self.overviewDivider)
+        end
+        if self.questDivider then
+            SharedWidgets:SyncQuestDividerBar(self.questDivider)
         end
         SharedWidgets:SyncWindowPortraitBorder(self.dungeonMedallion)
         if self.bossMedallion then
             SharedWidgets:SyncWindowPortraitBorder(self.bossMedallion)
         end
+        if self.questGiverMedallion then
+            SharedWidgets:SyncWindowPortraitBorder(self.questGiverMedallion)
+        end
+        self:UpdateSideTabs()
     end)
 
     -- Real-time reactive listener for dungeon module setting changes
@@ -451,7 +574,20 @@ function DungeonBookView:Init(parent, callbacks)
             if prevHook then
                 pcall(prevHook, jBase, key, val)
             end
-            if (key == "showBossLevel" or key == "showBossDifficultyColor" or key == "showMinorMonsters" or key == "hideMinorMonsters" or key == "showEventBosses" or key == "showDungeonSetChallenges" or key == "worldMapDungeonIcons") and self.frame and self.frame:IsShown() then
+            if (key == "showBossLevel" or key == "showBossDifficultyColor" or key == "showMinorMonsters" or key == "hideMinorMonsters" or key == "showEventBosses" or key == "showDungeonSetChallenges" or key == "worldMapDungeonIcons" or key == "showBothFactionData") and self.frame and self.frame:IsShown() then
+                self:UpdateSideTabs()
+                self:RefreshLeftPage()
+                self:RefreshRightPage()
+            end
+        end
+
+        local prevQuestHook = _G.JournalBase.OnQuestSettingChanged
+        _G.JournalBase.OnQuestSettingChanged = function(jBase, key, val)
+            if prevQuestHook then
+                pcall(prevQuestHook, jBase, key, val)
+            end
+            if key == "showBothFactionData" and self.frame and self.frame:IsShown() then
+                self:UpdateSideTabs()
                 self:RefreshLeftPage()
                 self:RefreshRightPage()
             end
@@ -459,13 +595,355 @@ function DungeonBookView:Init(parent, callbacks)
     end
 
     frame:RegisterEvent("PLAYER_LEVEL_UP")
+    frame:RegisterEvent("QUEST_LOG_UPDATE")
+    frame:RegisterEvent("QUEST_ACCEPTED")
+    frame:RegisterEvent("QUEST_REMOVED")
     frame:SetScript("OnEvent", function(f, event, ...)
-        if event == "PLAYER_LEVEL_UP" and self.frame and self.frame:IsShown() then
+        if not self.frame or not self.frame:IsShown() then return end
+        if event == "PLAYER_LEVEL_UP" then
+            self:RefreshLeftPage()
+            self:RefreshRightPage()
+        elseif self.activeRightTab == "quests" then
             self:RefreshLeftPage()
             self:RefreshRightPage()
         end
     end)
 end
+
+--- Builds the three #V6 Pop-Out SpellBook Flap (+25% scaled: 40x40 + Active Shift Right) tabs
+--- anchored along the outer right edge of the main journal window.
+---   * Tab 1 (Top): Overview (Dynamic `dungeon.icon` fallback emblem)
+---   * Tab 2 (Middle): Loot / Items (`Interface\Icons\INV_Box_02` treasure chest)
+---   * Tab 3 (Bottom): Quests (`Interface\GossipFrame\AvailableQuestIcon` exclamation mark)
+--- @param bookFrame Frame
+function DungeonBookView:BuildRightSideTabs(bookFrame)
+    local mainWin = _G.JournalBaseMainFrame or bookFrame
+    local holder = CreateFrame("Frame", nil, bookFrame)
+    holder:SetSize(48, 170)
+    holder:SetPoint("TOPLEFT", mainWin, "TOPRIGHT", -2, -70)
+    holder:SetFrameStrata("HIGH")
+    if mainWin.GetFrameLevel then
+        holder:SetFrameLevel(mainWin:GetFrameLevel() + 15)
+    end
+    self.sideTabHolder = holder
+
+    local white = Constants.ASSETS.WHITE_8X8
+
+    local function createV6Tab(tabKey, defaultIconPath, titleText)
+        local btn = CreateFrame("Button", nil, holder)
+        -- Scaled up +25%: 32x32 -> 40x40
+        btn:SetSize(40, 40)
+        btn.tabKey = tabKey
+        btn.titleText = titleText
+        btn:RegisterForClicks("LeftButtonUp")
+
+        -- #V6 SpellBook-SkillLineTab protruding flap scaled +25% (64x64 -> 80x80 at -4, 14)
+        local flap = btn:CreateTexture(nil, "BACKGROUND")
+        flap:SetSize(80, 80)
+        flap:SetPoint("TOPLEFT", btn, "TOPLEFT", -4, 14)
+        flap:SetTexture("Interface\\SpellBook\\SpellBook-SkillLineTab")
+        btn.flap = flap
+
+        -- Solid backing pocket sitting in front of flap and behind icon
+        local pocket = btn:CreateTexture(nil, "BORDER", nil, 1)
+        pocket:SetAllPoints(btn)
+        pocket:SetTexture(white)
+        if tabKey == "quests" then
+            pocket:SetVertexColor(0, 0, 0, 1.0)
+        else
+            pocket:SetVertexColor(0.07, 0.06, 0.05, 0.95)
+        end
+        btn.pocket = pocket
+
+        -- 40x40 cropped icon inside flap
+        local icon = btn:CreateTexture(nil, "ARTWORK", nil, 0)
+        icon:SetAllPoints(btn)
+        if tabKey == "quests" then
+            if icon.SetAtlas then
+                local ok = pcall(icon.SetAtlas, icon, "QuestNormal")
+                if not ok then
+                    icon:SetTexture("Interface\\GossipFrame\\AvailableQuestIcon")
+                    icon:SetTexCoord(0, 1, 0, 1)
+                end
+            else
+                icon:SetTexture("Interface\\GossipFrame\\AvailableQuestIcon")
+                icon:SetTexCoord(0, 1, 0, 1)
+            end
+        else
+            if defaultIconPath then
+                icon:SetTexture(defaultIconPath)
+            end
+            icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+        end
+        btn.icon = icon
+
+        -- Aggressive outer-edge fade-to-black (tight to the very outer 5px perimeter, black outwards)
+        local edgeSize = 5
+        local outerBlackAlpha = 0.96
+
+        local topFade = btn:CreateTexture(nil, "ARTWORK", nil, 2)
+        topFade:SetPoint("TOPLEFT", btn, "TOPLEFT", 0, 0)
+        topFade:SetPoint("TOPRIGHT", btn, "TOPRIGHT", 0, 0)
+        topFade:SetHeight(edgeSize)
+        topFade:SetTexture(white)
+
+        local botFade = btn:CreateTexture(nil, "ARTWORK", nil, 2)
+        botFade:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", 0, 0)
+        botFade:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 0, 0)
+        botFade:SetHeight(edgeSize)
+        botFade:SetTexture(white)
+
+        local leftFade = btn:CreateTexture(nil, "ARTWORK", nil, 2)
+        leftFade:SetPoint("TOPLEFT", btn, "TOPLEFT", 0, 0)
+        leftFade:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", 0, 0)
+        leftFade:SetWidth(edgeSize)
+        leftFade:SetTexture(white)
+
+        local rightFade = btn:CreateTexture(nil, "ARTWORK", nil, 2)
+        rightFade:SetPoint("TOPRIGHT", btn, "TOPRIGHT", 0, 0)
+        rightFade:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 0, 0)
+        rightFade:SetWidth(edgeSize)
+        rightFade:SetTexture(white)
+
+        if topFade.SetGradient and CreateColor then
+            -- VERTICAL: minColor = bottom, maxColor = top
+            topFade:SetGradient("VERTICAL", CreateColor(0, 0, 0, 0.0), CreateColor(0, 0, 0, outerBlackAlpha))
+            botFade:SetGradient("VERTICAL", CreateColor(0, 0, 0, outerBlackAlpha), CreateColor(0, 0, 0, 0.0))
+            -- HORIZONTAL: minColor = left, maxColor = right
+            leftFade:SetGradient("HORIZONTAL", CreateColor(0, 0, 0, outerBlackAlpha), CreateColor(0, 0, 0, 0.0))
+            rightFade:SetGradient("HORIZONTAL", CreateColor(0, 0, 0, 0.0), CreateColor(0, 0, 0, outerBlackAlpha))
+        else
+            topFade:SetVertexColor(0, 0, 0, 0.65)
+            botFade:SetVertexColor(0, 0, 0, 0.65)
+            leftFade:SetVertexColor(0, 0, 0, 0.65)
+            rightFade:SetVertexColor(0, 0, 0, 0.65)
+        end
+
+        -- Crisp 1px outer black rim right at the perimeter edge
+        local rimT = btn:CreateTexture(nil, "ARTWORK", nil, 3)
+        rimT:SetPoint("TOPLEFT", btn, "TOPLEFT", 0, 0)
+        rimT:SetPoint("TOPRIGHT", btn, "TOPRIGHT", 0, 0)
+        rimT:SetHeight(1)
+        rimT:SetTexture(white)
+        rimT:SetVertexColor(0, 0, 0, 0.90)
+
+        local rimB = btn:CreateTexture(nil, "ARTWORK", nil, 3)
+        rimB:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", 0, 0)
+        rimB:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 0, 0)
+        rimB:SetHeight(1)
+        rimB:SetTexture(white)
+        rimB:SetVertexColor(0, 0, 0, 0.90)
+
+        local rimL = btn:CreateTexture(nil, "ARTWORK", nil, 3)
+        rimL:SetPoint("TOPLEFT", btn, "TOPLEFT", 0, 0)
+        rimL:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", 0, 0)
+        rimL:SetWidth(1)
+        rimL:SetTexture(white)
+        rimL:SetVertexColor(0, 0, 0, 0.90)
+
+        local rimR = btn:CreateTexture(nil, "ARTWORK", nil, 3)
+        rimR:SetPoint("TOPRIGHT", btn, "TOPRIGHT", 0, 0)
+        rimR:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 0, 0)
+        rimR:SetWidth(1)
+        rimR:SetTexture(white)
+        rimR:SetVertexColor(0, 0, 0, 0.90)
+
+        btn.edgeFades = { topFade, botFade, leftFade, rightFade, rimT, rimB, rimL, rimR }
+
+        -- Gold CheckButtonHilight active border glow
+        local activeGlow = btn:CreateTexture(nil, "OVERLAY")
+        activeGlow:SetAllPoints(btn)
+        activeGlow:SetTexture("Interface\\Buttons\\CheckButtonHilight")
+        activeGlow:SetBlendMode("ADD")
+        activeGlow:Hide()
+        btn.activeGlow = activeGlow
+
+        btn:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+
+        btn:SetScript("OnClick", function(clicked)
+            if not clicked.isEnabled then
+                return
+            end
+            if self.activeRightTab == clicked.tabKey then
+                return
+            end
+            if PlaySound then
+                PlaySound((SOUNDKIT and SOUNDKIT.IG_CHARACTER_INFO_TAB) or Constants.SOUNDS.PAGE_TURN)
+            end
+            self.activeRightTab = clicked.tabKey
+            if self.detailScroll and self.detailScroll.SetVerticalScroll then
+                self.detailScroll:SetVerticalScroll(0)
+            end
+            if self.bossScroll and self.bossScroll.SetVerticalScroll then
+                self.bossScroll:SetVerticalScroll(0)
+            end
+            self:UpdateSideTabs()
+            self:RefreshLeftPage()
+            self:RefreshRightPage()
+            if self.onTabChanged then
+                self.onTabChanged(clicked.tabKey)
+            end
+        end)
+
+        btn:SetScript("OnEnter", function(b)
+            if not GameTooltip then return end
+            GameTooltip:SetOwner(b, "ANCHOR_RIGHT")
+            if b.tabKey == "overview" then
+                GameTooltip:SetText("Dungeon Overview", 1.0, 0.82, 0.0)
+                if b.isEnabled then
+                    GameTooltip:AddLine("View dungeon lore, artwork, and world map entrance.", 0.90, 0.90, 0.90, true)
+                else
+                    GameTooltip:AddLine("Overview is only available on the main dungeon page.", 0.75, 0.75, 0.75, true)
+                    GameTooltip:AddLine("Click the dungeon portrait in the upper-left to enable.", 0.35, 0.95, 0.45, true)
+                end
+            elseif b.tabKey == "quests" then
+                GameTooltip:SetText("Dungeon Quests", 1.0, 0.82, 0.0)
+                if b.isEnabled then
+                    GameTooltip:AddLine("View all quests, chains, and rewards for this dungeon.", 0.90, 0.90, 0.90, true)
+                else
+                    if b.disabledReason == "no_quests" then
+                        GameTooltip:AddLine("No quests available for your faction or class in this dungeon.", 0.75, 0.75, 0.75, true)
+                    else
+                        GameTooltip:AddLine("Quests are only available on the main dungeon page.", 0.75, 0.75, 0.75, true)
+                        GameTooltip:AddLine("Click the dungeon portrait in the upper-left to enable.", 0.35, 0.95, 0.45, true)
+                    end
+                end
+            else
+                if self.selectedBoss then
+                    GameTooltip:SetText((self.selectedBoss.name or "Boss") .. " — Loot", 1.0, 0.82, 0.0)
+                    GameTooltip:AddLine("Viewing categorized item drops for this encounter.", 0.90, 0.90, 0.90, true)
+                else
+                    GameTooltip:SetText("All Dungeon Loot", 1.0, 0.82, 0.0)
+                    GameTooltip:AddLine("View every item drop across the entire dungeon.", 0.90, 0.90, 0.90, true)
+                end
+            end
+            GameTooltip:Show()
+        end)
+
+        btn:SetScript("OnLeave", function()
+            if GameTooltip then
+                GameTooltip:Hide()
+            end
+        end)
+
+        return btn
+    end
+
+    self.overviewTabBtn = createV6Tab("overview", "Interface\\Icons\\INV_Misc_Bone_HumanSkull_01", "Dungeon Overview")
+    self.lootTabBtn = createV6Tab("loot", "Interface\\Icons\\INV_Box_02", "Loot")
+    self.questsTabBtn = createV6Tab("quests", nil, "Quests")
+    self:UpdateSideTabs()
+end
+
+--- Updates the visual state (active +6px pop-out, enabled inactive, or disabled greyed-out)
+--- and dynamic dungeon emblem icon of the Overview, Loot, and Quests right-side #V6 tabs.
+function DungeonBookView:UpdateSideTabs()
+    if not self.overviewTabBtn or not self.lootTabBtn or not self.questsTabBtn or not self.sideTabHolder then
+        return
+    end
+
+    local overviewIcon = (self.currentDungeon and self.currentDungeon.icon) or "Interface\\Icons\\INV_Misc_Bone_HumanSkull_01"
+    self.overviewTabBtn.icon:SetTexture(overviewIcon)
+
+    local hasBoss = (self.selectedBoss ~= nil)
+
+    -- Modular Quests check: if Utility_Quests module is loaded and enabled, show Quests tab
+    local questDb = parent.QuestDatabase or (ns.QuestDatabase) or (_G.AdventureJournal and _G.AdventureJournal.QuestDatabase)
+    local isQuestsDisabled = (parent.Database and parent.Database.IsPluginDisabled and parent.Database:IsPluginDisabled("utility_quests"))
+        or (_G.JournalBaseDB and _G.JournalBaseDB.disabledPlugins and _G.JournalBaseDB.disabledPlugins["utility_quests"])
+    local hasQuestsModule = (questDb ~= nil and questDb.isInitialized) and not isQuestsDisabled
+    self.questsTabBtn:SetShown(hasQuestsModule)
+
+    local hasQuests = false
+    if hasQuestsModule and self.currentDungeon and questDb then
+        local showBoth = (parent.Database and parent.Database.GetQuestSetting and parent.Database:GetQuestSetting("showBothFactionData", false))
+            or (ns.Database and ns.Database.GetQuestSetting and ns.Database:GetQuestSetting("showBothFactionData", false))
+            or (_G.JournalBaseDB and _G.JournalBaseDB.quests and _G.JournalBaseDB.quests.showBothFactionData)
+            or false
+        local factionFilter = showBoth and "All" or (UnitFactionGroup("player") or "Both")
+        local _, playerClass = UnitClass("player")
+        local qList = questDb:GetDungeonQuests(self.currentDungeon.id, factionFilter, playerClass)
+        hasQuests = (qList and #qList > 0)
+    end
+
+    local overviewEnabled = not hasBoss
+    local lootEnabled = true
+    local questsEnabled = hasQuestsModule and not hasBoss and hasQuests
+    self.questsTabBtn.disabledReason = (hasBoss and "boss_selected") or (not hasQuests and "no_quests") or nil
+
+    -- Auto-fallback if active tab is disabled:
+    if hasBoss and (self.activeRightTab == "overview" or self.activeRightTab == "quests") then
+        self.activeRightTab = "loot"
+    elseif not questsEnabled and self.activeRightTab == "quests" then
+        self.activeRightTab = "overview"
+    end
+
+    local overviewActive = overviewEnabled and (self.activeRightTab == "overview")
+    local lootActive = (self.activeRightTab == "loot")
+    local questsActive = questsEnabled and (self.activeRightTab == "quests")
+
+    local function applyV6VisualState(btn, isActive, isEnabled)
+        btn.isActive = isActive
+        btn.isEnabled = isEnabled
+        local hl = btn.GetHighlightTexture and btn:GetHighlightTexture()
+
+        if not isEnabled then
+            -- Disabled & Greyed Out state (e.g., Overview Tab when a Boss is selected)
+            btn.activeGlow:Hide()
+            btn.icon:SetDesaturated(true)
+            btn.icon:SetVertexColor(0.48, 0.48, 0.48)
+            btn.icon:SetAlpha(0.42)
+            btn.flap:SetDesaturated(true)
+            btn.flap:SetVertexColor(0.55, 0.55, 0.55, 0.85)
+            if hl then hl:Hide() end
+        elseif isActive then
+            -- Active & Popped-Out (+6px right) state
+            btn.activeGlow:Show()
+            btn.icon:SetDesaturated(false)
+            btn.icon:SetVertexColor(1.0, 1.0, 1.0)
+            btn.icon:SetAlpha(1.0)
+            btn.flap:SetDesaturated(false)
+            btn.flap:SetVertexColor(1.0, 1.0, 1.0, 1.0)
+            if hl then hl:Show() end
+        else
+            -- Enabled & Inactive state (clickable, normal colors)
+            btn.activeGlow:Hide()
+            btn.icon:SetDesaturated(false)
+            if btn.tabKey == "quests" then
+                btn.icon:SetVertexColor(1.0, 1.0, 1.0)
+                btn.icon:SetAlpha(1.0)
+            else
+                btn.icon:SetVertexColor(0.85, 0.80, 0.72)
+                btn.icon:SetAlpha(0.85)
+            end
+            btn.flap:SetDesaturated(false)
+            btn.flap:SetVertexColor(0.92, 0.88, 0.82, 1.0)
+            if hl then hl:Show() end
+        end
+    end
+
+    applyV6VisualState(self.overviewTabBtn, overviewActive, overviewEnabled)
+    applyV6VisualState(self.lootTabBtn, lootActive, lootEnabled)
+    applyV6VisualState(self.questsTabBtn, questsActive, questsEnabled)
+
+    -- #V6 Active Shift Right (+25% scaled: +6px pop-out when active, 15px vertical gap)
+    local activePopX = 6
+    local gap = 15
+    local pop1 = overviewActive and activePopX or 0
+    local pop2 = lootActive and activePopX or 0
+    local pop3 = questsActive and activePopX or 0
+
+    self.overviewTabBtn:ClearAllPoints()
+    self.overviewTabBtn:SetPoint("TOPLEFT", self.sideTabHolder, "TOPLEFT", pop1, 0)
+
+    self.lootTabBtn:ClearAllPoints()
+    self.lootTabBtn:SetPoint("TOPLEFT", self.overviewTabBtn, "BOTTOMLEFT", pop2 - pop1, -gap)
+
+    self.questsTabBtn:ClearAllPoints()
+    self.questsTabBtn:SetPoint("TOPLEFT", self.lootTabBtn, "BOTTOMLEFT", pop3 - pop2, -gap)
+end
+
+DungeonBookView.UpdateRightSideTabStates = DungeonBookView.UpdateSideTabs
 
 --- Builds the Instance Overview pane (Artwork banner + lore text).
 function DungeonBookView:BuildInstanceOverviewPane(rightPage)
@@ -616,7 +1094,7 @@ function DungeonBookView:BuildInstanceOverviewPane(rightPage)
                     if self.selectedBoss ~= prevBoss and self.selectedBoss and self.onSelectBoss then
                         self.onSelectBoss(self.selectedBoss)
                     end
-                elseif self.selectedBoss then
+                elseif self.selectedBoss or self.activeRightTab == "loot" or self.activeRightTab == "quests" then
                     self:RefreshRightPage()
                 end
             end
@@ -796,14 +1274,27 @@ function DungeonBookView:AcquireItemRow(index)
 
     local subLeftText = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     subLeftText:SetPoint("BOTTOMLEFT", icon, "BOTTOMRIGHT", 8, 3)
+    subLeftText:SetHeight(12)
     subLeftText:SetJustifyH("LEFT")
+    subLeftText:SetWordWrap(false)
+    if subLeftText.SetMaxLines then pcall(subLeftText.SetMaxLines, subLeftText, 1) end
     subLeftText:SetTextColor(0.75, 0.70, 0.60)
     row.subLeftText = subLeftText
 
     local subRightText = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     subRightText:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -8, 3)
+    subRightText:SetHeight(12)
     subRightText:SetJustifyH("RIGHT")
+    subRightText:SetWordWrap(false)
+    if subRightText.SetMaxLines then pcall(subRightText.SetMaxLines, subRightText, 1) end
     row.subRightText = subRightText
+
+    local bossSourceText = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    bossSourceText:SetJustifyH("LEFT")
+    bossSourceText:SetWordWrap(false)
+    bossSourceText:SetTextColor(0.92, 0.78, 0.42)
+    bossSourceText:Hide()
+    row.bossSourceText = bossSourceText
 
     row:SetScript("OnEnter", function(r)
         if not GameTooltip or not r.itemID then return end
@@ -845,13 +1336,171 @@ function DungeonBookView:AcquireItemRow(index)
     return row
 end
 
+--- Acquires or creates a pooled Quest list button on the Left Page.
+--- Styled identically to the Boss Buttons (metallic beveled borders, subtle highlights/shadows)
+--- using Interface\AchievementFrame\UI-Achievement-Parchment-Horizontal-Desaturated as the background,
+--- a QuestNormal atlas icon on the left, gold quest title, and player-level relative difficulty colored level text.
+--- @param index number
+--- @return Button
+function DungeonBookView:AcquireQuestButton(index)
+    local btn = self.questButtonPool[index]
+    if btn then
+        btn:Show()
+        return btn
+    end
+
+    local white = Constants.ASSETS.WHITE_8X8
+    local bookCfg = Constants.BOOK
+
+    btn = CreateFrame("Button", nil, self.bossScrollChild)
+    btn:SetSize((bookCfg.BOSS_BTN_WIDTH or 268) + 8, bookCfg.BOSS_BTN_HEIGHT or 44)
+
+    -- 1. Outer subtle drop shadow (matching boss buttons)
+    local shadow = btn:CreateTexture(nil, "BACKGROUND", nil, -5)
+    shadow:SetPoint("TOPLEFT", btn, "TOPLEFT", -1, 1)
+    shadow:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 1, -1)
+    shadow:SetTexture(white)
+    shadow:SetVertexColor(0.02, 0.02, 0.01, 0.60)
+    btn._dropShadow = shadow
+
+    -- 2. Base dark rim (1px border)
+    local baseRim = btn:CreateTexture(nil, "BACKGROUND", nil, -4)
+    baseRim:SetAllPoints(btn)
+    baseRim:SetTexture(white)
+    baseRim:SetVertexColor(0.12, 0.09, 0.06, 0.95)
+    btn._baseRim = baseRim
+
+    -- 3. Textured Desaturated Achievement Parchment fill
+    local fill = btn:CreateTexture(nil, "BACKGROUND", nil, -3)
+    fill:SetPoint("TOPLEFT", btn, "TOPLEFT", 1, -1)
+    fill:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -1, 1)
+    fill:SetTexture("Interface\\AchievementFrame\\UI-Achievement-Parchment-Horizontal-Desaturated")
+    fill:SetVertexColor(1.0, 1.0, 1.0, 1.0)
+    btn._fill = fill
+
+    -- 4. Subtle top/left highlights and bottom/right shadows for embossed 3D feel
+    local topHi = btn:CreateTexture(nil, "BACKGROUND", nil, -2)
+    topHi:SetHeight(1)
+    topHi:SetPoint("TOPLEFT", btn, "TOPLEFT", 1, -1)
+    topHi:SetPoint("TOPRIGHT", btn, "TOPRIGHT", -1, -1)
+    topHi:SetTexture(white)
+    topHi:SetVertexColor(0.56, 0.44, 0.26, 0.70)
+
+    local leftHi = btn:CreateTexture(nil, "BACKGROUND", nil, -2)
+    leftHi:SetWidth(1)
+    leftHi:SetPoint("TOPLEFT", btn, "TOPLEFT", 1, -1)
+    leftHi:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", 1, 1)
+    leftHi:SetTexture(white)
+    leftHi:SetVertexColor(0.48, 0.38, 0.22, 0.60)
+
+    local botSh = btn:CreateTexture(nil, "BACKGROUND", nil, -2)
+    botSh:SetHeight(1)
+    botSh:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", 1, 1)
+    botSh:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -1, 1)
+    botSh:SetTexture(white)
+    botSh:SetVertexColor(0.04, 0.03, 0.02, 0.95)
+
+    local rightSh = btn:CreateTexture(nil, "BACKGROUND", nil, -2)
+    rightSh:SetWidth(1)
+    rightSh:SetPoint("TOPRIGHT", btn, "TOPRIGHT", -1, -1)
+    rightSh:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -1, 1)
+    rightSh:SetTexture(white)
+    rightSh:SetVertexColor(0.04, 0.03, 0.02, 0.95)
+
+    -- Subtle 1px inset hover highlight matching boss button treatment
+    local hover = btn:CreateTexture(nil, "HIGHLIGHT")
+    hover:SetPoint("TOPLEFT", btn, "TOPLEFT", 1, -1)
+    hover:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -1, 1)
+    hover:SetTexture(white)
+    hover:SetBlendMode("ADD")
+    hover:SetVertexColor(0.95, 0.80, 0.35, 0.18)
+
+    -- 5a. Chain badge placed directly UNDER the quest marker so they overlap
+    local chainBadge = btn:CreateTexture(nil, "ARTWORK")
+    chainBadge:SetSize(26, 26)
+    chainBadge:SetPoint("CENTER", btn, "LEFT", 22, 0)
+    chainBadge:SetTexture("Interface\\AddOns\\Adventure_Journal\\Art\\Icons\\fdj_quest_chain.tga")
+    chainBadge:Hide()
+    btn.chainBadge = chainBadge
+
+    -- 5b. Quest icon on the left (in OVERLAY layer above the chain badge)
+    local qIcon = btn:CreateTexture(nil, "OVERLAY")
+    qIcon:SetSize(24, 24)
+    qIcon:SetPoint("CENTER", btn, "LEFT", 22, 0)
+    if qIcon.SetAtlas then
+        local ok = pcall(qIcon.SetAtlas, qIcon, "QuestNormal")
+        if not ok then
+            qIcon:SetTexture("Interface\\GossipFrame\\AvailableQuestIcon")
+        end
+    else
+        qIcon:SetTexture("Interface\\GossipFrame\\AvailableQuestIcon")
+    end
+    btn.qIcon = qIcon
+
+    -- 6. Level text on the right (difficulty colored based on player level)
+    local levelText = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    levelText:SetPoint("RIGHT", btn, "RIGHT", -12, 0)
+    levelText:SetJustifyH("RIGHT")
+    levelText:SetShadowColor(0, 0, 0, 1.0)
+    levelText:SetShadowOffset(1, -1)
+    btn.levelText = levelText
+
+    -- 7. Quest title in gold text (word-wrapped across up to two lines)
+    local nameText = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    local fontFile, fontSize, fontFlags = nameText:GetFont()
+    if fontFile then
+        nameText:SetFont(fontFile, (fontSize or 12), fontFlags or "")
+    end
+    nameText:SetTextColor(1.0, 0.82, 0.0)
+    nameText:SetShadowColor(0, 0, 0, 1.0)
+    nameText:SetShadowOffset(1, -1)
+    nameText:SetPoint("LEFT", btn, "LEFT", 40, 0)
+    nameText:SetPoint("RIGHT", levelText, "LEFT", -6, 0)
+    nameText:SetJustifyH("LEFT")
+    nameText:SetJustifyV("MIDDLE")
+    nameText:SetWordWrap(true)
+    nameText:SetHeight(btn:GetHeight() - 6)
+    btn.nameText = nameText
+
+    -- 8. Selection Glow (matching boss button treatment)
+    local selectedGlow = btn:CreateTexture(nil, "ARTWORK", nil, 1)
+    selectedGlow:SetPoint("TOPLEFT", btn, "TOPLEFT", 1, -1)
+    selectedGlow:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -1, 1)
+    selectedGlow:SetTexture(white)
+    selectedGlow:SetVertexColor(0.85, 0.62, 0.18, 0.28)
+    selectedGlow:Hide()
+    btn.selectedGlow = selectedGlow
+
+    -- 9. Click handler: selects this quest and updates both pages
+    btn:RegisterForClicks("LeftButtonUp")
+    btn:SetScript("OnClick", function(b)
+        if PlaySound then
+            PlaySound((SOUNDKIT and SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON) or Constants.SOUNDS.CLICK)
+        end
+        self.selectedQuest = b.quest
+        self:RefreshLeftPage()
+        self:RefreshRightPage()
+    end)
+
+    self.questButtonPool[index] = btn
+    return btn
+end
+
 --- Sets the active dungeon and optional selected boss, then refreshes both pages.
 --- @param dungeon table
 --- @param boss table|nil
 --- @param searchQuery string|nil
-function DungeonBookView:SetContext(dungeon, boss, searchQuery)
+--- @param preserveRightTab boolean|nil
+function DungeonBookView:SetContext(dungeon, boss, searchQuery, preserveRightTab)
     self.currentDungeon = dungeon
     self.selectedBoss = boss
+    self.selectedQuest = nil
+    self.suppressSearchAutoBoss = (preserveRightTab == true and boss == nil)
+    if not preserveRightTab then
+        self.activeRightTab = boss and "loot" or "overview"
+    elseif boss then
+        self.activeRightTab = "loot"
+    end
     if searchQuery ~= nil then
         self.searchQuery = searchQuery
     end
@@ -862,6 +1511,10 @@ function DungeonBookView:SetContext(dungeon, boss, searchQuery)
         self.bossScroll:SetVerticalScroll(0)
     end
     self:RefreshLeftPage()
+    if self.selectedBoss then
+        self.activeRightTab = "loot"
+    end
+    self:UpdateSideTabs()
     self:RefreshRightPage()
 end
 
@@ -869,23 +1522,35 @@ end
 --- @param queryText string
 function DungeonBookView:SetSearchQuery(queryText)
     self.searchQuery = queryText or ""
+    self.suppressSearchAutoBoss = false
     if self.frame and self.frame:IsShown() then
         if self.bossScroll and self.bossScroll.SetVerticalScroll then
             self.bossScroll:SetVerticalScroll(0)
         end
         self:RefreshLeftPage()
+        if self.selectedBoss then
+            self.activeRightTab = "loot"
+        end
+        self:UpdateSideTabs()
         self:RefreshRightPage()
     end
 end
 
---- Updates only the selected boss (or `nil` for Instance Overview) and refreshes.
+--- Updates only the selected boss (or `nil` for Instance Overview / Full Dungeon Loot) and refreshes.
 --- @param boss table|nil
 function DungeonBookView:SetSelectedBoss(boss)
     self.selectedBoss = boss
+    if boss then
+        self.activeRightTab = "loot"
+        self.suppressSearchAutoBoss = false
+    else
+        self.suppressSearchAutoBoss = true
+    end
     if self.detailScroll and self.detailScroll.SetVerticalScroll then
         self.detailScroll:SetVerticalScroll(0)
     end
     self:RefreshLeftPage()
+    self:UpdateSideTabs()
     self:RefreshRightPage()
 end
 
@@ -956,13 +1621,37 @@ function DungeonBookView:RefreshLeftPage()
     if showDifficultyColor then
         local r, g, b = SharedWidgets:GetDungeonDifficultyColor(d)
         local hex = string.format("%02x%02x%02x", math.floor(r * 255), math.floor(g * 255), math.floor(b * 255))
-        self.dungeonMeta:SetText(string.format("|cff%sLvl %s|r • %s", hex, d.level or "?", d.location or ""))
+        self.dungeonMeta:SetText(string.format("|cff%sLv %s|r • %s", hex, d.level or "?", d.location or ""))
     else
-        self.dungeonMeta:SetText(string.format("Lvl %s • %s", d.level or "?", d.location or ""))
+        self.dungeonMeta:SetText(string.format("Lv %s • %s", d.level or "?", d.location or ""))
     end
 
     for _, btn in ipairs(self.bossButtonPool) do
         btn:Hide()
+    end
+
+    self.dungeonTitle:SetText(d.name or "Dungeon")
+
+    if self.activeRightTab == "quests" then
+        self.leftDivider:Show()
+        self.bossScroll:Show()
+        if self.eventDivider then self.eventDivider:Hide() end
+        if self.rareHeader then self.rareHeader:Hide() end
+        if self.minorHeader then self.minorHeader:Hide() end
+        if self.challengeHeader then self.challengeHeader:Hide() end
+        if self.trashDivider then self.trashDivider:Hide() end
+        if self.questFactionDivider then self.questFactionDivider:Hide() end
+        if self.noEncountersText then self.noEncountersText:Hide() end
+
+        self:RenderDungeonQuests(d)
+        return
+    else
+        self.leftDivider:Show()
+        self.bossScroll:Show()
+        if self.questFactionDivider then self.questFactionDivider:Hide() end
+        for _, btn in ipairs(self.questButtonPool) do
+            btn:Hide()
+        end
     end
 
     local q = (type(self.searchQuery) == "string" and strlower(self.searchQuery:match("^%s*(.-)%s*$") or "")) or ""
@@ -1029,6 +1718,82 @@ function DungeonBookView:RefreshLeftPage()
                 if self.selectedBoss == boss then
                     selectedBossMatches = true
                 end
+            end
+        end
+    end
+
+    -- Evaluate Zone Drops and search match counts BEFORE rendering boss buttons
+    local zoneDrops = ns.ItemsManager and ns.ItemsManager:GetEncounterDrops(d.id, "Zone Drops") or {}
+    local hasZoneDrops = (#zoneDrops > 0)
+    if hasZoneDrops and q ~= "" then
+        local zoneMatches = false
+        if strfind("zone drops", q, 1, true) then
+            zoneMatches = true
+        elseif ns.ItemsManager and ns.ItemsManager.BossMatchesQuery then
+            zoneMatches = ns.ItemsManager:BossMatchesQuery(d.id, { name = "Zone Drops", isZone = true }, q)
+        end
+        hasZoneDrops = zoneMatches
+    end
+
+    if not self.zoneBossEntry or self.zoneBossEntry.dungeonId ~= d.id then
+        self.zoneBossEntry = {
+            dungeonId = d.id,
+            name = "Zone Drops",
+            isZone = true,
+            isTrash = true,
+            classification = "trash",
+            icon = "Interface\\Icons\\INV_Box_01",
+            level = "Zone",
+            description = string.format("Notable zone-wide drops from creatures throughout %s.", d.name or "the dungeon"),
+        }
+    end
+
+    if hasZoneDrops and self.selectedBoss and (self.selectedBoss.isZone or self.selectedBoss.isTrash) then
+        self.selectedBoss = self.zoneBossEntry
+        selectedBossMatches = true
+    end
+
+    -- Auto-select behavior when search query is active:
+    --   * Multiple item/encounter matches in the dungeon -> bring up Full Dungeon Loot (`selectedBoss = nil`, `activeRightTab = "loot"`)
+    --   * Single match -> auto-select that single encounter
+    if q ~= "" and not self.suppressSearchAutoBoss then
+        local matchingEncounterCount = #eventBosses + #mainBosses + #rareBosses + #minorBosses + #challengeBosses + (hasZoneDrops and 1 or 0)
+        local matchingItemCount = 0
+        if ns.ItemsManager and ns.ItemsManager.ItemMatchesQuery then
+            local parsedQuery = ns.ItemsManager.ParseQuery and ns.ItemsManager:ParseQuery(q) or q
+            local seenItems = {}
+            local function countBossItems(bossKey)
+                local drops = ns.ItemsManager:GetEncounterDrops(d.id, bossKey) or {}
+                for _, itemID in ipairs(drops) do
+                    if not seenItems[itemID] then
+                        seenItems[itemID] = true
+                        if ns.ItemsManager:ItemMatchesQuery(itemID, parsedQuery) then
+                            matchingItemCount = matchingItemCount + 1
+                        end
+                    end
+                end
+            end
+            for _, b in ipairs(eventBosses) do countBossItems(b.name) end
+            for _, b in ipairs(mainBosses) do countBossItems(b.name) end
+            for _, b in ipairs(rareBosses) do countBossItems(b.name) end
+            for _, b in ipairs(minorBosses) do countBossItems(b.name) end
+            for _, b in ipairs(challengeBosses) do countBossItems(b.name) end
+            if hasZoneDrops then countBossItems("Zone Drops") end
+        end
+
+        if not selectedBossMatches then
+            if matchingItemCount > 1 or matchingEncounterCount > 1 then
+                self.selectedBoss = nil
+                self.activeRightTab = "loot"
+            elseif firstMatchingBoss then
+                self.selectedBoss = firstMatchingBoss
+                self.activeRightTab = "loot"
+            elseif hasZoneDrops then
+                self.selectedBoss = self.zoneBossEntry
+                self.activeRightTab = "loot"
+            else
+                self.selectedBoss = nil
+                self.activeRightTab = "loot"
             end
         end
     end
@@ -1248,50 +2013,6 @@ function DungeonBookView:RefreshLeftPage()
     end
 
     -- 6. ZONE DROPS AT THE BOTTOM
-    local zoneDrops = ns.ItemsManager and ns.ItemsManager:GetEncounterDrops(d.id, "Zone Drops") or {}
-    local hasZoneDrops = (#zoneDrops > 0)
-    if hasZoneDrops and q ~= "" then
-        local zoneMatches = false
-        if strfind("zone drops", q, 1, true) then
-            zoneMatches = true
-        elseif ns.ItemsManager and ns.ItemsManager.BossMatchesQuery then
-            zoneMatches = ns.ItemsManager:BossMatchesQuery(d.id, { name = "Zone Drops", isZone = true }, q)
-        end
-        hasZoneDrops = zoneMatches
-    end
-
-    if not self.zoneBossEntry or self.zoneBossEntry.dungeonId ~= d.id then
-        self.zoneBossEntry = {
-            dungeonId = d.id,
-            name = "Zone Drops",
-            isZone = true,
-            isTrash = true,
-            classification = "trash",
-            icon = "Interface\\Icons\\INV_Box_01",
-            level = "Zone",
-            description = string.format("Notable zone-wide drops from creatures throughout %s.", d.name or "the dungeon"),
-        }
-    end
-
-    -- Preserve Zone Drops selection if currently selected and valid
-    if hasZoneDrops and self.selectedBoss and (self.selectedBoss.isZone or self.selectedBoss.isTrash) then
-        self.selectedBoss = self.zoneBossEntry
-        selectedBossMatches = true
-    end
-
-    -- Auto-select matching boss or zone drops when search query is active
-    if q ~= "" then
-        if not selectedBossMatches then
-            if firstMatchingBoss then
-                self.selectedBoss = firstMatchingBoss
-            elseif hasZoneDrops then
-                self.selectedBoss = self.zoneBossEntry
-            else
-                self.selectedBoss = nil
-            end
-        end
-    end
-
     if hasZoneDrops then
         local dividerY = currentY
         if self.trashDivider then
@@ -1347,29 +2068,24 @@ end
 local ITEM_CATEGORIES = {
     { id = "EQUIPMENT", title = "Equipment" },
     { id = "RECIPE", title = "Recipes" },
-    { id = "COLLECTIBLE", title = "Collectibles" },
     { id = "QUEST", title = "Quest Items & Keys" },
+    { id = "COLLECTIBLE", title = "Collectibles" },
     { id = "MISC", title = "Other" },
 }
 
---- Groups, formats, and renders categorized item drop rows.
---- @param d table
---- @param boss table
-function DungeonBookView:RenderItemDrops(d, boss)
+--- Shared categorized item drop renderer supporting both Single-Boss Loot and Full-Dungeon Loot.
+--- @param entries table Array of `{ itemID = number, sourceBossName = string|nil }`
+--- @param filterByItem boolean
+--- @param parsedQuery table|nil
+--- @param q string
+--- @param emptyText string
+function DungeonBookView:RenderCategorizedDropEntries(entries, filterByItem, parsedQuery, q, emptyText)
     for _, hdr in ipairs(self.categoryHeaderPool) do hdr:Hide() end
     for _, row in ipairs(self.itemRowPool) do row:Hide() end
+    for _, btn in ipairs(self.questButtonPool) do btn:Hide() end
 
-    local bossKey = (boss.isZone or boss.isTrash) and "Zone Drops" or boss.name
-    local dropIDs = ns.ItemsManager and ns.ItemsManager:GetEncounterDrops(d.id, bossKey) or {}
-
-    local q = (type(self.searchQuery) == "string" and strlower(self.searchQuery:match("^%s*(.-)%s*$") or "")) or ""
-    local parsedQuery = (q ~= "" and ns.ItemsManager and ns.ItemsManager.ParseQuery) and ns.ItemsManager:ParseQuery(q) or nil
-    local isMultiConstraint = parsedQuery and ((#parsedQuery.tags > 1) or parsedQuery.minLevel or parsedQuery.maxLevel or (#parsedQuery.tags == 1 and #parsedQuery.textTerms > 0))
-    local bossNameMatches = (not isMultiConstraint) and (boss.name and strfind(strlower(boss.name), q, 1, true))
-    local filterByItem = (q ~= "" and not bossNameMatches)
-
-    if #dropIDs == 0 then
-        self.noDropsText:SetText("No item drops recorded for this encounter.")
+    if not entries or #entries == 0 then
+        self.noDropsText:SetText(emptyText or "No item drops recorded for this encounter.")
         self.noDropsText:Show()
         self.detailScrollChild:SetHeight(60)
         ns.UI.SharedWidgets:UpdateScrollFrameVisibility(self.detailScroll, 60)
@@ -1381,12 +2097,13 @@ function DungeonBookView:RenderItemDrops(d, boss)
     local grouped = {
         EQUIPMENT = {},
         RECIPE = {},
-        COLLECTIBLE = {},
         QUEST = {},
+        COLLECTIBLE = {},
         MISC = {},
     }
 
-    for _, itemID in ipairs(dropIDs) do
+    for _, entry in ipairs(entries) do
+        local itemID = entry.itemID
         local itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, _, classID, subclassID = safeGetItemInfo(itemID)
         local catalogRec = ns.ItemsManager and ns.ItemsManager.GetItem and ns.ItemsManager:GetItem(itemID) or nil
 
@@ -1428,6 +2145,9 @@ function DungeonBookView:RenderItemDrops(d, boss)
             else
                 matchesQuery = strfind(strlower(displayName), q, 1, true) ~= nil
             end
+            if not matchesQuery and entry.sourceBossName and q ~= "" then
+                matchesQuery = strfind(strlower(entry.sourceBossName), q, 1, true) ~= nil
+            end
         end
 
         if matchesQuery then
@@ -1445,6 +2165,7 @@ function DungeonBookView:RenderItemDrops(d, boss)
                     texture = itemTexture or "Interface\\Icons\\INV_Misc_QuestionMark",
                     classID = classID,
                     subclassID = subclassID,
+                    sourceBossName = entry.sourceBossName,
                 }
                 grouped[cat][#grouped[cat] + 1] = itemData
             end
@@ -1454,7 +2175,6 @@ function DungeonBookView:RenderItemDrops(d, boss)
     local currentY = 0
     local hdrIdx = 0
     local rowIdx = 0
-    local rowH = 36
     local rowGap = 4
 
     for _, catDef in ipairs(ITEM_CATEGORIES) do
@@ -1473,6 +2193,10 @@ function DungeonBookView:RenderItemDrops(d, boss)
             for _, item in ipairs(items) do
                 rowIdx = rowIdx + 1
                 local row = self:AcquireItemRow(rowIdx)
+                local hasBossSubtitle = (item.sourceBossName ~= nil and item.sourceBossName ~= "")
+                local rowH = hasBossSubtitle and 48 or 36
+                row:SetHeight(rowH)
+
                 row:ClearAllPoints()
                 row:SetPoint("TOPLEFT", self.detailScrollChild, "TOPLEFT", 4, currentY)
                 row:SetPoint("TOPRIGHT", self.detailScrollChild, "TOPRIGHT", -4, currentY)
@@ -1480,11 +2204,45 @@ function DungeonBookView:RenderItemDrops(d, boss)
                 row.itemID = item.id
                 row.itemLink = item.link
 
+                row.icon:ClearAllPoints()
+                if hasBossSubtitle then
+                    row.icon:SetSize(34, 34)
+                    row.icon:SetPoint("LEFT", row, "LEFT", 3, 0)
+                else
+                    row.icon:SetSize(32, 32)
+                    row.icon:SetPoint("LEFT", row, "LEFT", 2, 0)
+                end
                 row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
                 row.icon:SetTexture(item.texture or "Interface\\Icons\\INV_Misc_QuestionMark")
 
                 local r, g, b = safeGetItemQualityColor(item.quality)
                 row:SetBorderColor(r, g, b, 1.0)
+
+                row.nameText:ClearAllPoints()
+                row.subLeftText:ClearAllPoints()
+                row.subRightText:ClearAllPoints()
+
+                if hasBossSubtitle then
+                    row.nameText:SetPoint("TOPLEFT", row, "TOPLEFT", 44, -3)
+                    row.nameText:SetPoint("RIGHT", row, "RIGHT", -8, 0)
+                    row.subLeftText:SetPoint("TOPLEFT", row, "TOPLEFT", 44, -18)
+                    row.subRightText:SetPoint("TOPRIGHT", row, "TOPRIGHT", -8, -18)
+                    if row.bossSourceText then
+                        row.bossSourceText:ClearAllPoints()
+                        row.bossSourceText:SetPoint("TOPLEFT", row, "TOPLEFT", 44, -32)
+                        row.bossSourceText:SetPoint("RIGHT", row, "RIGHT", -8, 0)
+                        row.bossSourceText:SetText(item.sourceBossName)
+                        row.bossSourceText:Show()
+                    end
+                else
+                    row.nameText:SetPoint("TOPLEFT", row.icon, "TOPRIGHT", 8, -2)
+                    row.nameText:SetPoint("RIGHT", row, "RIGHT", -8, 0)
+                    row.subLeftText:SetPoint("BOTTOMLEFT", row.icon, "BOTTOMRIGHT", 8, 3)
+                    row.subRightText:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -8, 3)
+                    if row.bossSourceText then
+                        row.bossSourceText:Hide()
+                    end
+                end
 
                 row.nameText:SetText(item.name or ("Item #" .. tostring(item.id)))
                 row.nameText:SetTextColor(r, g, b)
@@ -1554,7 +2312,7 @@ function DungeonBookView:RenderItemDrops(d, boss)
         if filterByItem then
             self.noDropsText:SetText(string.format("No drops matching \"%s\".", self.searchQuery or ""))
         else
-            self.noDropsText:SetText("No item drops recorded for this encounter.")
+            self.noDropsText:SetText(emptyText or "No item drops recorded for this encounter.")
         end
         self.noDropsText:Show()
         self.detailScrollChild:SetHeight(60)
@@ -1567,7 +2325,1496 @@ function DungeonBookView:RenderItemDrops(d, boss)
     ns.UI.SharedWidgets:UpdateScrollFrameVisibility(self.detailScroll, totalContentH)
 end
 
---- Renders the Right Page based on whether a boss is selected.
+--- Groups, formats, and renders categorized item drop rows for a single selected boss.
+--- @param d table
+--- @param boss table
+function DungeonBookView:RenderItemDrops(d, boss)
+    local bossKey = (boss.isZone or boss.isTrash) and "Zone Drops" or boss.name
+    local dropIDs = ns.ItemsManager and ns.ItemsManager:GetEncounterDrops(d.id, bossKey) or {}
+
+    local q = (type(self.searchQuery) == "string" and strlower(self.searchQuery:match("^%s*(.-)%s*$") or "")) or ""
+    local parsedQuery = (q ~= "" and ns.ItemsManager and ns.ItemsManager.ParseQuery) and ns.ItemsManager:ParseQuery(q) or nil
+    local isMultiConstraint = parsedQuery and ((#parsedQuery.tags > 1) or parsedQuery.minLevel or parsedQuery.maxLevel or (#parsedQuery.tags == 1 and #parsedQuery.textTerms > 0))
+    local bossNameMatches = (not isMultiConstraint) and (boss.name and strfind(strlower(boss.name), q, 1, true))
+    local filterByItem = (q ~= "" and not bossNameMatches)
+
+    local entries = {}
+    for _, itemID in ipairs(dropIDs) do
+        entries[#entries + 1] = {
+            itemID = itemID,
+            sourceBossName = nil,
+        }
+    end
+
+    self:RenderCategorizedDropEntries(entries, filterByItem, parsedQuery, q, "No item drops recorded for this encounter.")
+end
+
+--- Collects and renders every item drop across the entire dungeon (`d`), categorized in
+--- standard encounter order (`Equipment` -> `Recipes` -> `Quest Items` -> `Collectibles` -> `Other`),
+--- with the source Boss Name (or `"Zone Drops"`) displayed directly under each item.
+--- @param d table
+function DungeonBookView:RenderDungeonItemDrops(d)
+    local showMinor = true
+    local showEventBosses = "holiday"
+    local showDungeonSetChallenges = false
+    if _G.JournalBase and _G.JournalBase.GetDungeonSetting then
+        showMinor = _G.JournalBase:GetDungeonSetting("showMinorMonsters", true) == true
+        showEventBosses = _G.JournalBase:GetDungeonSetting("showEventBosses", "holiday")
+        showDungeonSetChallenges = _G.JournalBase:GetDungeonSetting("showDungeonSetChallenges", false) == true
+    end
+
+    local q = (type(self.searchQuery) == "string" and strlower(self.searchQuery:match("^%s*(.-)%s*$") or "")) or ""
+    local parsedQuery = (q ~= "" and ns.ItemsManager and ns.ItemsManager.ParseQuery) and ns.ItemsManager:ParseQuery(q) or nil
+    local isSearching = (q ~= "")
+
+    local eventBosses = {}
+    local mainBosses = {}
+    local rareBosses = {}
+    local minorBosses = {}
+    local challengeBosses = {}
+
+    for _, boss in ipairs(d.bosses or {}) do
+        if boss.isEvent then
+            local shouldShow = true
+            local holidayMgr = ns.HolidayManager or (_G.JournalBase and _G.JournalBase.HolidayManager)
+            if holidayMgr and holidayMgr.ShouldShowEventBoss then
+                shouldShow = holidayMgr:ShouldShowEventBoss(boss, showEventBosses)
+            else
+                shouldShow = (showEventBosses == "always") or (showEventBosses == true)
+            end
+            if shouldShow or isSearching then
+                eventBosses[#eventBosses + 1] = boss
+            end
+        elseif boss.isChallenge then
+            if showDungeonSetChallenges or isSearching then
+                challengeBosses[#challengeBosses + 1] = boss
+            end
+        else
+            local isRare = (boss.rare == true) or (boss.isRare == true) or (boss.classification == "rare") or (boss.classification == "rareelite")
+            local isMinor = (boss.isMinor == true) or (boss.classification == "minor") or (boss.classification == "quest")
+            if isRare then
+                rareBosses[#rareBosses + 1] = boss
+            elseif isMinor then
+                if showMinor or isSearching then
+                    minorBosses[#minorBosses + 1] = boss
+                end
+            else
+                mainBosses[#mainBosses + 1] = boss
+            end
+        end
+    end
+
+    local orderedSources = {}
+    for _, b in ipairs(eventBosses) do orderedSources[#orderedSources + 1] = { key = b.name, label = b.name } end
+    for _, b in ipairs(mainBosses) do orderedSources[#orderedSources + 1] = { key = b.name, label = b.name } end
+    for _, b in ipairs(rareBosses) do orderedSources[#orderedSources + 1] = { key = b.name, label = b.name } end
+    for _, b in ipairs(minorBosses) do orderedSources[#orderedSources + 1] = { key = b.name, label = b.name } end
+    for _, b in ipairs(challengeBosses) do orderedSources[#orderedSources + 1] = { key = b.name, label = b.name } end
+    orderedSources[#orderedSources + 1] = { key = "Zone Drops", label = "Zone Drops" }
+
+    local entries = {}
+    local entryByItemID = {}
+
+    for _, src in ipairs(orderedSources) do
+        local dropIDs = ns.ItemsManager and ns.ItemsManager:GetEncounterDrops(d.id, src.key) or {}
+        for _, itemID in ipairs(dropIDs) do
+            local existing = entryByItemID[itemID]
+            if not existing then
+                local newEntry = {
+                    itemID = itemID,
+                    sourceBossName = src.label,
+                    _seenBosses = { [src.label] = true },
+                }
+                entryByItemID[itemID] = newEntry
+                entries[#entries + 1] = newEntry
+            elseif not existing._seenBosses[src.label] then
+                existing._seenBosses[src.label] = true
+                existing.sourceBossName = existing.sourceBossName .. ", " .. src.label
+            end
+        end
+    end
+
+    self:RenderCategorizedDropEntries(entries, isSearching, parsedQuery, q, "No item drops recorded for this dungeon.")
+end
+
+--- Renders all available quests for the dungeon inside `bossScrollChild` on the Left Page.
+--- Buttons are styled identically to boss buttons (metallic beveled border + drop shadow),
+--- with `Interface\AchievementFrame\UI-Achievement-Parchment-Horizontal-Desaturated` fill,
+--- QuestNormal icon on left, gold quest title, and player-level relative difficulty colored level badge.
+--- Spaced generously matching the boss buttons.
+--- @param d table
+function DungeonBookView:RenderDungeonQuests(d)
+    for _, btn in ipairs(self.questButtonPool) do btn:Hide() end
+    if self.questFactionDivider then self.questFactionDivider:Hide() end
+
+    if not d then return end
+
+    local questDb = parent.QuestDatabase or (ns.QuestDatabase) or (_G.AdventureJournal and _G.AdventureJournal.QuestDatabase)
+    local playerFaction = UnitFactionGroup("player") or "Both"
+    local _, playerClass = UnitClass("player")
+
+    local showBoth = (parent.Database and parent.Database.GetQuestSetting and parent.Database:GetQuestSetting("showBothFactionData", false))
+        or (ns.Database and ns.Database.GetQuestSetting and ns.Database:GetQuestSetting("showBothFactionData", false))
+        or (_G.JournalBaseDB and _G.JournalBaseDB.quests and _G.JournalBaseDB.quests.showBothFactionData)
+        or false
+
+    local topQuests = {}
+    local bottomQuests = {}
+
+    if showBoth then
+        local allQuests = (questDb and questDb:GetDungeonQuests(d.id, "All", playerClass)) or {}
+        for _, q in ipairs(allQuests) do
+            local qFaction = q.faction or "Both"
+            if qFaction == "Both" or qFaction == playerFaction then
+                topQuests[#topQuests + 1] = q
+            else
+                bottomQuests[#bottomQuests + 1] = q
+            end
+        end
+    else
+        topQuests = (questDb and questDb:GetDungeonQuests(d.id, playerFaction, playerClass)) or {}
+    end
+
+    if #topQuests == 0 and #bottomQuests == 0 then
+        self.selectedQuest = nil
+        if self.noEncountersText then
+            self.noEncountersText:SetText("No quests available for this dungeon.")
+            self.noEncountersText:Show()
+        end
+        self.bossScrollChild:SetHeight(120)
+        ns.UI.SharedWidgets:UpdateScrollFrameVisibility(self.bossScroll, 120)
+        return
+    end
+
+    if self.noEncountersText then
+        self.noEncountersText:Hide()
+    end
+
+    local currentY = -16
+    local bookCfg = Constants.BOOK
+    local btnWidth = bookCfg.BOSS_BTN_WIDTH or 268
+    local btnHeight = bookCfg.BOSS_BTN_HEIGHT or 44
+    local gap = 26 -- generous spacing matching boss buttons
+
+    local hasSelected = false
+    if self.selectedQuest then
+        for _, q in ipairs(topQuests) do
+            if q.id == self.selectedQuest.id then
+                hasSelected = true
+                self.selectedQuest = q
+                break
+            end
+        end
+        if not hasSelected then
+            for _, q in ipairs(bottomQuests) do
+                if q.id == self.selectedQuest.id then
+                    hasSelected = true
+                    self.selectedQuest = q
+                    break
+                end
+            end
+        end
+    end
+    if not hasSelected then
+        self.selectedQuest = topQuests[1] or bottomQuests[1]
+    end
+
+    local buttonIndex = 1
+    local function renderQuestButton(q)
+        local btn = self:AcquireQuestButton(buttonIndex)
+        buttonIndex = buttonIndex + 1
+        btn.quest = q
+        btn:ClearAllPoints()
+        btn:SetPoint("TOPLEFT", self.bossScrollChild, "TOPLEFT", 18, currentY)
+        btn:SetSize(btnWidth + 8, btnHeight)
+
+        btn.nameText:SetText(q.name or "Unknown Quest")
+
+        local qLevel = (q.reqLevel and q.reqLevel > 0 and q.reqLevel) or q.questLevel or q.level or 0
+        btn.levelText:SetText("Lv " .. tostring(qLevel))
+        local r, g, b = GetDifficultyColor(qLevel)
+        btn.levelText:SetTextColor(r, g, b)
+
+        -- 1. Check if quest is part of a multi-step chain -> show chain badge underneath '!'
+        local fullChain = questDb and questDb.GetFullChain and questDb:GetFullChain(q.id)
+        local isChain = (fullChain and #fullChain > 1) or q.isChain
+        if btn.chainBadge then
+            btn.chainBadge:SetShown(isChain == true)
+        end
+
+        -- 2. Check completion & log status:
+        --    Completed -> green checkmark
+        --    Active in quest log -> grey incomplete question mark (?)
+        --    Available -> yellow exclamation mark (!)
+        local isCompleted = questDb and questDb:IsQuestCompleted(q.id)
+        local isActive = questDb and questDb:IsQuestActive(q.id)
+        if not isActive and fullChain then
+            for _, step in ipairs(fullChain) do
+                if questDb:IsQuestActive(step.id) then
+                    isActive = true
+                    break
+                end
+            end
+        end
+
+        if isCompleted then
+            btn.qIcon:SetTexture("Interface\\RaidFrame\\ReadyCheck-Ready")
+            btn.qIcon:SetSize(20, 20)
+            btn.qIcon:SetTexCoord(0, 1, 0, 1)
+            if btn.qIcon.SetDesaturated then
+                btn.qIcon:SetDesaturated(false)
+            end
+            btn.qIcon:SetVertexColor(1.0, 1.0, 1.0)
+        elseif isActive then
+            btn.qIcon:SetSize(24, 24)
+            local setOk = false
+            if btn.qIcon.SetAtlas then
+                local ok = pcall(function()
+                    btn.qIcon:SetAtlas("QuestTurnin")
+                    if btn.qIcon.SetDesaturated then
+                        btn.qIcon:SetDesaturated(true)
+                    end
+                    btn.qIcon:SetVertexColor(0.85, 0.85, 0.85)
+                end)
+                setOk = ok
+            end
+            if not setOk then
+                btn.qIcon:SetTexture("Interface\\GossipFrame\\IncompleteQuestIcon")
+                btn.qIcon:SetTexCoord(0, 1, 0, 1)
+                if btn.qIcon.SetDesaturated then
+                    btn.qIcon:SetDesaturated(false)
+                end
+                btn.qIcon:SetVertexColor(1.0, 1.0, 1.0)
+            end
+        else
+            btn.qIcon:SetSize(24, 24)
+            if btn.qIcon.SetDesaturated then
+                btn.qIcon:SetDesaturated(false)
+            end
+            btn.qIcon:SetVertexColor(1.0, 1.0, 1.0)
+            if btn.qIcon.SetAtlas then
+                local ok = pcall(btn.qIcon.SetAtlas, btn.qIcon, "QuestNormal")
+                if not ok then
+                    btn.qIcon:SetTexture("Interface\\GossipFrame\\AvailableQuestIcon")
+                    btn.qIcon:SetTexCoord(0, 1, 0, 1)
+                end
+            else
+                btn.qIcon:SetTexture("Interface\\GossipFrame\\AvailableQuestIcon")
+                btn.qIcon:SetTexCoord(0, 1, 0, 1)
+            end
+        end
+
+        local isSelected = (self.selectedQuest and self.selectedQuest.id == q.id)
+        if btn.selectedGlow then
+            btn.selectedGlow:SetShown(isSelected)
+        end
+        if btn._baseRim then
+            if isSelected then
+                btn._baseRim:SetVertexColor(0.85, 0.65, 0.20, 1.0)
+            else
+                btn._baseRim:SetVertexColor(0.12, 0.09, 0.06, 0.95)
+            end
+        end
+        if btn._fill then
+            if isSelected then
+                btn._fill:SetVertexColor(1.0, 0.96, 0.85, 1.0)
+            else
+                btn._fill:SetVertexColor(0.88, 0.86, 0.82, 0.95)
+            end
+        end
+        if btn.nameText then
+            if isSelected then
+                btn.nameText:SetTextColor(1.0, 0.94, 0.50)
+            else
+                btn.nameText:SetTextColor(1.0, 0.82, 0.0)
+            end
+        end
+
+        btn:Show()
+        currentY = currentY - (btnHeight + gap)
+    end
+
+    for _, q in ipairs(topQuests) do
+        renderQuestButton(q)
+    end
+
+    if #bottomQuests > 0 then
+        if #topQuests > 0 then
+            local divY = currentY + 13
+            if self.questFactionDivider then
+                self.questFactionDivider:ClearAllPoints()
+                self.questFactionDivider:SetPoint("TOPLEFT", self.bossScrollChild, "TOPLEFT", 10, divY)
+                self.questFactionDivider:SetPoint("TOPRIGHT", self.bossScrollChild, "TOPRIGHT", -14, divY)
+                self.questFactionDivider:Show()
+                if ns.UI and ns.UI.SharedWidgets and ns.UI.SharedWidgets.SyncQuestDividerBar then
+                    ns.UI.SharedWidgets:SyncQuestDividerBar(self.questFactionDivider)
+                end
+            end
+            currentY = divY - 20
+        else
+            if self.questFactionDivider then
+                self.questFactionDivider:Hide()
+            end
+        end
+
+        for _, q in ipairs(bottomQuests) do
+            renderQuestButton(q)
+        end
+    else
+        if self.questFactionDivider then
+            self.questFactionDivider:Hide()
+        end
+    end
+
+    local totalH = -currentY + 16
+    self.bossScrollChild:SetHeight(math.max(1, totalH))
+    ns.UI.SharedWidgets:UpdateScrollFrameVisibility(self.bossScroll, totalH)
+end
+
+function DungeonBookView:CreateAccordionBanner(parent)
+    local white = Constants.ASSETS.WHITE_8X8
+    local banner = CreateFrame("Button", nil, parent)
+    banner:SetHeight(30)
+
+    -- 1. Outer subtle drop shadow (matching quest buttons)
+    local shadow = banner:CreateTexture(nil, "BACKGROUND", nil, -5)
+    shadow:SetPoint("TOPLEFT", banner, "TOPLEFT", -1, 1)
+    shadow:SetPoint("BOTTOMRIGHT", banner, "BOTTOMRIGHT", 1, -1)
+    shadow:SetTexture(white)
+    shadow:SetVertexColor(0.02, 0.02, 0.01, 0.60)
+    banner._dropShadow = shadow
+
+    -- 2. Base dark rim (1px border)
+    local baseRim = banner:CreateTexture(nil, "BACKGROUND", nil, -4)
+    baseRim:SetAllPoints(banner)
+    baseRim:SetTexture(white)
+    baseRim:SetVertexColor(0.12, 0.09, 0.06, 0.95)
+    banner._baseRim = baseRim
+
+    -- 3. Textured Desaturated Achievement Parchment fill
+    local fill = banner:CreateTexture(nil, "BACKGROUND", nil, -3)
+    fill:SetPoint("TOPLEFT", banner, "TOPLEFT", 1, -1)
+    fill:SetPoint("BOTTOMRIGHT", banner, "BOTTOMRIGHT", -1, 1)
+    fill:SetTexture("Interface\\AchievementFrame\\UI-Achievement-Parchment-Horizontal-Desaturated")
+    fill:SetVertexColor(0.88, 0.86, 0.82, 0.95)
+    banner._fill = fill
+
+    -- 4. Subtle top/left highlights and bottom/right shadows for embossed 3D feel
+    local topHi = banner:CreateTexture(nil, "BACKGROUND", nil, -2)
+    topHi:SetHeight(1)
+    topHi:SetPoint("TOPLEFT", banner, "TOPLEFT", 1, -1)
+    topHi:SetPoint("TOPRIGHT", banner, "TOPRIGHT", -1, -1)
+    topHi:SetTexture(white)
+    topHi:SetVertexColor(0.56, 0.44, 0.26, 0.70)
+
+    local leftHi = banner:CreateTexture(nil, "BACKGROUND", nil, -2)
+    leftHi:SetWidth(1)
+    leftHi:SetPoint("TOPLEFT", banner, "TOPLEFT", 1, -1)
+    leftHi:SetPoint("BOTTOMLEFT", banner, "BOTTOMLEFT", 1, 1)
+    leftHi:SetTexture(white)
+    leftHi:SetVertexColor(0.48, 0.38, 0.22, 0.60)
+
+    local botSh = banner:CreateTexture(nil, "BACKGROUND", nil, -2)
+    botSh:SetHeight(1)
+    botSh:SetPoint("BOTTOMLEFT", banner, "BOTTOMLEFT", 1, 1)
+    botSh:SetPoint("BOTTOMRIGHT", banner, "BOTTOMRIGHT", -1, 1)
+    botSh:SetTexture(white)
+    botSh:SetVertexColor(0.04, 0.03, 0.02, 0.95)
+
+    local rightSh = banner:CreateTexture(nil, "BACKGROUND", nil, -2)
+    rightSh:SetWidth(1)
+    rightSh:SetPoint("TOPRIGHT", banner, "TOPRIGHT", -1, -1)
+    rightSh:SetPoint("BOTTOMRIGHT", banner, "BOTTOMRIGHT", -1, 1)
+    rightSh:SetTexture(white)
+    rightSh:SetVertexColor(0.04, 0.03, 0.02, 0.95)
+
+    -- Subtle 1px inset hover highlight matching quest button treatment
+    local hl = banner:CreateTexture(nil, "HIGHLIGHT")
+    hl:SetPoint("TOPLEFT", banner, "TOPLEFT", 1, -1)
+    hl:SetPoint("BOTTOMRIGHT", banner, "BOTTOMRIGHT", -1, 1)
+    hl:SetTexture(white)
+    hl:SetBlendMode("ADD")
+    hl:SetVertexColor(0.95, 0.80, 0.35, 0.18)
+
+    local statusIcon = banner:CreateTexture(nil, "ARTWORK")
+    statusIcon:SetSize(18, 18)
+    statusIcon:SetPoint("LEFT", banner, "LEFT", 8, 0)
+    banner.statusIcon = statusIcon
+
+    local arrowText = banner:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    arrowText:SetPoint("RIGHT", banner, "RIGHT", -10, 0)
+    arrowText:SetTextColor(0.85, 0.75, 0.50)
+    arrowText:SetShadowColor(0, 0, 0, 1.0)
+    arrowText:SetShadowOffset(1, -1)
+    banner.arrowText = arrowText
+
+    local levelText = banner:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    levelText:SetPoint("RIGHT", arrowText, "LEFT", -10, 0)
+    levelText:SetShadowColor(0, 0, 0, 1.0)
+    levelText:SetShadowOffset(1, -1)
+    banner.levelText = levelText
+
+    local titleText = banner:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    titleText:SetPoint("LEFT", statusIcon, "RIGHT", 8, 0)
+    titleText:SetPoint("RIGHT", levelText, "LEFT", -8, 0)
+    titleText:SetJustifyH("LEFT")
+    titleText:SetWordWrap(false)
+    titleText:SetShadowColor(0, 0, 0, 1.0)
+    titleText:SetShadowOffset(1, -1)
+    banner.titleText = titleText
+
+    return banner
+end
+
+function DungeonBookView:CreateQuestItemRewardButton(parent)
+    local white = Constants.ASSETS.WHITE_8X8
+    local row = CreateFrame("Button", nil, parent)
+    row:SetHeight(36)
+
+    local bg = row:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints(row)
+    bg:SetTexture(white)
+    bg:SetVertexColor(0.08, 0.07, 0.06, 0.55)
+    row.bg = bg
+
+    local hl = row:CreateTexture(nil, "HIGHLIGHT")
+    hl:SetAllPoints(row)
+    hl:SetTexture(white)
+    hl:SetVertexColor(1.0, 0.90, 0.65, 0.10)
+
+    local icon = row:CreateTexture(nil, "ARTWORK")
+    icon:SetSize(28, 28)
+    icon:SetPoint("LEFT", row, "LEFT", 4, 0)
+    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    row.icon = icon
+
+    local bTop = row:CreateTexture(nil, "OVERLAY")
+    bTop:SetHeight(1)
+    bTop:SetPoint("TOPLEFT", icon, "TOPLEFT", -1, 1)
+    bTop:SetPoint("TOPRIGHT", icon, "TOPRIGHT", 1, 1)
+    bTop:SetTexture(white)
+
+    local bBottom = row:CreateTexture(nil, "OVERLAY")
+    bBottom:SetHeight(1)
+    bBottom:SetPoint("BOTTOMLEFT", icon, "BOTTOMLEFT", -1, -1)
+    bBottom:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 1, -1)
+    bBottom:SetTexture(white)
+
+    local bLeft = row:CreateTexture(nil, "OVERLAY")
+    bLeft:SetWidth(1)
+    bLeft:SetPoint("TOPLEFT", icon, "TOPLEFT", -1, 0)
+    bLeft:SetPoint("BOTTOMLEFT", icon, "BOTTOMLEFT", -1, 0)
+    bLeft:SetTexture(white)
+
+    local bRight = row:CreateTexture(nil, "OVERLAY")
+    bRight:SetWidth(1)
+    bRight:SetPoint("TOPRIGHT", icon, "TOPRIGHT", 1, 0)
+    bRight:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 1, 0)
+    bRight:SetTexture(white)
+
+    function row:SetBorderColor(r, g, b, a)
+        local alpha = a or 1.0
+        bTop:SetVertexColor(r, g, b, alpha)
+        bBottom:SetVertexColor(r, g, b, alpha)
+        bLeft:SetVertexColor(r, g, b, alpha)
+        bRight:SetVertexColor(r, g, b, alpha)
+    end
+
+    local nameText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    nameText:SetPoint("TOPLEFT", icon, "TOPRIGHT", 6, -2)
+    nameText:SetPoint("RIGHT", row, "RIGHT", -4, 0)
+    nameText:SetHeight(14)
+    nameText:SetJustifyH("LEFT")
+    nameText:SetWordWrap(false)
+    if nameText.SetMaxLines then pcall(nameText.SetMaxLines, nameText, 1) end
+    row.nameText = nameText
+
+    local subText = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    subText:SetPoint("BOTTOMLEFT", icon, "BOTTOMRIGHT", 6, 2)
+    subText:SetPoint("RIGHT", row, "RIGHT", -4, 0)
+    subText:SetHeight(12)
+    subText:SetJustifyH("LEFT")
+    subText:SetWordWrap(false)
+    if subText.SetMaxLines then pcall(subText.SetMaxLines, subText, 1) end
+    row.subText = subText
+
+    row:SetScript("OnEnter", function(self)
+        if not self.itemID then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        if self.itemLink and self.itemLink:find("|Hitem:") then
+            GameTooltip:SetHyperlink(self.itemLink)
+        elseif GameTooltip.SetItemByID then
+            GameTooltip:SetItemByID(self.itemID)
+        else
+            GameTooltip:SetHyperlink("item:" .. tostring(self.itemID))
+        end
+        GameTooltip:Show()
+    end)
+    row:SetScript("OnLeave", function()
+        if GameTooltip then GameTooltip:Hide() end
+    end)
+    row:SetScript("OnClick", function(self)
+        if not self.itemLink then return end
+        local isShift = (_G.IsShiftKeyDown and _G.IsShiftKeyDown())
+        local isCtrl = (_G.IsControlKeyDown and _G.IsControlKeyDown())
+        if isShift then
+            local insertLink = _G.ChatEdit_InsertLink
+            if insertLink then insertLink(self.itemLink) end
+        elseif isCtrl then
+            local dressUp = _G.DressUpItemLink or _G.DressUpLink
+            if dressUp then dressUp(self.itemLink) end
+        end
+    end)
+
+    return row
+end
+
+function DungeonBookView:SetupQuestRewardButton(row, itemID)
+    row.itemID = itemID
+    row.itemLink = nil
+
+    local itemName, itemLink, itemQuality, _, _, itemType, itemSubType, _, itemEquipLoc, itemTexture = safeGetItemInfo(itemID)
+    local catalogRec = ns.ItemsManager and ns.ItemsManager.GetItem and ns.ItemsManager:GetItem(itemID) or nil
+
+    if not itemName or itemName == "" then
+        if C_Item and C_Item.RequestLoadItemDataByID then
+            pcall(C_Item.RequestLoadItemDataByID, itemID)
+        end
+        local getInstant = (C_Item and C_Item.GetItemInfoInstant) or _G.GetItemInfoInstant
+        if getInstant then
+            local _, instType, instSubType, instEquipLoc, instIcon = getInstant(itemID)
+            itemType = itemType or instType
+            itemSubType = itemSubType or instSubType
+            itemEquipLoc = itemEquipLoc or instEquipLoc
+            itemTexture = itemTexture or instIcon
+        end
+        local cachedName = (catalogRec and catalogRec.name) or (ns.ItemsManager and ns.ItemsManager:GetItemName(itemID))
+        if cachedName and cachedName ~= "" then
+            itemName = cachedName
+        end
+    end
+
+    if catalogRec then
+        if itemQuality == nil and catalogRec.q ~= nil then
+            itemQuality = catalogRec.q
+        end
+        if (not itemSubType or itemSubType == "") and catalogRec.subType then
+            itemSubType = catalogRec.subType
+        end
+        if (not itemTexture or itemTexture == "") and catalogRec.icon then
+            itemTexture = catalogRec.icon
+        end
+    end
+
+    if itemName and itemName ~= "" then
+        row.itemLink = itemLink
+        row.nameText:SetText(itemName)
+        local r, g, b = safeGetItemQualityColor(itemQuality or 1)
+        row.nameText:SetTextColor(r, g, b)
+        row:SetBorderColor(r, g, b, 0.85)
+        row.icon:SetTexture(itemTexture or "Interface\\Icons\\INV_Misc_QuestionMark")
+
+        local sub = itemSubType or itemType or ""
+        if itemEquipLoc and _G[itemEquipLoc] then
+            sub = _G[itemEquipLoc] .. (sub ~= "" and (" • " .. sub) or "")
+        end
+        row.subText:SetText(sub)
+    else
+        row.nameText:SetText("Item #" .. tostring(itemID))
+        row.nameText:SetTextColor(0.8, 0.8, 0.8)
+        row:SetBorderColor(0.4, 0.4, 0.4, 0.7)
+        row.icon:SetTexture(itemTexture or "Interface\\Icons\\INV_Misc_QuestionMark")
+        row.subText:SetText("Loading...")
+    end
+end
+
+--- Sets a Blizzard map pin/waypoint at the specified coordinates and opens the World Map.
+--- @param mapID number UiMapID
+--- @param x number X coordinate (0.0 to 1.0 or 0 to 100)
+--- @param y number Y coordinate (0.0 to 1.0 or 0 to 100)
+--- @param label string Optional target label
+function DungeonBookView:PinCoordinatesToMap(mapID, x, y, label)
+    if not mapID or not x or not y then return end
+
+    local normX = (x > 1.0) and (x / 100.0) or x
+    local normY = (y > 1.0) and (y / 100.0) or y
+
+    -- 1. Blizzard Map Pin System
+    if _G.UiMapPoint and _G.UiMapPoint.CreateFromCoordinates and _G.C_Map and _G.C_Map.SetUserWaypoint then
+        pcall(function()
+            if _G.C_Map.ClearUserWaypoint then
+                _G.C_Map.ClearUserWaypoint()
+            end
+            if not _G.C_Map.CanSetUserWaypointOnMap or _G.C_Map.CanSetUserWaypointOnMap(mapID) then
+                local point = _G.UiMapPoint.CreateFromCoordinates(mapID, normX, normY)
+                _G.C_Map.SetUserWaypoint(point)
+                if _G.C_SuperTrack and _G.C_SuperTrack.SetSuperTrackedUserWaypoint then
+                    _G.C_SuperTrack.SetSuperTrackedUserWaypoint(true)
+                end
+            end
+        end)
+    end
+
+    -- 2. Open World Map and navigate to mapID
+    if _G.OpenWorldMap then
+        pcall(_G.OpenWorldMap, mapID)
+    elseif _G.ToggleWorldMap then
+        if not _G.WorldMapFrame or not _G.WorldMapFrame:IsShown() then
+            _G.ToggleWorldMap()
+        end
+    elseif _G.ShowUIPanel and _G.WorldMapFrame then
+        _G.ShowUIPanel(_G.WorldMapFrame)
+    elseif _G.WorldMapFrame then
+        _G.WorldMapFrame:Show()
+    end
+
+    if mapID and _G.WorldMapFrame and _G.WorldMapFrame.SetMapID then
+        pcall(_G.WorldMapFrame.SetMapID, _G.WorldMapFrame, mapID)
+    end
+end
+
+function DungeonBookView:CreateQuestMapPinButton(parent)
+    local btn = CreateFrame("Button", nil, parent)
+    btn:SetSize(36, 36)
+    btn.isMapPinBtn = true
+    btn:EnableMouse(true)
+
+    if parent and parent.GetFrameLevel then
+        btn:SetFrameLevel(parent:GetFrameLevel() + 25)
+    end
+    btn:SetHitRectInsets(-4, -4, -4, -4)
+
+    local icon = btn:CreateTexture(nil, "ARTWORK")
+    icon:SetSize(36, 36)
+    icon:SetPoint("CENTER", btn, "CENTER", 0, 0)
+    btn.icon = icon
+
+    local hl = btn:CreateTexture(nil, "HIGHLIGHT")
+    hl:SetSize(36, 36)
+    hl:SetPoint("CENTER", btn, "CENTER", 0, 0)
+    hl:SetBlendMode("ADD")
+    hl:SetVertexColor(0.95, 0.80, 0.35, 0.35)
+    btn.hl = hl
+
+    btn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+
+    btn:SetScript("OnMouseDown", function(b)
+        if b.isAvailable then
+            if b.icon then b.icon:SetPoint("CENTER", b, "CENTER", 1, -1) end
+            if b.hl then b.hl:SetPoint("CENTER", b, "CENTER", 1, -1) end
+        end
+    end)
+
+    btn:SetScript("OnMouseUp", function(b)
+        if b.icon then b.icon:SetPoint("CENTER", b, "CENTER", 0, 0) end
+        if b.hl then b.hl:SetPoint("CENTER", b, "CENTER", 0, 0) end
+    end)
+
+    btn:SetScript("OnEnter", function(b)
+        if b.isAvailable and SetCursor then
+            pcall(SetCursor, "Interface\\CURSOR\\Point")
+        end
+        if b.isAvailable and b.icon then
+            b.icon:SetVertexColor(1.0, 0.95, 0.60, 1.0)
+        end
+        if not GameTooltip then return end
+        GameTooltip:SetOwner(b, "ANCHOR_RIGHT")
+        if b.isAvailable then
+            GameTooltip:AddLine("Pin to map", 1.0, 0.82, 0.0)
+            if b.targetLabel and b.targetLabel ~= "" then
+                GameTooltip:AddLine(b.targetLabel, 1.0, 1.0, 1.0, true)
+            end
+            if b.coordText and b.coordText ~= "" then
+                GameTooltip:AddLine(b.coordText, 0.7, 0.7, 0.7)
+            end
+            GameTooltip:AddLine("Click to set waypoint and open the World Map.", 0.2, 0.8, 1.0, true)
+        else
+            GameTooltip:AddLine("Pin unavailable", 0.75, 0.75, 0.75)
+            if b.unavailableReason and b.unavailableReason ~= "" then
+                GameTooltip:AddLine(b.unavailableReason, 0.6, 0.6, 0.6, true)
+            end
+        end
+        GameTooltip:Show()
+    end)
+
+    btn:SetScript("OnLeave", function(b)
+        if ResetCursor then
+            pcall(ResetCursor)
+        end
+        if b.isAvailable and b.icon then
+            b.icon:SetVertexColor(1.0, 1.0, 1.0, 1.0)
+        end
+        if GameTooltip then
+            GameTooltip:Hide()
+        end
+    end)
+
+    btn:SetScript("OnClick", function(b)
+        if not b.isAvailable then return end
+        if PlaySound then
+            PlaySound((SOUNDKIT and SOUNDKIT.IG_MAINMENU_OPTION) or Constants.SOUNDS.CLICK)
+        end
+        if b.mapID and b.mapX and b.mapY then
+            self:PinCoordinatesToMap(b.mapID, b.mapX, b.mapY, b.targetLabel)
+        end
+    end)
+
+    return btn
+end
+
+function DungeonBookView:ConfigureMapPin(btn, isAvailable, mapData, fallbackLabel, unavailableReason)
+    local hasCoords = (mapData ~= nil and mapData.mapID ~= nil and mapData.x ~= nil and mapData.y ~= nil)
+    local canPin = (isAvailable and isAvailable ~= false) and hasCoords
+    btn.isAvailable = (canPin == true)
+    btn.unavailableReason = unavailableReason
+
+    if btn.isAvailable then
+        -- Active Pin: Use the non-selected pin type (Waypoint-MapPin-Untracked)
+        local setOk = false
+        local activeAtlas = "Waypoint-MapPin-Untracked"
+        if btn.icon.SetAtlas then
+            local ok = pcall(btn.icon.SetAtlas, btn.icon, activeAtlas)
+            if ok and btn.icon:GetTexture() then
+                setOk = true
+                if btn.hl and btn.hl.SetAtlas then
+                    pcall(btn.hl.SetAtlas, btn.hl, activeAtlas)
+                end
+            end
+            if not setOk then
+                activeAtlas = "Waypoint-MapPin-ChatIcon"
+                ok = pcall(btn.icon.SetAtlas, btn.icon, activeAtlas)
+                if ok and btn.icon:GetTexture() then
+                    setOk = true
+                    if btn.hl and btn.hl.SetAtlas then
+                        pcall(btn.hl.SetAtlas, btn.hl, activeAtlas)
+                    end
+                end
+            end
+            if not setOk then
+                activeAtlas = "Waypoint-MapPin-Tracked"
+                ok = pcall(btn.icon.SetAtlas, btn.icon, activeAtlas)
+                if ok and btn.icon:GetTexture() then
+                    setOk = true
+                    if btn.hl and btn.hl.SetAtlas then
+                        pcall(btn.hl.SetAtlas, btn.hl, activeAtlas)
+                    end
+                end
+            end
+        end
+        if not setOk then
+            local fallbackTex = "Interface\\Minimap\\Tracking\\Quest"
+            btn.icon:SetTexture(fallbackTex)
+            if btn.hl then btn.hl:SetTexture(fallbackTex) end
+        end
+
+        if btn.icon.SetDesaturated then btn.icon:SetDesaturated(false) end
+        btn.icon:SetVertexColor(1.0, 1.0, 1.0, 1.0)
+        if btn.hl then
+            btn.hl:SetBlendMode("ADD")
+            btn.hl:SetVertexColor(0.95, 0.80, 0.35, 0.35) -- Matching boss & quest button warm golden glow
+            btn.hl:SetAlpha(1.0)
+        end
+        btn:EnableMouse(true)
+
+        btn.mapID = mapData.mapID
+        btn.mapX = mapData.x
+        btn.mapY = mapData.y
+        btn.targetLabel = mapData.label or mapData.targetName or fallbackLabel or "Quest Location"
+        local nx = (mapData.x > 1.0) and (mapData.x / 100.0) or mapData.x
+        local ny = (mapData.y > 1.0) and (mapData.y / 100.0) or mapData.y
+        btn.coordText = string.format("Coordinates: %.1f, %.1f", nx * 100, ny * 100)
+    else
+        -- Location Unavailable Pin: Keep existing appearance (Waypoint-MapPin-Tracked desaturated grey)
+        local setOk = false
+        if btn.icon.SetAtlas then
+            local ok = pcall(btn.icon.SetAtlas, btn.icon, "Waypoint-MapPin-Tracked")
+            if ok and btn.icon:GetTexture() then
+                setOk = true
+            end
+            if not setOk then
+                ok = pcall(btn.icon.SetAtlas, btn.icon, "Waypoint-MapPin-Untracked")
+                if ok and btn.icon:GetTexture() then
+                    setOk = true
+                end
+            end
+        end
+        if not setOk then
+            btn.icon:SetTexture("Interface\\Minimap\\Tracking\\Quest")
+        end
+
+        if btn.icon.SetDesaturated then btn.icon:SetDesaturated(true) end
+        btn.icon:SetVertexColor(0.40, 0.40, 0.40, 0.50) -- Dim muted grey
+        if btn.hl then btn.hl:SetAlpha(0.0) end
+        btn:EnableMouse(true)
+
+        btn.mapID = nil
+        btn.mapX = nil
+        btn.mapY = nil
+        btn.targetLabel = nil
+        btn.coordText = nil
+    end
+end
+
+function DungeonBookView:RenderQuestBodyDetails(q, giverInfo, dungeon)
+    if not self.questBodyChild or not q then return end
+    local child = self.questBodyChild
+    local contentW = (self.questBodyScroll and self.questBodyScroll:GetWidth()) or 340
+    if contentW <= 20 then contentW = 340 end
+    local textW = contentW - 8
+    child:SetWidth(contentW)
+
+    if self.questBodyWidgets then
+        for _, w in ipairs(self.questBodyWidgets) do
+            w:Hide()
+        end
+    end
+    self.questBodyWidgets = self.questBodyWidgets or {}
+    local widgetIdx = 0
+
+    if self.questDividers then
+        for _, bar in ipairs(self.questDividers) do
+            bar:Hide()
+        end
+    end
+    self.questDividers = self.questDividers or {}
+    local dividerIdx = 0
+
+    local function AcquireText(font, r, g, b, wrap, customW)
+        widgetIdx = widgetIdx + 1
+        local fs = self.questBodyWidgets[widgetIdx]
+        if not fs or fs:GetObjectType() ~= "FontString" then
+            fs = child:CreateFontString(nil, "OVERLAY", font or "GameFontNormal")
+            self.questBodyWidgets[widgetIdx] = fs
+        else
+            fs:SetFontObject(font or "GameFontNormal")
+        end
+        fs:ClearAllPoints()
+        fs:SetWidth(customW or textW)
+        fs:SetJustifyH("LEFT")
+        fs:SetWordWrap(wrap ~= false)
+        fs:SetTextColor(r or 1.0, g or 1.0, b or 1.0)
+        fs:Show()
+        return fs
+    end
+
+    local function AcquireItemButton()
+        widgetIdx = widgetIdx + 1
+        local btn = self.questBodyWidgets[widgetIdx]
+        if not btn or btn:GetObjectType() ~= "Button" or btn.isAccordionBanner or btn.isMapPinBtn then
+            btn = self:CreateQuestItemRewardButton(child)
+            self.questBodyWidgets[widgetIdx] = btn
+        end
+        btn:ClearAllPoints()
+        btn:Show()
+        return btn
+    end
+
+    local function AcquireAccordionBanner()
+        widgetIdx = widgetIdx + 1
+        local btn = self.questBodyWidgets[widgetIdx]
+        if not btn or btn:GetObjectType() ~= "Button" or not btn.isAccordionBanner then
+            btn = self:CreateAccordionBanner(child)
+            btn.isAccordionBanner = true
+            self.questBodyWidgets[widgetIdx] = btn
+        end
+        btn:ClearAllPoints()
+        btn:Show()
+        return btn
+    end
+
+    local function AcquireMapPinButton()
+        widgetIdx = widgetIdx + 1
+        local btn = self.questBodyWidgets[widgetIdx]
+        if not btn or btn:GetObjectType() ~= "Button" or not btn.isMapPinBtn then
+            btn = self:CreateQuestMapPinButton(child)
+            btn.isMapPinBtn = true
+            self.questBodyWidgets[widgetIdx] = btn
+        end
+        btn:ClearAllPoints()
+        btn:SetSize(36, 36)
+        if btn.icon then
+            btn.icon:SetSize(36, 36)
+        end
+        if child and child.GetFrameLevel then
+            btn:SetFrameLevel(child:GetFrameLevel() + 25)
+        end
+        btn:EnableMouse(true)
+        btn:Show()
+        return btn
+    end
+
+    local function AcquireDividerBar()
+        dividerIdx = dividerIdx + 1
+        local bar = self.questDividers[dividerIdx]
+        if not bar then
+            local SharedWidgets = ns.UI.SharedWidgets
+            bar = SharedWidgets:CreateHorizontalDividerBar(child, 4)
+            bar.isDividerBar = true
+            self.questDividers[dividerIdx] = bar
+        end
+        bar:ClearAllPoints()
+        bar:SetHeight(4)
+        bar:Show()
+        return bar
+    end
+
+    local function RenderItemGrid(items, startX, startY, gridW, isChoice)
+        if not items or #items == 0 then return startY end
+
+        local subHdr = AcquireText("GameFontDisableSmall", 0.75, 0.70, 0.60, false, gridW)
+        subHdr:SetPoint("TOPLEFT", child, "TOPLEFT", startX, startY)
+        subHdr:SetText(isChoice and "Choose one of the following rewards:" or "You will also receive:")
+        local curY = startY - 16
+
+        local colGap = 8
+        local itemW = math.floor((gridW - colGap) / 2)
+        local itemH = 36
+
+        for i, itemID in ipairs(items) do
+            local col = (i - 1) % 2
+            local rowIdx = math.floor((i - 1) / 2)
+            local x = startX + (col * (itemW + colGap))
+            local y = curY - (rowIdx * (itemH + 4))
+
+            local row = AcquireItemButton()
+            row:SetSize(itemW, itemH)
+            row:SetPoint("TOPLEFT", child, "TOPLEFT", x, y)
+            self:SetupQuestRewardButton(row, itemID)
+        end
+
+        local numRows = math.ceil(#items / 2)
+        return curY - (numRows * (itemH + 4)) - 8
+    end
+
+    local curY = -4
+    local questDb = parent.QuestDatabase or (parent.Utility_Quests and parent.Utility_Quests.QuestDatabase) or _G.AdventureJournalQuestDatabase or (ns and ns.QuestDatabase) or (_G.AdventureJournal and _G.AdventureJournal.QuestDatabase)
+    local fullChain = (questDb and questDb.GetFullChain and questDb:GetFullChain(q.id))
+
+    -- ========================================================================
+    -- BRANCH A: MULTI-STEP QUEST CHAIN ACCORDION
+    -- ========================================================================
+    if fullChain and #fullChain > 1 then
+        -- Initialize open state: earliest incomplete step is opened by default
+        if self.accordionOpenQuestId ~= q.id then
+            self.accordionOpenQuestId = q.id
+            self.accordionOpenState = {}
+            local defaultOpened = false
+            for _, step in ipairs(fullChain) do
+                if not step.isCompleted then
+                    self.accordionOpenState[step.id] = true
+                    defaultOpened = true
+                    break
+                end
+            end
+            if not defaultOpened then
+                self.accordionOpenState[fullChain[#fullChain].id] = true
+            end
+        end
+
+        for _, step in ipairs(fullChain) do
+            local banner = AcquireAccordionBanner()
+            banner:SetPoint("TOPLEFT", child, "TOPLEFT", 4, curY)
+            banner:SetPoint("TOPRIGHT", child, "TOPRIGHT", -4, curY)
+
+            local isOpen = (self.accordionOpenState[step.id] == true)
+            banner.arrowText:SetText(isOpen and "[-]" or "[+]")
+
+            local sLevel = (step.reqLevel and step.reqLevel > 0 and step.reqLevel) or step.level or 0
+            local r, g, b = GetDifficultyColor(sLevel)
+            local hex = string.format("%02x%02x%02x", math.floor(r * 255), math.floor(g * 255), math.floor(b * 255))
+            banner.levelText:SetText(string.format("|cff%sLv %d|r", hex, sLevel))
+
+            banner.titleText:SetText(string.format("Step %d: %s", step.stepIndex, step.name))
+
+            if banner._baseRim then
+                if isOpen then
+                    banner._baseRim:SetVertexColor(0.85, 0.65, 0.20, 1.0)
+                else
+                    banner._baseRim:SetVertexColor(0.12, 0.09, 0.06, 0.95)
+                end
+            end
+            if banner._fill then
+                if isOpen then
+                    banner._fill:SetVertexColor(1.0, 0.96, 0.85, 1.0)
+                else
+                    banner._fill:SetVertexColor(0.88, 0.86, 0.82, 0.95)
+                end
+            end
+
+            local stepActive = step.isActive or (questDb and questDb:IsQuestActive(step.id))
+            if step.isCompleted then
+                banner.statusIcon:SetTexture("Interface\\RaidFrame\\ReadyCheck-Ready")
+                banner.statusIcon:SetSize(18, 18)
+                if banner.statusIcon.SetDesaturated then banner.statusIcon:SetDesaturated(false) end
+                banner.statusIcon:SetVertexColor(1.0, 1.0, 1.0)
+                banner.titleText:SetTextColor(0.40, 0.90, 0.45)
+            elseif stepActive then
+                banner.statusIcon:SetSize(18, 18)
+                local setOk = false
+                if banner.statusIcon.SetAtlas then
+                    local ok = pcall(function()
+                        banner.statusIcon:SetAtlas("QuestTurnin")
+                        if banner.statusIcon.SetDesaturated then banner.statusIcon:SetDesaturated(true) end
+                        banner.statusIcon:SetVertexColor(0.85, 0.85, 0.85)
+                    end)
+                    setOk = ok
+                end
+                if not setOk then
+                    banner.statusIcon:SetTexture("Interface\\GossipFrame\\IncompleteQuestIcon")
+                    if banner.statusIcon.SetDesaturated then banner.statusIcon:SetDesaturated(false) end
+                    banner.statusIcon:SetVertexColor(1.0, 1.0, 1.0)
+                end
+                banner.titleText:SetTextColor(0.88, 0.88, 0.88)
+            else
+                banner.statusIcon:SetSize(18, 18)
+                if banner.statusIcon.SetDesaturated then banner.statusIcon:SetDesaturated(false) end
+                banner.statusIcon:SetVertexColor(1.0, 1.0, 1.0)
+                if banner.statusIcon.SetAtlas then
+                    local ok = pcall(banner.statusIcon.SetAtlas, banner.statusIcon, "QuestNormal")
+                    if not ok then
+                        banner.statusIcon:SetTexture("Interface\\GossipFrame\\AvailableQuestIcon")
+                    end
+                else
+                    banner.statusIcon:SetTexture("Interface\\GossipFrame\\AvailableQuestIcon")
+                end
+                banner.titleText:SetTextColor(1.0, 0.82, 0.0)
+            end
+
+            banner:SetScript("OnClick", function()
+                self.accordionOpenState[step.id] = not self.accordionOpenState[step.id]
+                self:RenderQuestBodyDetails(q, giverInfo, dungeon)
+            end)
+
+            curY = curY - 32
+
+            -- Expanded Body
+            if isOpen then
+                local bodyW = contentW - 24
+                local bodyX = 14
+                curY = curY - 4
+
+                -- Objectives
+                local objHdr = AcquireText("GameFontNormal", 1.0, 0.82, 0.20, false, bodyW)
+                objHdr:SetPoint("TOPLEFT", child, "TOPLEFT", bodyX, curY)
+                objHdr:SetText("Objectives")
+                curY = curY - 16
+
+                local objBody = AcquireText("GameFontHighlightSmall", 0.92, 0.88, 0.80, true, bodyW)
+                objBody:SetPoint("TOPLEFT", child, "TOPLEFT", bodyX, curY)
+                objBody:SetText(step.objective or "No objective description available.")
+                curY = curY - (objBody:GetStringHeight() or 14) - 24
+
+                -- Quest Source & Turn-In
+                local hasStepPickup = (step.pickup and step.pickup ~= "" and step.pickup ~= "Unknown")
+                local hasStepTurnin = (step.turnin and step.turnin ~= "" and step.turnin ~= "Unknown")
+
+                if hasStepPickup or hasStepTurnin then
+                    local pStr = step.pickup or "Unknown"
+                    local lowerP = pStr:lower()
+                    local isItemOrInside = lowerP:find("inside") or lowerP:find("drops from") or lowerP:find("corpse") or lowerP:find("looted in") or lowerP:find("taken from") or lowerP:find("^[Ii]tem")
+
+                    local stepGiverMap = nil
+                    if hasStepPickup and not isItemOrInside then
+                        if step.map and step.map.mapID and step.map.x and step.map.y then
+                            stepGiverMap = step.map
+                        elseif questDb and questDb.GetQuestMap then
+                            stepGiverMap = questDb:GetQuestMap(step.id)
+                        end
+                        if (not stepGiverMap or not stepGiverMap.mapID) and questDb and questDb.FindMapForNpc then
+                            local giverNpc = pStr:match("^(.-),") or pStr
+                            stepGiverMap = questDb:FindMapForNpc(giverNpc)
+                        end
+                    end
+                    local hasStepGiverBtn = (stepGiverMap ~= nil and stepGiverMap.mapID ~= nil and stepGiverMap.x ~= nil and stepGiverMap.y ~= nil)
+
+                    local tStr = step.turnin or step.pickup or "Unknown"
+                    local lowerT = tStr:lower()
+                    local isTurninInside = lowerT:find("inside")
+
+                    local stepTurninMap = nil
+                    if hasStepTurnin and not isTurninInside then
+                        if stepGiverMap and step.pickup and (tStr:lower():find(step.pickup:lower(), 1, true) or step.pickup:lower():find(tStr:lower(), 1, true)) then
+                            stepTurninMap = stepGiverMap
+                        end
+                        if (not stepTurninMap or not stepTurninMap.mapID) and questDb and questDb.FindMapForNpc then
+                            local turninNpc = tStr:match("^(.-),") or tStr
+                            stepTurninMap = questDb:FindMapForNpc(turninNpc)
+                        end
+                    end
+                    local hasStepTurninBtn = (stepTurninMap ~= nil and stepTurninMap.mapID ~= nil and stepTurninMap.x ~= nil and stepTurninMap.y ~= nil)
+
+                    local pinSize = 36
+                    local indentX = bodyX + 6
+                    local textX = indentX + pinSize + 8
+                    local fieldW = bodyW - (textX - bodyX)
+
+                    if hasStepPickup then
+                        local gBtn = AcquireMapPinButton()
+                        gBtn:SetPoint("TOPLEFT", child, "TOPLEFT", indentX, curY)
+                        local giverReason = isItemOrInside and "Source item is located inside the dungeon." or "Location coordinates unavailable."
+                        self:ConfigureMapPin(gBtn, hasStepGiverBtn, stepGiverMap, pStr, giverReason)
+
+                        local giverHdr = AcquireText("GameFontNormal", 1.0, 0.82, 0.20, false, fieldW)
+                        giverHdr:SetPoint("TOPLEFT", child, "TOPLEFT", textX, curY - 2)
+                        giverHdr:SetText("Quest Source")
+
+                        local giverBody = AcquireText("GameFontHighlightSmall", 0.92, 0.88, 0.80, true, fieldW)
+                        giverBody:SetPoint("TOPLEFT", child, "TOPLEFT", textX, curY - 2 - 16)
+                        giverBody:SetText(pStr)
+
+                        local gBodyH = (giverBody and giverBody:GetStringHeight()) or 14
+                        if gBodyH < 14 then gBodyH = 14 end
+                        local gBlockH = math.max(pinSize, 2 + 16 + gBodyH)
+                        curY = curY - gBlockH - 12
+                    end
+
+                    if hasStepTurnin then
+                        local tBtn = AcquireMapPinButton()
+                        tBtn:SetPoint("TOPLEFT", child, "TOPLEFT", indentX, curY)
+                        local turninReason = isTurninInside and "Turn-in is located inside the dungeon." or "Location coordinates unavailable."
+                        self:ConfigureMapPin(tBtn, hasStepTurninBtn, stepTurninMap, tStr, turninReason)
+
+                        local turninHdr = AcquireText("GameFontNormal", 1.0, 0.82, 0.20, false, fieldW)
+                        turninHdr:SetPoint("TOPLEFT", child, "TOPLEFT", textX, curY - 2)
+                        turninHdr:SetText("Turn-In")
+
+                        local turninBody = AcquireText("GameFontHighlightSmall", 0.92, 0.88, 0.80, true, fieldW)
+                        turninBody:SetPoint("TOPLEFT", child, "TOPLEFT", textX, curY - 2 - 16)
+                        turninBody:SetText(tStr)
+
+                        local tBodyH = (turninBody and turninBody:GetStringHeight()) or 14
+                        if tBodyH < 14 then tBodyH = 14 end
+                        local tBlockH = math.max(pinSize, 2 + 16 + tBodyH)
+                        curY = curY - tBlockH - 14
+                    end
+                end
+
+                -- Requirements
+                if step.reqLevel and step.reqLevel > 0 then
+                    local reqHdr = AcquireText("GameFontNormal", 1.0, 0.82, 0.20, false, bodyW)
+                    reqHdr:SetPoint("TOPLEFT", child, "TOPLEFT", bodyX, curY)
+                    reqHdr:SetText("Requirements")
+                    curY = curY - 16
+
+                    local reqBody = AcquireText("GameFontHighlightSmall", 0.92, 0.88, 0.80, true, bodyW)
+                    reqBody:SetPoint("TOPLEFT", child, "TOPLEFT", bodyX, curY)
+                    reqBody:SetText("Requires Level " .. tostring(step.reqLevel))
+                    curY = curY - (reqBody:GetStringHeight() or 14) - 4
+                end
+
+                -- Rewards
+                local hasXP = (step.baseXP and step.baseXP > 0)
+                local hasItems = (step.rewardItems and #step.rewardItems > 0)
+                if hasXP or hasItems then
+                    curY = curY - 8
+                    local div = AcquireDividerBar()
+                    div:SetPoint("TOPLEFT", child, "TOPLEFT", bodyX, curY)
+                    div:SetPoint("TOPRIGHT", child, "TOPRIGHT", -bodyX, curY)
+                    curY = curY - 4 - 12
+
+                    local rewHdr = AcquireText("GameFontNormal", 1.0, 0.82, 0.20, false, bodyW)
+                    rewHdr:SetPoint("TOPLEFT", child, "TOPLEFT", bodyX, curY)
+                    rewHdr:SetText("Rewards")
+                    curY = curY - 16
+
+                    if hasXP then
+                        local xpHdr = AcquireText("GameFontHighlightSmall", 0.80, 0.95, 0.80, false, bodyW)
+                        xpHdr:SetPoint("TOPLEFT", child, "TOPLEFT", bodyX, curY)
+                        xpHdr:SetText(string.format("• Experience: %s XP", tostring(step.baseXP)))
+                        curY = curY - 16
+                    end
+
+                    if hasItems then
+                        curY = RenderItemGrid(step.rewardItems, bodyX, curY, bodyW, step.rewardChoice == true)
+                    end
+                end
+
+                curY = curY - 6
+            end
+
+            curY = curY - 4
+        end
+
+    -- ========================================================================
+    -- BRANCH B: STANDALONE QUEST FLOW
+    -- ========================================================================
+    else
+        -- 1. Objectives Section
+        local objHdr = AcquireText("GameFontNormal", 1.0, 0.82, 0.20, false)
+        objHdr:SetPoint("TOPLEFT", child, "TOPLEFT", 4, curY)
+        objHdr:SetText("Objectives")
+        curY = curY - 16
+
+        local objBody = AcquireText("GameFontHighlightSmall", 0.92, 0.88, 0.80, true)
+        objBody:SetPoint("TOPLEFT", child, "TOPLEFT", 4, curY)
+        local objText = q.objective or "No objective description available."
+        objBody:SetText(objText)
+        curY = curY - (objBody:GetStringHeight() or 14) - 24
+
+        -- 2. Quest Source & Turn-In Sections (Side by Side)
+        local qMap = questDb and questDb.GetQuestMap and questDb:GetQuestMap(q.id)
+        local pickupStr = q.pickup
+        if not pickupStr or pickupStr == "" then
+            pickupStr = giverInfo.giverName or "Unknown"
+        end
+        if giverInfo.location and giverInfo.location ~= "" and not pickupStr:find(giverInfo.location, 1, true) and not pickupStr:find(",") then
+            pickupStr = pickupStr .. ", " .. giverInfo.location
+        end
+
+        local lowerPickup = pickupStr:lower()
+        local isPickupDropOrInside = giverInfo.isItem or lowerPickup:find("inside") or lowerPickup:find("corpse") or lowerPickup:find("dropped by") or lowerPickup:find("taken from")
+
+        local giverMap = nil
+        if not isPickupDropOrInside then
+            if qMap and qMap.mapID and qMap.x and qMap.y then
+                giverMap = qMap
+            elseif questDb and questDb.FindMapForNpc then
+                giverMap = questDb:FindMapForNpc(giverInfo.giverName)
+            end
+        end
+
+        local hasGiverBtn = (giverMap ~= nil and giverMap.mapID ~= nil and giverMap.x ~= nil and giverMap.y ~= nil)
+
+        local turninStr = q.turnin or q.pickup or giverInfo.giverName or "Unknown"
+        local lowerTurnin = turninStr:lower()
+        local isTurninInside = lowerTurnin:find("inside")
+
+        local turninMap = nil
+        if not isTurninInside then
+            if isPickupDropOrInside and qMap and qMap.mapID and qMap.x and qMap.y then
+                turninMap = qMap
+            elseif giverMap and (turninStr:lower():find(giverInfo.giverName:lower(), 1, true) or giverInfo.giverName:lower():find(turninStr:lower(), 1, true)) then
+                turninMap = giverMap
+            elseif questDb and questDb.FindMapForNpc then
+                local turninNpc = turninStr:match("^(.-),") or turninStr
+                turninMap = questDb:FindMapForNpc(turninNpc)
+            end
+        end
+
+        local hasTurninBtn = (turninMap ~= nil and turninMap.mapID ~= nil and turninMap.x ~= nil and turninMap.y ~= nil)
+
+        local pinSize = 36
+        local indentX = 14
+        local textX = indentX + pinSize + 8
+        local fieldW = textW - textX
+
+        -- Row 1: Quest Source Bullet Block
+        local gBtn = AcquireMapPinButton()
+        gBtn:SetPoint("TOPLEFT", child, "TOPLEFT", indentX, curY)
+        local giverReason = isPickupDropOrInside and "Source item is located inside the dungeon." or "Location coordinates unavailable."
+        self:ConfigureMapPin(gBtn, hasGiverBtn, giverMap, giverInfo.giverName or "Quest Source", giverReason)
+
+        local giverHdr = AcquireText("GameFontNormal", 1.0, 0.82, 0.20, false, fieldW)
+        giverHdr:SetPoint("TOPLEFT", child, "TOPLEFT", textX, curY - 2)
+        giverHdr:SetText("Quest Source")
+
+        local giverBody = AcquireText("GameFontHighlightSmall", 0.92, 0.88, 0.80, true, fieldW)
+        giverBody:SetPoint("TOPLEFT", child, "TOPLEFT", textX, curY - 2 - 16)
+        giverBody:SetText(pickupStr)
+
+        local gBodyH = (giverBody and giverBody:GetStringHeight()) or 14
+        if gBodyH < 14 then gBodyH = 14 end
+        local gBlockH = math.max(pinSize, 2 + 16 + gBodyH)
+        curY = curY - gBlockH - 12
+
+        -- Row 2: Turn-In Bullet Block
+        local tBtn = AcquireMapPinButton()
+        tBtn:SetPoint("TOPLEFT", child, "TOPLEFT", indentX, curY)
+        local turninReason = isTurninInside and "Turn-in is located inside the dungeon." or "Location coordinates unavailable."
+        self:ConfigureMapPin(tBtn, hasTurninBtn, turninMap, turninStr or "Turn-In", turninReason)
+
+        local turninHdr = AcquireText("GameFontNormal", 1.0, 0.82, 0.20, false, fieldW)
+        turninHdr:SetPoint("TOPLEFT", child, "TOPLEFT", textX, curY - 2)
+        turninHdr:SetText("Turn-In")
+
+        local turninBody = AcquireText("GameFontHighlightSmall", 0.92, 0.88, 0.80, true, fieldW)
+        turninBody:SetPoint("TOPLEFT", child, "TOPLEFT", textX, curY - 2 - 16)
+        turninBody:SetText(turninStr)
+
+        local tBodyH = (turninBody and turninBody:GetStringHeight()) or 14
+        if tBodyH < 14 then tBodyH = 14 end
+        local tBlockH = math.max(pinSize, 2 + 16 + tBodyH)
+        curY = curY - tBlockH - 16
+
+        -- 4. Requirements Section (Level, Faction, Class)
+        local reqParts = {}
+        if q.reqLevel and q.reqLevel > 0 then
+            table.insert(reqParts, "Requires Level " .. q.reqLevel)
+        end
+        if q.faction and q.faction ~= "" and q.faction ~= "Both" then
+            table.insert(reqParts, q.faction)
+        end
+        local questClass = q.classOnly
+        if not questClass and q.tags then
+            for _, t in ipairs(q.tags) do
+                local c = t:match("^CLASS:(.+)$")
+                if c then
+                    questClass = c
+                    break
+                end
+            end
+        end
+        if questClass and questClass ~= "" and questClass ~= "All" then
+            local cUpper = questClass:upper()
+            local cName = (_G.LOCALIZED_CLASS_NAMES_MALE and _G.LOCALIZED_CLASS_NAMES_MALE[cUpper])
+                or (_G[cUpper])
+                or (cUpper:sub(1, 1) .. cUpper:sub(2):lower())
+            table.insert(reqParts, cName)
+        end
+        if #reqParts > 0 then
+            local reqHdr = AcquireText("GameFontNormal", 1.0, 0.82, 0.20, false)
+            reqHdr:SetPoint("TOPLEFT", child, "TOPLEFT", 4, curY)
+            reqHdr:SetText("Requirements")
+            curY = curY - 16
+
+            local reqBody = AcquireText("GameFontHighlightSmall", 0.92, 0.88, 0.80, true)
+            reqBody:SetPoint("TOPLEFT", child, "TOPLEFT", 4, curY)
+            reqBody:SetText(table.concat(reqParts, " • "))
+            curY = curY - (reqBody:GetStringHeight() or 14) - 4
+        end
+
+        -- 5. Rewards Section
+        local hasXP = (q.baseXP and q.baseXP > 0)
+        local hasItems = (q.rewardItems and #q.rewardItems > 0)
+        if hasXP or hasItems then
+            curY = curY - 8
+            local divider = AcquireDividerBar()
+            divider:SetPoint("TOPLEFT", child, "TOPLEFT", 4, curY)
+            divider:SetPoint("TOPRIGHT", child, "TOPRIGHT", -4, curY)
+            curY = curY - 4 - 12
+
+            local rewHdr = AcquireText("GameFontNormal", 1.0, 0.82, 0.20, false)
+            rewHdr:SetPoint("TOPLEFT", child, "TOPLEFT", 4, curY)
+            rewHdr:SetText("Rewards")
+            curY = curY - 16
+
+            if hasXP then
+                local xpHdr = AcquireText("GameFontHighlightSmall", 0.80, 0.95, 0.80, false)
+                xpHdr:SetPoint("TOPLEFT", child, "TOPLEFT", 4, curY)
+                xpHdr:SetText(string.format("• Experience: %s XP", tostring(q.baseXP)))
+                curY = curY - 16
+            end
+
+            if hasItems then
+                curY = RenderItemGrid(q.rewardItems, 4, curY, contentW - 8, q.rewardChoice == true)
+            end
+        end
+    end
+
+    -- Hide all pooled widgets beyond widgetIdx
+    for i = widgetIdx + 1, #self.questBodyWidgets do
+        self.questBodyWidgets[i]:Hide()
+    end
+
+    if self.questDividers then
+        for i = dividerIdx + 1, #self.questDividers do
+            self.questDividers[i]:Hide()
+        end
+    end
+
+    local totalH = math.max(1, -curY + 20)
+    child:SetHeight(totalH)
+    if ns.UI.SharedWidgets and ns.UI.SharedWidgets.UpdateScrollFrameVisibility then
+        ns.UI.SharedWidgets:UpdateScrollFrameVisibility(self.questBodyScroll, totalH)
+    end
+end
+
+local cachedNpcDisplayIDs = {}
+local npcModelResolver = nil
+
+--- Resolves and renders the circular medallion portrait for a quest giver (Item or NPC).
+--- Uses native engine creature display 2D render or item texture with bronze ring border.
+--- Strictly hides classification dragons (no elite horns/wings).
+--- @param medallion Frame
+--- @param quest table
+--- @param giverInfo table
+function DungeonBookView:RenderQuestGiverPortrait(medallion, quest, giverInfo)
+    if not medallion or not medallion.icon then return end
+    local tex = medallion.icon
+    local SharedWidgets = ns.UI.SharedWidgets
+
+    if medallion.CreateMaskTexture and not medallion.mask then
+        local mask = medallion:CreateMaskTexture()
+        mask:SetAllPoints(tex)
+        mask:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+        tex:AddMaskTexture(mask)
+        medallion.mask = mask
+    end
+
+    SharedWidgets:SyncWindowPortraitBorder(medallion)
+    SharedWidgets:SetMedallionClassification(medallion, nil)
+
+    -- 1. Quest Starts from an Item
+    if giverInfo.isItem then
+        tex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        local itemIcon = giverInfo.itemIcon
+
+        -- Attempt 1: Pre-mapped item icon from Utility_Quests
+        if not itemIcon then
+            local uq = parent.Utility_Quests or ns.Utility_Quests
+            if uq and uq.QuestsItemIcons then
+                itemIcon = uq.QuestsItemIcons[giverInfo.giverName]
+            end
+        end
+
+        -- Attempt 2: Lookup via ItemsManager
+        if not itemIcon and ns.ItemsManager and ns.ItemsManager.FindItemByName then
+            local rec = ns.ItemsManager:FindItemByName(giverInfo.giverName)
+            if rec and rec.id then
+                itemIcon = C_Item and C_Item.GetItemIconByID and C_Item.GetItemIconByID(rec.id)
+            end
+        end
+
+        -- Attempt 3: Instant item query
+        if not itemIcon and _G.GetItemInfoInstant then
+            local _, _, _, _, instIcon = _G.GetItemInfoInstant(giverInfo.giverName)
+            if instIcon then itemIcon = instIcon end
+        end
+
+        -- Fallback icon for quest items
+        itemIcon = itemIcon or "Interface\\Icons\\INV_Misc_Bag_10_Red"
+
+        if SetPortraitToTexture then
+            local ok = pcall(SetPortraitToTexture, tex, itemIcon)
+            if not ok then tex:SetTexture(itemIcon) end
+        else
+            tex:SetTexture(itemIcon)
+        end
+        return
+    end
+
+    -- 2. Quest Starts from an NPC: Use authoritative 3D Creature Display ID
+    tex:SetTexCoord(0, 1, 0, 1)
+    local displayID = giverInfo.displayID
+
+    if not displayID then
+        local uq = parent.Utility_Quests or ns.Utility_Quests
+        if uq and uq.QuestsNpcDisplayIds then
+            displayID = uq.QuestsNpcDisplayIds[giverInfo.giverName]
+        end
+    end
+
+    if displayID and type(displayID) == "number" and displayID > 0 then
+        if type(SetPortraitTextureFromCreatureDisplayID) == "function" then
+            local ok = pcall(SetPortraitTextureFromCreatureDisplayID, tex, displayID)
+            if ok then
+                tex:SetTexCoord(0, 1, 0, 1)
+                return
+            end
+        end
+    end
+
+    -- 3. Fallback: Clean quest exclamation icon (never a stale model from previous selection)
+    local fallback = "Interface\\GossipFrame\\AvailableQuestIcon"
+    if SetPortraitToTexture then
+        local ok = pcall(SetPortraitToTexture, tex, fallback)
+        if not ok then tex:SetTexture(fallback) end
+    else
+        tex:SetTexture(fallback)
+    end
+end
+
+--- Renders the Right Page based on whether a boss is selected and which right-side tab is active.
 function DungeonBookView:RefreshRightPage()
     local d = self.currentDungeon
     if not d or not self.frame then
@@ -1576,9 +3823,10 @@ function DungeonBookView:RefreshRightPage()
 
     local SharedWidgets = ns.UI.SharedWidgets
     local boss = self.selectedBoss
+    self:UpdateSideTabs()
 
     -- ========================================================================
-    -- MODE 1: INSTANCE OVERVIEW (No boss selected)
+    -- MODE 1: NO BOSS SELECTED (Main Dungeon Overview OR Full Dungeon Loot)
     -- ========================================================================
     if not boss then
         if self.bossMedallion then
@@ -1591,6 +3839,137 @@ function DungeonBookView:RefreshRightPage()
         end
         self.detailDesc:Hide()
         self.rightDivider:Hide()
+
+        if self.activeRightTab == "loot" then
+            -- Full Dungeon Loot View (every item in the dungeon with boss names underneath)
+            if self.questDetailContainer then
+                self.questDetailContainer:Hide()
+            end
+            if self.questFactionCrest then
+                self.questFactionCrest:Hide()
+            end
+            if self.questGiverMedallion then
+                self.questGiverMedallion:Hide()
+            end
+            self.overviewPane:Hide()
+            self.detailScroll:ClearAllPoints()
+            self.detailScroll:SetPoint("TOPLEFT", self.rightPage, "TOPLEFT", 6, -8)
+            self.detailScroll:SetPoint("BOTTOMRIGHT", self.rightPage, "BOTTOMRIGHT", -24, 8)
+            if self.detailScroll.SetVerticalScroll then
+                self.detailScroll:SetVerticalScroll(0)
+            end
+            self.detailScroll:Show()
+            self:RenderDungeonItemDrops(d)
+            return
+        elseif self.activeRightTab == "quests" then
+            -- Dungeon Quests View: Quests are rendered on the Left Page, selected quest header on Right Page
+            self.overviewPane:Hide()
+            self.detailScroll:Hide()
+            if self.questDetailContainer then
+                self.questDetailContainer:Show()
+                if self.questDivider then
+                    SharedWidgets:SyncQuestDividerBar(self.questDivider)
+                end
+                if self.questGiverMedallion then
+                    self.questGiverMedallion:Hide()
+                end
+
+                if self.selectedQuest then
+                    local q = self.selectedQuest
+                    self.questHeaderTitle:SetText(q.name or "Unknown Quest")
+
+                    -- Capital City / Faction Crest for Quest Header
+                    local qFaction = q.faction
+                    local crestTex = (qFaction == "Horde") and "Interface\\Timer\\Horde-Logo"
+                        or (qFaction == "Alliance") and "Interface\\Timer\\Alliance-Logo"
+                        or nil
+
+                    if crestTex and self.questFactionCrest then
+                        self.questFactionCrest:SetTexture(crestTex)
+                        self.questFactionCrest:SetTexCoord(0, 1, 0, 1)
+                        self.questFactionCrest:SetSize(38, 38)
+                        self.questFactionCrest:Show()
+                    elseif self.questFactionCrest then
+                        self.questFactionCrest:Hide()
+                    end
+
+                    local dungeonLoc = (d and d.location and d.location ~= "") and (d.name .. ", " .. d.location) or (d and d.name)
+                    local questDb = parent.QuestDatabase or (ns.QuestDatabase) or (_G.AdventureJournal and _G.AdventureJournal.QuestDatabase)
+                    local giverInfo = (questDb and questDb.GetQuestGiverInfo and questDb:GetQuestGiverInfo(q, d and d.name, dungeonLoc)) or {
+                        isItem = false,
+                        giverName = "",
+                        location = "",
+                        npcID = nil,
+                        displayID = nil,
+                        itemIcon = nil,
+                        isChain = false,
+                    }
+
+                    local qLevel = (q.reqLevel and q.reqLevel > 0 and q.reqLevel) or q.questLevel or q.level or 0
+                    local r, g, b = GetDifficultyColor(qLevel)
+                    local hex = string.format("%02x%02x%02x", math.floor(r * 255), math.floor(g * 255), math.floor(b * 255))
+
+                    local obtainingLoc = giverInfo.location
+                    if not obtainingLoc or obtainingLoc == "" then
+                        obtainingLoc = (d and d.name) or "Dungeon"
+                    end
+
+                    -- Construct strict subheader: Level • Sublocation, Location [ • Quest Chain | • Item Drop ]
+                    local metaParts = {}
+                    table.insert(metaParts, string.format("|cff%sLv %s|r", hex, tostring(qLevel)))
+                    table.insert(metaParts, obtainingLoc)
+                    if giverInfo.isItem then
+                        table.insert(metaParts, "Item Drop")
+                    elseif giverInfo.isChain then
+                        table.insert(metaParts, "Quest Chain")
+                    end
+
+                    self.questHeaderMeta:SetText(table.concat(metaParts, " • "))
+
+                    self.questHeaderTitle:ClearAllPoints()
+                    self.questHeaderTitle:SetPoint("TOP", self.dungeonTitle, "TOP", 0, 0)
+                    self.questHeaderTitle:SetPoint("LEFT", self.questDetailContainer, "LEFT", 6, 0)
+                    if self.questFactionCrest and self.questFactionCrest:IsShown() then
+                        self.questHeaderTitle:SetPoint("RIGHT", self.questFactionCrest, "LEFT", -6, 0)
+                        self.questHeaderMeta:SetPoint("RIGHT", self.questFactionCrest, "LEFT", -6, 0)
+                    else
+                        self.questHeaderTitle:SetPoint("RIGHT", self.questDetailContainer, "RIGHT", -12, 0)
+                        self.questHeaderMeta:SetPoint("RIGHT", self.questDetailContainer, "RIGHT", -12, 0)
+                    end
+
+                    if self.questGiverMedallion then
+                        self.questGiverMedallion:Hide()
+                    end
+
+                    -- Print all quest info and details into the main body pane
+                    self:RenderQuestBodyDetails(q, giverInfo, d)
+                else
+                    self.questHeaderTitle:SetText("")
+                    self.questHeaderMeta:SetText("")
+                    if self.questFactionCrest then
+                        self.questFactionCrest:Hide()
+                    end
+                    if self.questGiverMedallion then
+                        self.questGiverMedallion:Hide()
+                    end
+                    if self.questBodyWidgets then
+                        for _, w in ipairs(self.questBodyWidgets) do w:Hide() end
+                    end
+                end
+            end
+            return
+        end
+
+        -- Dungeon Overview View (Artwork + Lore + Show on Map button)
+        if self.questDetailContainer then
+            self.questDetailContainer:Hide()
+        end
+        if self.questFactionCrest then
+            self.questFactionCrest:Hide()
+        end
+        if self.questGiverMedallion then
+            self.questGiverMedallion:Hide()
+        end
         self.detailScroll:Hide()
         self.overviewPane:Show()
 
@@ -1600,6 +3979,9 @@ function DungeonBookView:RefreshRightPage()
         if self.overviewDivider then
             SharedWidgets:SyncQuestDividerBar(self.overviewDivider)
         end
+        if self.questDivider then
+            SharedWidgets:SyncQuestDividerBar(self.questDivider)
+        end
         if self.showOnMapBtn then
             local shouldShow = ShouldShowDungeonMapButton(d)
             self.showOnMapBtn:SetShown(shouldShow)
@@ -1608,9 +3990,18 @@ function DungeonBookView:RefreshRightPage()
     end
 
     -- ========================================================================
-    -- MODE 2: BOSS ENCOUNTER OVERVIEW & DROPS (Boss selected)
+    -- MODE 2: BOSS ENCOUNTER OVERVIEW & DROPS (Boss selected, Loot tab active)
     -- ========================================================================
     self.overviewPane:Hide()
+    if self.questDetailContainer then
+        self.questDetailContainer:Hide()
+    end
+    if self.questFactionCrest then
+        self.questFactionCrest:Hide()
+    end
+    if self.questGiverMedallion then
+        self.questGiverMedallion:Hide()
+    end
 
     -- 1. Boss Medallion Portrait + Name
     SharedWidgets:SetBossMedallionPortrait(self.bossMedallion, boss, d)
@@ -1688,8 +4079,12 @@ function DungeonBookView:RefreshRightPage()
     end
     self.detailScroll:Show()
 
-    -- 5. Render Categorized Item Drops
-    self:RenderItemDrops(d, boss)
+    -- 5. Render Categorized Item Drops or Quests
+    if self.activeRightTab == "quests" then
+        self:RenderCategorizedDropEntries({}, false, nil, "", "Dungeon Quest tracking coming soon.")
+    else
+        self:RenderItemDrops(d, boss)
+    end
 end
 
 function DungeonBookView:Show()

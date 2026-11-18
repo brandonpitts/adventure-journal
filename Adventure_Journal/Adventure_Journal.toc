@@ -2,7 +2,7 @@
 ## Title: Adventure Journal
 ## Notes: Complete in-game adventure guide, dungeon and raid reference for WoW Forever.
 ## Author: Brand
-## Version: 0.7.2
+## Version: 0.8.0
 ## IconTexture: Interface\Icons\INV_Misc_Book_09
 ## SavedVariables: JournalBaseDB
 ## AddonCompartmentFunc: AdventureJournal_OnAddonCompartmentClick
@@ -38,6 +38,18 @@ Modules\Journal_Dungeons\UI\DungeonBookView.lua
 Modules\Journal_Dungeons\UI\MainView.lua
 Modules\Journal_Dungeons\Core.lua
 
+# Modules: Utility - Quests
+Modules\Utility_Quests\Constants.lua
+Modules\Utility_Quests\Data\Quests_Catalog.lua
+Modules\Utility_Quests\Data\Quests_Dungeons.lua
+Modules\Utility_Quests\Data\Quests_Chains.lua
+Modules\Utility_Quests\Data\Quests_PrereqDetails.lua
+Modules\Utility_Quests\Data\Quests_Maps.lua
+Modules\Utility_Quests\Data\Quests_NpcIds.lua
+Modules\Utility_Quests\Data\Quests_Shareability.lua
+Modules\Utility_Quests\QuestDatabase.lua
+Modules\Utility_Quests\Core.lua
+
 # Modules: Utility - Map Icons
 Modules\Utility_MapIcons\Constants.lua
 Modules\Utility_MapIcons\Data\EntranceCoordinates.lua
@@ -47,17 +59,3 @@ Modules\Utility_MapIcons\UI\MapPinProvider.lua
 Modules\Utility_MapIcons\UI\AreaLabelProvider.lua
 Modules\Utility_MapIcons\Core.lua
 
-# Modules: Raids
-# (In Development) Modules\Journal_Raids\Constants.lua
-# (In Development) Modules\Journal_Raids\UI\MainView.lua
-# (In Development) Modules\Journal_Raids\Core.lua
-
-# Modules: Professions
-# (In Development) Modules\Journal_Professions\Constants.lua
-# (In Development) Modules\Journal_Professions\UI\MainView.lua
-# (In Development) Modules\Journal_Professions\Core.lua
-
-# Modules: Quests
-# (In Development) Modules\Journal_Quests\Constants.lua
-# (In Development) Modules\Journal_Quests\UI\MainView.lua
-# (In Development) Modules\Journal_Quests\Core.lua
