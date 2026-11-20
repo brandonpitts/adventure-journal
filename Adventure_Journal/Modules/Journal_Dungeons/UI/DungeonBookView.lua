@@ -63,6 +63,23 @@ local function safeGetItemQualityColor(quality)
     return 1.0, 1.0, 1.0
 end
 
+--- Shows the item tooltip for an item row (`row.itemID`, optional `row.itemLink`).
+--- Also assigned as the row's `UpdateTooltip`, which `GameTooltip_OnUpdate` calls every
+--- `TOOLTIP_UPDATE_TIME` while hovered, so Shift-compare responds to Shift pressed mid-hover.
+--- @param row Button
+local function ShowItemRowTooltip(row)
+    if not GameTooltip or not row.itemID then return end
+    GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
+    if row.itemLink and row.itemLink:find("|Hitem:") then
+        GameTooltip:SetHyperlink(row.itemLink)
+    elseif GameTooltip.SetItemByID then
+        GameTooltip:SetItemByID(row.itemID)
+    else
+        GameTooltip:SetHyperlink("item:" .. tostring(row.itemID))
+    end
+    GameTooltip:Show()
+end
+
 --- Returns dynamic RGB difficulty color based on monster level vs player level.
 --- @param bossLevel string|number
 --- @return number r, number g, number b
@@ -70,21 +87,23 @@ local function GetDifficultyColor(bossLevel)
     return ns.UI.SharedWidgets:GetCreatureDifficultyColor(bossLevel)
 end
 
---- Resolves entrance coordinates and metadata across all module namespaces.
---- @param dungeonID string
+local Access = ns.Data.DungeonAccess
+local QuestAccess = ns.Data.QuestAccess
+local Search = parent.Search
+-- Core's window background (ink body text on parchment); named here because methods take a `parent` frame
+local WindowBackground = parent.UI.WindowBackground
+
+-- ItemStore, or nil when the DataStore is off
+local function itemStore()
+    local DataStore = parent.DataStore
+    return DataStore and DataStore:IsEnabled() and DataStore.ItemStore or nil
+end
+
+--- The dungeon's entrance on the world map: { uiMapID, x, y, name }, or nil.
+--- @param dungeon table a dungeon view (DungeonAccess)
 --- @return table|nil
-local function GetDungeonMapLocation(dungeonID)
-    if not dungeonID then return nil end
-    local fn = (ns and ns.GetDungeonMapLocation)
-        or (parent and parent.GetDungeonMapLocation)
-        or (parent and parent.Dungeons and parent.Dungeons.GetDungeonMapLocation)
-        or (_G.JournalBase and _G.JournalBase.GetDungeonMapLocation)
-        or _G.AdventureJournal_GetDungeonMapLocation
-        or (parent and parent.EntranceCoordinates and parent.EntranceCoordinates.GetByDungeonID)
-    if fn then
-        return fn(dungeonID)
-    end
-    return nil
+local function GetDungeonMapLocation(dungeon)
+    return dungeon and Access:GetEntrance(dungeon) or nil
 end
 
 --- Checks whether the Show on Map button should be visible based on user map icon settings and player level.
@@ -92,20 +111,20 @@ end
 --- @return boolean
 local function ShouldShowDungeonMapButton(dungeon)
     if not dungeon then return false end
-    local loc = GetDungeonMapLocation(dungeon.id)
+    local loc = GetDungeonMapLocation(dungeon)
     if not loc or not loc.uiMapID then return false end
 
     -- Verify Map Icons utility module is enabled
-    local isPluginEnabled = (_G.JournalBase and _G.JournalBase.IsPluginEnabled)
-        or (parent and parent.IsPluginEnabled)
-        or (ns and ns.IsPluginEnabled)
-    if isPluginEnabled and not isPluginEnabled("map_icons") then
+    local isModuleEnabled = (_G.JournalBase and _G.JournalBase.IsModuleEnabled)
+        or (parent and parent.IsModuleEnabled)
+        or (ns and ns.IsModuleEnabled)
+    if isModuleEnabled and not isModuleEnabled("map_icons") then
         return false
     end
 
     local setting = "min_level"
-    if ns and ns.Database and ns.Database.GetMapIconsSetting then
-        setting = ns.Database:GetMapIconsSetting("worldMapDungeonIcons", "min_level")
+    if ns and ns.Settings and ns.Settings.GetMapIconsSetting then
+        setting = ns.Settings:GetMapIconsSetting("worldMapDungeonIcons", "min_level")
     elseif _G.JournalBase and _G.JournalBase.GetMapIconsSetting then
         setting = _G.JournalBase:GetMapIconsSetting("worldMapDungeonIcons", "min_level")
     elseif _G.JournalBase and _G.JournalBase.GetDungeonSetting then
@@ -148,6 +167,9 @@ local DungeonBookView = {
     categoryHeaderPool = {},
     itemRowPool = {},
     questButtonPool = {},
+    wingButtonPool = {},
+    wingPage = false,
+    onSelectWing = nil,
     selectedQuest = nil,
     zoneBossEntry = nil,
     onSelectBoss = nil,
@@ -410,7 +432,7 @@ function DungeonBookView:Init(parent, callbacks)
     -- Sub-Container 1: Instance Overview (Framed Dungeon Art + Lore)
     self:BuildInstanceOverviewPane(rightPage)
 
-    -- Sub-Container 2: Scrollable Area under Divider (Reserved for future Item/Drop list)
+    -- Sub-Container 2: Scrollable item drop list under the divider
     local detailScroll = CreateFrame("ScrollFrame", "JournalDungeonsDetailScrollFrame", rightPage, "UIPanelScrollFrameTemplate")
     detailScroll.scrollBarHideable = true
     self.detailScroll = detailScroll
@@ -440,7 +462,7 @@ function DungeonBookView:Init(parent, callbacks)
     questDivider:SetHeight(4)
     self.questDivider = questDivider
 
-    -- Circular Medallion for Quest Giver (hidden per user instruction)
+    -- Circular Medallion for Quest Giver (kept hidden)
     local questGiverMedallion = SharedWidgets:CreateCircularMedallion(questDetailContainer, 38, 52)
     questGiverMedallion:SetPoint("TOP", dungeonMedallion, "TOP", 0, 0)
     questGiverMedallion:SetPoint("LEFT", questDetailContainer, "LEFT", 2, 0)
@@ -495,12 +517,20 @@ function DungeonBookView:Init(parent, callbacks)
 
     self.questBodyWidgets = {}
 
-    -- Right-Side Vertical Tabs (#V6 — Pop-Out SpellBook Flap 32x32 + Active Shift Right)
+    -- Overview, Loot and Quests side tabs on the window's right edge
     self:BuildRightSideTabs(frame)
 
+    -- A new window background recolors the open page's body text (ink on parchment)
+    WindowBackground:OnChange(function()
+        if self.frame and self.frame:IsShown() and self.currentDungeon then
+            self:RefreshRightPage()
+        end
+    end)
+
     local dropUpdateTimer = nil
-    if ns.ItemsManager and ns.ItemsManager.RegisterUpdateListener then
-        ns.ItemsManager:RegisterUpdateListener(function()
+    local liveData = parent.DataStore and parent.DataStore.Live
+    if liveData then
+        liveData:AddListener(function()
             if self.frame and self.frame:IsShown() and self.currentDungeon and (self.selectedBoss or self.activeRightTab == "loot" or self.activeRightTab == "quests") then
                 if dropUpdateTimer and dropUpdateTimer.Cancel then
                     dropUpdateTimer:Cancel()
@@ -531,32 +561,6 @@ function DungeonBookView:Init(parent, callbacks)
     end
 
     frame:SetScript("OnShow", function()
-        SharedWidgets:SyncQuestDividerBar(self.leftDivider)
-        SharedWidgets:SyncQuestDividerBar(self.rightDivider)
-        if self.eventDivider and self.eventDivider:IsShown() then
-            SharedWidgets:SyncQuestDividerBar(self.eventDivider)
-        end
-        if self.rareHeader and self.rareHeader:IsShown() and self.rareHeader.divider then
-            SharedWidgets:SyncQuestDividerBar(self.rareHeader.divider)
-        end
-        if self.minorHeader and self.minorHeader:IsShown() and self.minorHeader.divider then
-            SharedWidgets:SyncQuestDividerBar(self.minorHeader.divider)
-        end
-        if self.challengeHeader and self.challengeHeader:IsShown() and self.challengeHeader.divider then
-            SharedWidgets:SyncQuestDividerBar(self.challengeHeader.divider)
-        end
-        if self.trashDivider and self.trashDivider:IsShown() then
-            SharedWidgets:SyncQuestDividerBar(self.trashDivider)
-        end
-        if self.questFactionDivider and self.questFactionDivider:IsShown() then
-            SharedWidgets:SyncQuestDividerBar(self.questFactionDivider)
-        end
-        if self.overviewDivider then
-            SharedWidgets:SyncQuestDividerBar(self.overviewDivider)
-        end
-        if self.questDivider then
-            SharedWidgets:SyncQuestDividerBar(self.questDivider)
-        end
         SharedWidgets:SyncWindowPortraitBorder(self.dungeonMedallion)
         if self.bossMedallion then
             SharedWidgets:SyncWindowPortraitBorder(self.bossMedallion)
@@ -580,18 +584,6 @@ function DungeonBookView:Init(parent, callbacks)
                 self:RefreshRightPage()
             end
         end
-
-        local prevQuestHook = _G.JournalBase.OnQuestSettingChanged
-        _G.JournalBase.OnQuestSettingChanged = function(jBase, key, val)
-            if prevQuestHook then
-                pcall(prevQuestHook, jBase, key, val)
-            end
-            if key == "showBothFactionData" and self.frame and self.frame:IsShown() then
-                self:UpdateSideTabs()
-                self:RefreshLeftPage()
-                self:RefreshRightPage()
-            end
-        end
     end
 
     frame:RegisterEvent("PLAYER_LEVEL_UP")
@@ -610,233 +602,112 @@ function DungeonBookView:Init(parent, callbacks)
     end)
 end
 
---- Builds the three #V6 Pop-Out SpellBook Flap (+25% scaled: 40x40 + Active Shift Right) tabs
---- anchored along the outer right edge of the main journal window.
----   * Tab 1 (Top): Overview (Dynamic `dungeon.icon` fallback emblem)
----   * Tab 2 (Middle): Loot / Items (`Interface\Icons\INV_Box_02` treasure chest)
----   * Tab 3 (Bottom): Quests (`Interface\GossipFrame\AvailableQuestIcon` exclamation mark)
+--- Builds the Overview, Loot and Quests side tabs down the outer right edge of the journal window: Forever's
+--- large side tabs (LargeSideTabButtonTemplate, the Legacy window's tabs) with our icons: the dungeon's own icon
+--- (Overview), a treasure chest (Loot) and the quest exclamation mark (Quests).
 --- @param bookFrame Frame
 function DungeonBookView:BuildRightSideTabs(bookFrame)
     local mainWin = _G.JournalBaseMainFrame or bookFrame
     local holder = CreateFrame("Frame", nil, bookFrame)
     holder:SetSize(48, 170)
-    holder:SetPoint("TOPLEFT", mainWin, "TOPRIGHT", -2, -70)
+    holder:SetPoint("TOPLEFT", mainWin, "TOPRIGHT", 0, -70)
     holder:SetFrameStrata("HIGH")
     if mainWin.GetFrameLevel then
         holder:SetFrameLevel(mainWin:GetFrameLevel() + 15)
     end
     self.sideTabHolder = holder
 
-    local white = Constants.ASSETS.WHITE_8X8
-
-    local function createV6Tab(tabKey, defaultIconPath, titleText)
-        local btn = CreateFrame("Button", nil, holder)
-        -- Scaled up +25%: 32x32 -> 40x40
-        btn:SetSize(40, 40)
-        btn.tabKey = tabKey
-        btn.titleText = titleText
-        btn:RegisterForClicks("LeftButtonUp")
-
-        -- #V6 SpellBook-SkillLineTab protruding flap scaled +25% (64x64 -> 80x80 at -4, 14)
-        local flap = btn:CreateTexture(nil, "BACKGROUND")
-        flap:SetSize(80, 80)
-        flap:SetPoint("TOPLEFT", btn, "TOPLEFT", -4, 14)
-        flap:SetTexture("Interface\\SpellBook\\SpellBook-SkillLineTab")
-        btn.flap = flap
-
-        -- Solid backing pocket sitting in front of flap and behind icon
-        local pocket = btn:CreateTexture(nil, "BORDER", nil, 1)
-        pocket:SetAllPoints(btn)
-        pocket:SetTexture(white)
-        if tabKey == "quests" then
-            pocket:SetVertexColor(0, 0, 0, 1.0)
-        else
-            pocket:SetVertexColor(0.07, 0.06, 0.05, 0.95)
+    local function selectTab(tab)
+        if not tab.isEnabled or self.activeRightTab == tab.tabKey then
+            return
         end
-        btn.pocket = pocket
-
-        -- 40x40 cropped icon inside flap
-        local icon = btn:CreateTexture(nil, "ARTWORK", nil, 0)
-        icon:SetAllPoints(btn)
-        if tabKey == "quests" then
-            if icon.SetAtlas then
-                local ok = pcall(icon.SetAtlas, icon, "QuestNormal")
-                if not ok then
-                    icon:SetTexture("Interface\\GossipFrame\\AvailableQuestIcon")
-                    icon:SetTexCoord(0, 1, 0, 1)
-                end
-            else
-                icon:SetTexture("Interface\\GossipFrame\\AvailableQuestIcon")
-                icon:SetTexCoord(0, 1, 0, 1)
-            end
-        else
-            if defaultIconPath then
-                icon:SetTexture(defaultIconPath)
-            end
-            icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+        if PlaySound then
+            PlaySound((SOUNDKIT and SOUNDKIT.IG_CHARACTER_INFO_TAB) or Constants.SOUNDS.PAGE_TURN)
         end
-        btn.icon = icon
-
-        -- Aggressive outer-edge fade-to-black (tight to the very outer 5px perimeter, black outwards)
-        local edgeSize = 5
-        local outerBlackAlpha = 0.96
-
-        local topFade = btn:CreateTexture(nil, "ARTWORK", nil, 2)
-        topFade:SetPoint("TOPLEFT", btn, "TOPLEFT", 0, 0)
-        topFade:SetPoint("TOPRIGHT", btn, "TOPRIGHT", 0, 0)
-        topFade:SetHeight(edgeSize)
-        topFade:SetTexture(white)
-
-        local botFade = btn:CreateTexture(nil, "ARTWORK", nil, 2)
-        botFade:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", 0, 0)
-        botFade:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 0, 0)
-        botFade:SetHeight(edgeSize)
-        botFade:SetTexture(white)
-
-        local leftFade = btn:CreateTexture(nil, "ARTWORK", nil, 2)
-        leftFade:SetPoint("TOPLEFT", btn, "TOPLEFT", 0, 0)
-        leftFade:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", 0, 0)
-        leftFade:SetWidth(edgeSize)
-        leftFade:SetTexture(white)
-
-        local rightFade = btn:CreateTexture(nil, "ARTWORK", nil, 2)
-        rightFade:SetPoint("TOPRIGHT", btn, "TOPRIGHT", 0, 0)
-        rightFade:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 0, 0)
-        rightFade:SetWidth(edgeSize)
-        rightFade:SetTexture(white)
-
-        if topFade.SetGradient and CreateColor then
-            -- VERTICAL: minColor = bottom, maxColor = top
-            topFade:SetGradient("VERTICAL", CreateColor(0, 0, 0, 0.0), CreateColor(0, 0, 0, outerBlackAlpha))
-            botFade:SetGradient("VERTICAL", CreateColor(0, 0, 0, outerBlackAlpha), CreateColor(0, 0, 0, 0.0))
-            -- HORIZONTAL: minColor = left, maxColor = right
-            leftFade:SetGradient("HORIZONTAL", CreateColor(0, 0, 0, outerBlackAlpha), CreateColor(0, 0, 0, 0.0))
-            rightFade:SetGradient("HORIZONTAL", CreateColor(0, 0, 0, 0.0), CreateColor(0, 0, 0, outerBlackAlpha))
-        else
-            topFade:SetVertexColor(0, 0, 0, 0.65)
-            botFade:SetVertexColor(0, 0, 0, 0.65)
-            leftFade:SetVertexColor(0, 0, 0, 0.65)
-            rightFade:SetVertexColor(0, 0, 0, 0.65)
+        self.activeRightTab = tab.tabKey
+        if self.detailScroll and self.detailScroll.SetVerticalScroll then
+            self.detailScroll:SetVerticalScroll(0)
         end
-
-        -- Crisp 1px outer black rim right at the perimeter edge
-        local rimT = btn:CreateTexture(nil, "ARTWORK", nil, 3)
-        rimT:SetPoint("TOPLEFT", btn, "TOPLEFT", 0, 0)
-        rimT:SetPoint("TOPRIGHT", btn, "TOPRIGHT", 0, 0)
-        rimT:SetHeight(1)
-        rimT:SetTexture(white)
-        rimT:SetVertexColor(0, 0, 0, 0.90)
-
-        local rimB = btn:CreateTexture(nil, "ARTWORK", nil, 3)
-        rimB:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", 0, 0)
-        rimB:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 0, 0)
-        rimB:SetHeight(1)
-        rimB:SetTexture(white)
-        rimB:SetVertexColor(0, 0, 0, 0.90)
-
-        local rimL = btn:CreateTexture(nil, "ARTWORK", nil, 3)
-        rimL:SetPoint("TOPLEFT", btn, "TOPLEFT", 0, 0)
-        rimL:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", 0, 0)
-        rimL:SetWidth(1)
-        rimL:SetTexture(white)
-        rimL:SetVertexColor(0, 0, 0, 0.90)
-
-        local rimR = btn:CreateTexture(nil, "ARTWORK", nil, 3)
-        rimR:SetPoint("TOPRIGHT", btn, "TOPRIGHT", 0, 0)
-        rimR:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 0, 0)
-        rimR:SetWidth(1)
-        rimR:SetTexture(white)
-        rimR:SetVertexColor(0, 0, 0, 0.90)
-
-        btn.edgeFades = { topFade, botFade, leftFade, rightFade, rimT, rimB, rimL, rimR }
-
-        -- Gold CheckButtonHilight active border glow
-        local activeGlow = btn:CreateTexture(nil, "OVERLAY")
-        activeGlow:SetAllPoints(btn)
-        activeGlow:SetTexture("Interface\\Buttons\\CheckButtonHilight")
-        activeGlow:SetBlendMode("ADD")
-        activeGlow:Hide()
-        btn.activeGlow = activeGlow
-
-        btn:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
-
-        btn:SetScript("OnClick", function(clicked)
-            if not clicked.isEnabled then
-                return
-            end
-            if self.activeRightTab == clicked.tabKey then
-                return
-            end
-            if PlaySound then
-                PlaySound((SOUNDKIT and SOUNDKIT.IG_CHARACTER_INFO_TAB) or Constants.SOUNDS.PAGE_TURN)
-            end
-            self.activeRightTab = clicked.tabKey
-            if self.detailScroll and self.detailScroll.SetVerticalScroll then
-                self.detailScroll:SetVerticalScroll(0)
-            end
-            if self.bossScroll and self.bossScroll.SetVerticalScroll then
-                self.bossScroll:SetVerticalScroll(0)
-            end
-            self:UpdateSideTabs()
-            self:RefreshLeftPage()
-            self:RefreshRightPage()
-            if self.onTabChanged then
-                self.onTabChanged(clicked.tabKey)
-            end
-        end)
-
-        btn:SetScript("OnEnter", function(b)
-            if not GameTooltip then return end
-            GameTooltip:SetOwner(b, "ANCHOR_RIGHT")
-            if b.tabKey == "overview" then
-                GameTooltip:SetText("Dungeon Overview", 1.0, 0.82, 0.0)
-                if b.isEnabled then
-                    GameTooltip:AddLine("View dungeon lore, artwork, and world map entrance.", 0.90, 0.90, 0.90, true)
-                else
-                    GameTooltip:AddLine("Overview is only available on the main dungeon page.", 0.75, 0.75, 0.75, true)
-                    GameTooltip:AddLine("Click the dungeon portrait in the upper-left to enable.", 0.35, 0.95, 0.45, true)
-                end
-            elseif b.tabKey == "quests" then
-                GameTooltip:SetText("Dungeon Quests", 1.0, 0.82, 0.0)
-                if b.isEnabled then
-                    GameTooltip:AddLine("View all quests, chains, and rewards for this dungeon.", 0.90, 0.90, 0.90, true)
-                else
-                    if b.disabledReason == "no_quests" then
-                        GameTooltip:AddLine("No quests available for your faction or class in this dungeon.", 0.75, 0.75, 0.75, true)
-                    else
-                        GameTooltip:AddLine("Quests are only available on the main dungeon page.", 0.75, 0.75, 0.75, true)
-                        GameTooltip:AddLine("Click the dungeon portrait in the upper-left to enable.", 0.35, 0.95, 0.45, true)
-                    end
-                end
-            else
-                if self.selectedBoss then
-                    GameTooltip:SetText((self.selectedBoss.name or "Boss") .. " — Loot", 1.0, 0.82, 0.0)
-                    GameTooltip:AddLine("Viewing categorized item drops for this encounter.", 0.90, 0.90, 0.90, true)
-                else
-                    GameTooltip:SetText("All Dungeon Loot", 1.0, 0.82, 0.0)
-                    GameTooltip:AddLine("View every item drop across the entire dungeon.", 0.90, 0.90, 0.90, true)
-                end
-            end
-            GameTooltip:Show()
-        end)
-
-        btn:SetScript("OnLeave", function()
-            if GameTooltip then
-                GameTooltip:Hide()
-            end
-        end)
-
-        return btn
+        if self.bossScroll and self.bossScroll.SetVerticalScroll then
+            self.bossScroll:SetVerticalScroll(0)
+        end
+        self:UpdateSideTabs()
+        self:RefreshLeftPage()
+        self:RefreshRightPage()
+        if self.onTabChanged then
+            self.onTabChanged(tab.tabKey)
+        end
     end
 
-    self.overviewTabBtn = createV6Tab("overview", "Interface\\Icons\\INV_Misc_Bone_HumanSkull_01", "Dungeon Overview")
-    self.lootTabBtn = createV6Tab("loot", "Interface\\Icons\\INV_Box_02", "Loot")
-    self.questsTabBtn = createV6Tab("quests", nil, "Quests")
+    -- Runs after the template's own OnEnter and replaces its tooltip with ours
+    local function showTooltip(tab)
+        if not GameTooltip then return end
+        GameTooltip:SetOwner(tab, "ANCHOR_RIGHT")
+        if tab.tabKey == "overview" then
+            GameTooltip:SetText("Dungeon Overview", 1.0, 0.82, 0.0)
+            if tab.isEnabled then
+                GameTooltip:AddLine("View dungeon lore, artwork, and world map entrance.", 0.90, 0.90, 0.90, true)
+            else
+                GameTooltip:AddLine("Overview is only available on the main dungeon page.", 0.75, 0.75, 0.75, true)
+                GameTooltip:AddLine("Click the dungeon portrait in the upper-left to enable.", 0.35, 0.95, 0.45, true)
+            end
+        elseif tab.tabKey == "quests" then
+            GameTooltip:SetText("Dungeon Quests", 1.0, 0.82, 0.0)
+            if tab.isEnabled then
+                GameTooltip:AddLine("View all quests, chains, and rewards for this dungeon.", 0.90, 0.90, 0.90, true)
+            elseif tab.disabledReason == "no_quests" then
+                GameTooltip:AddLine("No quests available for your faction or class in this dungeon.", 0.75, 0.75, 0.75, true)
+            else
+                GameTooltip:AddLine("Quests are only available on the main dungeon page.", 0.75, 0.75, 0.75, true)
+                GameTooltip:AddLine("Click the dungeon portrait in the upper-left to enable.", 0.35, 0.95, 0.45, true)
+            end
+        elseif self.selectedBoss then
+            GameTooltip:SetText((self.selectedBoss.name or "Boss") .. " — Loot", 1.0, 0.82, 0.0)
+            GameTooltip:AddLine("Viewing categorized item drops for this encounter.", 0.90, 0.90, 0.90, true)
+        else
+            GameTooltip:SetText("All Dungeon Loot", 1.0, 0.82, 0.0)
+            GameTooltip:AddLine("View every item drop across the entire dungeon.", 0.90, 0.90, 0.90, true)
+        end
+        GameTooltip:Show()
+    end
+
+    local function createTab(tabKey, titleText, setIcon)
+        local tab = CreateFrame("Frame", nil, holder, "LargeSideTabButtonTemplate")
+        tab:EnableMouse(true)
+        tab.tabKey = tabKey
+        tab.tooltipText = titleText
+        tab.icon = tab.Icon
+        setIcon(tab.Icon)
+        tab:SetFillToInterior(true)
+        tab:SetCustomOnMouseUpHandler(function(_, button, upInside)
+            if button == "LeftButton" and upInside then
+                selectTab(tab)
+            end
+        end)
+        tab:HookScript("OnEnter", showTooltip)
+        tab:HookScript("OnLeave", function()
+            if GameTooltip then GameTooltip:Hide() end
+        end)
+        tab:SetChecked(false)
+        return tab
+    end
+
+    self.overviewTabBtn = createTab("overview", "Dungeon Overview", function(icon)
+        icon:SetTexture("Interface\\Icons\\INV_Misc_Bone_HumanSkull_01")
+    end)
+    self.lootTabBtn = createTab("loot", "Loot", function(icon)
+        icon:SetTexture("Interface\\Icons\\INV_Box_02")
+    end)
+    self.questsTabBtn = createTab("quests", "Quests", function(icon)
+        if not (icon.SetAtlas and pcall(icon.SetAtlas, icon, "QuestNormal")) then
+            icon:SetTexture("Interface\\GossipFrame\\AvailableQuestIcon")
+        end
+    end)
     self:UpdateSideTabs()
 end
 
---- Updates the visual state (active +6px pop-out, enabled inactive, or disabled greyed-out)
---- and dynamic dungeon emblem icon of the Overview, Loot, and Quests right-side #V6 tabs.
+--- Updates the side tabs: which show, which is selected (checked), which are disabled (greyed out),
+--- and the Overview tab's icon (the open dungeon's own).
 function DungeonBookView:UpdateSideTabs()
     if not self.overviewTabBtn or not self.lootTabBtn or not self.questsTabBtn or not self.sideTabHolder then
         return
@@ -847,27 +718,28 @@ function DungeonBookView:UpdateSideTabs()
 
     local hasBoss = (self.selectedBoss ~= nil)
 
-    -- Modular Quests check: if Utility_Quests module is loaded and enabled, show Quests tab
-    local questDb = parent.QuestDatabase or (ns.QuestDatabase) or (_G.AdventureJournal and _G.AdventureJournal.QuestDatabase)
-    local isQuestsDisabled = (parent.Database and parent.Database.IsPluginDisabled and parent.Database:IsPluginDisabled("utility_quests"))
-        or (_G.JournalBaseDB and _G.JournalBaseDB.disabledPlugins and _G.JournalBaseDB.disabledPlugins["utility_quests"])
-    local hasQuestsModule = (questDb ~= nil and questDb.isInitialized) and not isQuestsDisabled
+    -- The wing selection page shows only the dungeon's overview
+    self.lootTabBtn:SetShown(not self.wingPage)
+
+    -- Quests come from the DataStore; the tab shows whenever it's on
+    local questDb = QuestAccess
+    local hasQuestsModule = QuestAccess:IsAvailable() and not self.wingPage
     self.questsTabBtn:SetShown(hasQuestsModule)
 
     local hasQuests = false
-    if hasQuestsModule and self.currentDungeon and questDb then
-        local showBoth = (parent.Database and parent.Database.GetQuestSetting and parent.Database:GetQuestSetting("showBothFactionData", false))
-            or (ns.Database and ns.Database.GetQuestSetting and ns.Database:GetQuestSetting("showBothFactionData", false))
-            or (_G.JournalBaseDB and _G.JournalBaseDB.quests and _G.JournalBaseDB.quests.showBothFactionData)
-            or false
+    if hasQuestsModule and self.currentDungeon then
+        local showBoth = parent.Settings:IsBothFactionQuestsShown()
         local factionFilter = showBoth and "All" or (UnitFactionGroup("player") or "Both")
         local _, playerClass = UnitClass("player")
-        local qList = questDb:GetDungeonQuests(self.currentDungeon.id, factionFilter, playerClass)
+        local qList = questDb:GetDungeonQuests(self.currentDungeon, factionFilter, playerClass)
         hasQuests = (qList and #qList > 0)
     end
 
     local overviewEnabled = not hasBoss
-    local lootEnabled = true
+    local lootEnabled = not self.wingPage
+    if self.wingPage then
+        self.activeRightTab = "overview"
+    end
     local questsEnabled = hasQuestsModule and not hasBoss and hasQuests
     self.questsTabBtn.disabledReason = (hasBoss and "boss_selected") or (not hasQuests and "no_quests") or nil
 
@@ -882,65 +754,32 @@ function DungeonBookView:UpdateSideTabs()
     local lootActive = (self.activeRightTab == "loot")
     local questsActive = questsEnabled and (self.activeRightTab == "quests")
 
-    local function applyV6VisualState(btn, isActive, isEnabled)
-        btn.isActive = isActive
-        btn.isEnabled = isEnabled
-        local hl = btn.GetHighlightTexture and btn:GetHighlightTexture()
-
-        if not isEnabled then
-            -- Disabled & Greyed Out state (e.g., Overview Tab when a Boss is selected)
-            btn.activeGlow:Hide()
-            btn.icon:SetDesaturated(true)
-            btn.icon:SetVertexColor(0.48, 0.48, 0.48)
-            btn.icon:SetAlpha(0.42)
-            btn.flap:SetDesaturated(true)
-            btn.flap:SetVertexColor(0.55, 0.55, 0.55, 0.85)
-            if hl then hl:Hide() end
-        elseif isActive then
-            -- Active & Popped-Out (+6px right) state
-            btn.activeGlow:Show()
-            btn.icon:SetDesaturated(false)
-            btn.icon:SetVertexColor(1.0, 1.0, 1.0)
-            btn.icon:SetAlpha(1.0)
-            btn.flap:SetDesaturated(false)
-            btn.flap:SetVertexColor(1.0, 1.0, 1.0, 1.0)
-            if hl then hl:Show() end
-        else
-            -- Enabled & Inactive state (clickable, normal colors)
-            btn.activeGlow:Hide()
-            btn.icon:SetDesaturated(false)
-            if btn.tabKey == "quests" then
-                btn.icon:SetVertexColor(1.0, 1.0, 1.0)
-                btn.icon:SetAlpha(1.0)
-            else
-                btn.icon:SetVertexColor(0.85, 0.80, 0.72)
-                btn.icon:SetAlpha(0.85)
-            end
-            btn.flap:SetDesaturated(false)
-            btn.flap:SetVertexColor(0.92, 0.88, 0.82, 1.0)
-            if hl then hl:Show() end
-        end
+    -- Checked lights the selected tab; a disabled tab's icon is greyed out and its clicks are ignored
+    local function applyTabState(tab, isActive, isEnabled)
+        tab.isActive = isActive
+        tab.isEnabled = isEnabled
+        tab:SetChecked(isActive)
+        tab.icon:SetDesaturated(not isEnabled)
+        tab.icon:SetAlpha(isEnabled and 1 or 0.45)
     end
 
-    applyV6VisualState(self.overviewTabBtn, overviewActive, overviewEnabled)
-    applyV6VisualState(self.lootTabBtn, lootActive, lootEnabled)
-    applyV6VisualState(self.questsTabBtn, questsActive, questsEnabled)
+    applyTabState(self.overviewTabBtn, overviewActive, overviewEnabled)
+    applyTabState(self.lootTabBtn, lootActive, lootEnabled)
+    applyTabState(self.questsTabBtn, questsActive, questsEnabled)
 
-    -- #V6 Active Shift Right (+25% scaled: +6px pop-out when active, 15px vertical gap)
-    local activePopX = 6
-    local gap = 15
-    local pop1 = overviewActive and activePopX or 0
-    local pop2 = lootActive and activePopX or 0
-    local pop3 = questsActive and activePopX or 0
-
-    self.overviewTabBtn:ClearAllPoints()
-    self.overviewTabBtn:SetPoint("TOPLEFT", self.sideTabHolder, "TOPLEFT", pop1, 0)
-
-    self.lootTabBtn:ClearAllPoints()
-    self.lootTabBtn:SetPoint("TOPLEFT", self.overviewTabBtn, "BOTTOMLEFT", pop2 - pop1, -gap)
-
-    self.questsTabBtn:ClearAllPoints()
-    self.questsTabBtn:SetPoint("TOPLEFT", self.lootTabBtn, "BOTTOMLEFT", pop3 - pop2, -gap)
+    -- Stacked down the window's right edge 2 px apart; a hidden tab leaves no gap
+    local previous
+    for _, tab in ipairs({ self.overviewTabBtn, self.lootTabBtn, self.questsTabBtn }) do
+        tab:ClearAllPoints()
+        if tab:IsShown() then
+            if previous then
+                tab:SetPoint("TOPLEFT", previous, "BOTTOMLEFT", 0, -2)
+            else
+                tab:SetPoint("TOPLEFT", self.sideTabHolder, "TOPLEFT", 0, 0)
+            end
+            previous = tab
+        end
+    end
 end
 
 DungeonBookView.UpdateRightSideTabStates = DungeonBookView.UpdateSideTabs
@@ -955,7 +794,7 @@ function DungeonBookView:BuildInstanceOverviewPane(rightPage)
     pane:SetPoint("BOTTOMRIGHT", rightPage, "BOTTOMRIGHT", -12, 6)
     self.overviewPane = pane
 
-    -- Framed Dungeon Artwork Box (`376 x 186`), lowered slightly for balanced margin
+    -- Framed Dungeon Artwork Box (`376 x 186`)
     local artBox = CreateFrame("Frame", nil, pane)
     artBox:SetSize(bookCfg.ART_FRAME_WIDTH, bookCfg.ART_FRAME_HEIGHT)
     artBox:SetPoint("TOPLEFT", pane, "TOPLEFT", 4, -22)
@@ -1019,7 +858,7 @@ function DungeonBookView:BuildInstanceOverviewPane(rightPage)
     loreText:SetTextColor(0.92, 0.85, 0.72)
     self.overviewLoreText = loreText
 
-    -- "Show on Map" Button below the Dungeon Lore Description (sized +25% with gold text)
+    -- "Show on Map" Button below the Dungeon Lore Description (gold text)
     local showOnMapBtn = CreateFrame("Button", nil, pane, "UIPanelButtonTemplate")
     showOnMapBtn:SetSize(200, 32)
     showOnMapBtn:SetPoint("TOP", loreText, "BOTTOM", 0, -18)
@@ -1042,7 +881,7 @@ function DungeonBookView:BuildInstanceOverviewPane(rightPage)
         if not GameTooltip or not self.currentDungeon then return end
         GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
         GameTooltip:AddLine("Show on World Map", 1.0, 0.82, 0.0)
-        local loc = GetDungeonMapLocation(self.currentDungeon.id)
+        local loc = GetDungeonMapLocation(self.currentDungeon)
         if loc and loc.name then
             GameTooltip:AddLine(string.format("Click to view %s entrance on the World Map.", loc.name), 1.0, 1.0, 1.0, true)
         else
@@ -1062,7 +901,7 @@ function DungeonBookView:BuildInstanceOverviewPane(rightPage)
             PlaySound(Constants.SOUNDS.CLICK)
         end
         if not self.currentDungeon then return end
-        local loc = GetDungeonMapLocation(self.currentDungeon.id)
+        local loc = GetDungeonMapLocation(self.currentDungeon)
         local uiMapID = loc and loc.uiMapID
 
         -- Open World Map and navigate to the dungeon's map zone (journal remains open)
@@ -1084,8 +923,9 @@ function DungeonBookView:BuildInstanceOverviewPane(rightPage)
     end)
     self.showOnMapBtn = showOnMapBtn
 
-    if ns.ItemsManager and ns.ItemsManager.RegisterUpdateListener then
-        ns.ItemsManager:RegisterUpdateListener(function()
+    local liveData = parent.DataStore and parent.DataStore.Live
+    if liveData then
+        liveData:AddListener(function()
             if self.frame and self.frame:IsShown() then
                 if self.searchQuery and self.searchQuery ~= "" then
                     local prevBoss = self.selectedBoss
@@ -1170,6 +1010,98 @@ function DungeonBookView:AcquireBossButton(index)
 
     self.bossButtonPool[index] = btn
     return btn
+end
+
+--- Acquires or creates a wing button for the wing selection page (`index`): a stone card
+--- (UI/StoneCard.lua) with the wing's name over its levels.
+function DungeonBookView:AcquireWingButton(index)
+    local btn = self.wingButtonPool[index]
+    if btn then
+        btn:Show()
+        return btn
+    end
+
+    local bookCfg = Constants.BOOK
+    btn = ns.UI.StoneCard:Create(self.bossScrollChild, bookCfg.BOSS_BTN_WIDTH, bookCfg.WING_BTN_HEIGHT,
+        { picture = true })
+    btn.levelText = btn.subText
+    btn:SetScript("OnClick", function(clicked)
+        if PlaySound then
+            PlaySound(Constants.SOUNDS.CLICK)
+        end
+        if clicked.wing and self.onSelectWing then
+            self.onSelectWing(clicked.wing)
+        end
+    end)
+
+    self.wingButtonPool[index] = btn
+    return btn
+end
+
+--- Shows a dungeon's wing selection page: its wings on the left, its overview on the right.
+--- @param dungeon table a dungeon view with wings (DungeonAccess)
+--- @param onSelectWing function `function(wing)`
+function DungeonBookView:SetWingContext(dungeon, onSelectWing)
+    self.wingPage = true
+    self.onSelectWing = onSelectWing
+    self.currentDungeon = dungeon
+    self.selectedBoss = nil
+    self.selectedQuest = nil
+    self.activeRightTab = "overview"
+    if self.detailScroll and self.detailScroll.SetVerticalScroll then
+        self.detailScroll:SetVerticalScroll(0)
+    end
+    if self.bossScroll and self.bossScroll.SetVerticalScroll then
+        self.bossScroll:SetVerticalScroll(0)
+    end
+    self:RefreshLeftPage()
+    self:UpdateSideTabs()
+    self:RefreshRightPage()
+end
+
+--- Renders the wing list on the left page of the wing selection page.
+--- @param d table the parent dungeon view
+function DungeonBookView:RenderWingList(d)
+    local SharedWidgets = ns.UI.SharedWidgets
+    local bookCfg = Constants.BOOK
+    for _, pool in ipairs({ self.questButtonPool, self.wingButtonPool }) do
+        for _, btn in ipairs(pool) do btn:Hide() end
+    end
+    for _, name in ipairs({ "eventDivider", "rareHeader", "minorHeader", "challengeHeader", "trashDivider",
+        "questFactionDivider", "noEncountersText" }) do
+        if self[name] then
+            self[name]:Hide()
+        end
+    end
+    self.leftDivider:Show()
+    self.bossScroll:Show()
+
+    local showLevel, showColor = true, true
+    if _G.JournalBase and _G.JournalBase.GetDungeonSetting then
+        showLevel = _G.JournalBase:GetDungeonSetting("showBossLevel", true) == true
+        showColor = _G.JournalBase:GetDungeonSetting("showBossDifficultyColor", true) == true
+    end
+
+    local currentY = -16
+    for i, wing in ipairs(Access:GetWings(d)) do
+        local btn = self:AcquireWingButton(i)
+        btn.wing = wing
+        btn:ClearAllPoints()
+        btn:SetPoint("TOPLEFT", self.bossScrollChild, "TOPLEFT", 26, currentY)
+        btn.nameText:SetText(wing.name)
+        ns.UI.StoneCard:SetDungeonPicture(btn, wing)
+        btn.levelText:SetText(wing.level and ("Lvl " .. wing.level) or "")
+        btn.levelText:SetShown(showLevel)
+        if showColor then
+            btn.levelText:SetTextColor(SharedWidgets:GetDungeonDifficultyColor(wing))
+        else
+            btn.levelText:SetTextColor(1, 1, 1)
+        end
+        currentY = currentY - (bookCfg.WING_BTN_HEIGHT + bookCfg.WING_BTN_GAP)
+    end
+    local totalH = -currentY + 10
+    self.bossScrollChild:SetHeight(math.max(1, totalH))
+    SharedWidgets:UpdateScrollFrameVisibility(self.bossScroll, totalH)
 end
 
 --- Acquires or creates a category header frame for item drop sections.
@@ -1296,18 +1228,8 @@ function DungeonBookView:AcquireItemRow(index)
     bossSourceText:Hide()
     row.bossSourceText = bossSourceText
 
-    row:SetScript("OnEnter", function(r)
-        if not GameTooltip or not r.itemID then return end
-        GameTooltip:SetOwner(r, "ANCHOR_RIGHT")
-        if r.itemLink and r.itemLink:find("|Hitem:") then
-            GameTooltip:SetHyperlink(r.itemLink)
-        elseif GameTooltip.SetItemByID then
-            GameTooltip:SetItemByID(r.itemID)
-        else
-            GameTooltip:SetHyperlink("item:" .. tostring(r.itemID))
-        end
-        GameTooltip:Show()
-    end)
+    row.UpdateTooltip = ShowItemRowTooltip
+    row:SetScript("OnEnter", ShowItemRowTooltip)
 
     row:SetScript("OnLeave", function()
         if GameTooltip then
@@ -1416,6 +1338,7 @@ function DungeonBookView:AcquireQuestButton(index)
     hover:SetVertexColor(0.95, 0.80, 0.35, 0.18)
 
     -- 5a. Chain badge placed directly UNDER the quest marker so they overlap
+    -- Placeholder art from another addon: replace fdj_quest_chain.tga with our own chain icon once we have one
     local chainBadge = btn:CreateTexture(nil, "ARTWORK")
     chainBadge:SetSize(26, 26)
     chainBadge:SetPoint("CENTER", btn, "LEFT", 22, 0)
@@ -1492,6 +1415,7 @@ end
 --- @param searchQuery string|nil
 --- @param preserveRightTab boolean|nil
 function DungeonBookView:SetContext(dungeon, boss, searchQuery, preserveRightTab)
+    self.wingPage = false
     self.currentDungeon = dungeon
     self.selectedBoss = boss
     self.selectedQuest = nil
@@ -1579,17 +1503,10 @@ function DungeonBookView:RefreshLeftPage()
 
     SharedWidgets:SetDungeonMedallionArt(self.dungeonMedallion, d)
     SharedWidgets:SyncWindowPortraitBorder(self.dungeonMedallion)
-    self.dungeonTitle:SetText(d.name or "Dungeon")
+    self.dungeonTitle:SetText(d.fullName or "Dungeon")
 
-    -- Capital City Faction Crest (Horde: Ragefire Chasm, Ruins of Lordaeron; Alliance: Hall of Thanes, The Stockade)
-    local CITY_DUNGEON_FACTIONS = {
-        ["ragefire_chasm"] = "Horde",
-        ["ragefire"] = "Horde",
-        ["ruins_of_lordaeron"] = "Horde",
-        ["hall_of_thanes"] = "Alliance",
-        ["the_stockade"] = "Alliance",
-    }
-    local faction = CITY_DUNGEON_FACTIONS[d.id]
+    -- Capital-city faction crest (DungeonAccess decides which dungeons get one)
+    local faction = d.crest
     if faction and self.factionCrest then
         local crestTex = (faction == "Horde") and "Interface\\Timer\\Horde-Logo" or "Interface\\Timer\\Alliance-Logo"
         self.factionCrest:SetTexture(crestTex)
@@ -1630,7 +1547,15 @@ function DungeonBookView:RefreshLeftPage()
         btn:Hide()
     end
 
-    self.dungeonTitle:SetText(d.name or "Dungeon")
+    self.dungeonTitle:SetText(d.fullName or "Dungeon")
+
+    if self.wingPage then
+        self:RenderWingList(d)
+        return
+    end
+    for _, btn in ipairs(self.wingButtonPool) do
+        btn:Hide()
+    end
 
     if self.activeRightTab == "quests" then
         self.leftDivider:Show()
@@ -1658,10 +1583,7 @@ function DungeonBookView:RefreshLeftPage()
 
     local function bossMatches(boss)
         if q == "" then return true end
-        if ns.ItemsManager and ns.ItemsManager.BossMatchesQuery then
-            return ns.ItemsManager:BossMatchesQuery(d.id, boss, q)
-        end
-        return boss.name and strfind(strlower(boss.name), q, 1, true)
+        return Access:BossMatches(boss, q)
     end
 
     local eventBosses = {}
@@ -1673,7 +1595,7 @@ function DungeonBookView:RefreshLeftPage()
     local selectedBossMatches = false
     local isSearching = (q ~= "")
 
-    for _, boss in ipairs(d.bosses or {}) do
+    for _, boss in ipairs(Access:GetBosses(d)) do
         if bossMatches(boss) then
             local addedToSection = false
 
@@ -1723,21 +1645,17 @@ function DungeonBookView:RefreshLeftPage()
     end
 
     -- Evaluate Zone Drops and search match counts BEFORE rendering boss buttons
-    local zoneDrops = ns.ItemsManager and ns.ItemsManager:GetEncounterDrops(d.id, "Zone Drops") or {}
+    local zoneDrops = d.zoneItemIDs or {}
     local hasZoneDrops = (#zoneDrops > 0)
     if hasZoneDrops and q ~= "" then
-        local zoneMatches = false
-        if strfind("zone drops", q, 1, true) then
-            zoneMatches = true
-        elseif ns.ItemsManager and ns.ItemsManager.BossMatchesQuery then
-            zoneMatches = ns.ItemsManager:BossMatchesQuery(d.id, { name = "Zone Drops", isZone = true }, q)
-        end
-        hasZoneDrops = zoneMatches
+        hasZoneDrops = strfind("zone drops", q, 1, true) ~= nil
+            or Access:BossMatches({ name = "Zone Drops", itemIDs = zoneDrops }, q)
     end
 
     if not self.zoneBossEntry or self.zoneBossEntry.dungeonId ~= d.id then
         self.zoneBossEntry = {
             dungeonId = d.id,
+            itemIDs = zoneDrops,
             name = "Zone Drops",
             isZone = true,
             isTrash = true,
@@ -1759,27 +1677,24 @@ function DungeonBookView:RefreshLeftPage()
     if q ~= "" and not self.suppressSearchAutoBoss then
         local matchingEncounterCount = #eventBosses + #mainBosses + #rareBosses + #minorBosses + #challengeBosses + (hasZoneDrops and 1 or 0)
         local matchingItemCount = 0
-        if ns.ItemsManager and ns.ItemsManager.ItemMatchesQuery then
-            local parsedQuery = ns.ItemsManager.ParseQuery and ns.ItemsManager:ParseQuery(q) or q
-            local seenItems = {}
-            local function countBossItems(bossKey)
-                local drops = ns.ItemsManager:GetEncounterDrops(d.id, bossKey) or {}
-                for _, itemID in ipairs(drops) do
-                    if not seenItems[itemID] then
-                        seenItems[itemID] = true
-                        if ns.ItemsManager:ItemMatchesQuery(itemID, parsedQuery) then
-                            matchingItemCount = matchingItemCount + 1
-                        end
+        local parsedQuery = Search:Parse(q)
+        local seenItems = {}
+        local function countBossItems(itemIDs)
+            for _, itemID in ipairs(itemIDs or {}) do
+                if not seenItems[itemID] then
+                    seenItems[itemID] = true
+                    if Search:ItemMatches(itemID, parsedQuery) then
+                        matchingItemCount = matchingItemCount + 1
                     end
                 end
             end
-            for _, b in ipairs(eventBosses) do countBossItems(b.name) end
-            for _, b in ipairs(mainBosses) do countBossItems(b.name) end
-            for _, b in ipairs(rareBosses) do countBossItems(b.name) end
-            for _, b in ipairs(minorBosses) do countBossItems(b.name) end
-            for _, b in ipairs(challengeBosses) do countBossItems(b.name) end
-            if hasZoneDrops then countBossItems("Zone Drops") end
         end
+        for _, b in ipairs(eventBosses) do countBossItems(b.itemIDs) end
+        for _, b in ipairs(mainBosses) do countBossItems(b.itemIDs) end
+        for _, b in ipairs(rareBosses) do countBossItems(b.itemIDs) end
+        for _, b in ipairs(minorBosses) do countBossItems(b.itemIDs) end
+        for _, b in ipairs(challengeBosses) do countBossItems(b.itemIDs) end
+        if hasZoneDrops then countBossItems(zoneDrops) end
 
         if not selectedBossMatches then
             if matchingItemCount > 1 or matchingEncounterCount > 1 then
@@ -1890,7 +1805,6 @@ function DungeonBookView:RefreshLeftPage()
             self.eventDivider:SetPoint("TOPLEFT", self.bossScrollChild, "TOPLEFT", 10, eventDividerY)
             self.eventDivider:SetPoint("TOPRIGHT", self.bossScrollChild, "TOPRIGHT", -14, eventDividerY)
             self.eventDivider:Show()
-            SharedWidgets:SyncQuestDividerBar(self.eventDivider)
         end
         currentY = eventDividerY - 30
     else
@@ -1930,9 +1844,6 @@ function DungeonBookView:RefreshLeftPage()
                 self.rareHeader.title:SetText("Rare Encounters")
             end
             self.rareHeader:Show()
-            if self.rareHeader.divider then
-                SharedWidgets:SyncQuestDividerBar(self.rareHeader.divider)
-            end
         end
         currentY = rareY - 44
 
@@ -1959,9 +1870,6 @@ function DungeonBookView:RefreshLeftPage()
                 self.minorHeader.title:SetText("Minor & Quest Encounters")
             end
             self.minorHeader:Show()
-            if self.minorHeader.divider then
-                SharedWidgets:SyncQuestDividerBar(self.minorHeader.divider)
-            end
         end
         currentY = minorY - 44
 
@@ -1991,9 +1899,6 @@ function DungeonBookView:RefreshLeftPage()
                 self.challengeHeader.title:SetText("Dungeon Set Challenges (Tier 0.5)")
             end
             self.challengeHeader:Show()
-            if self.challengeHeader.divider then
-                SharedWidgets:SyncQuestDividerBar(self.challengeHeader.divider)
-            end
         end
         currentY = chY - 44
 
@@ -2020,7 +1925,6 @@ function DungeonBookView:RefreshLeftPage()
             self.trashDivider:SetPoint("TOPLEFT", self.bossScrollChild, "TOPLEFT", 10, dividerY)
             self.trashDivider:SetPoint("TOPRIGHT", self.bossScrollChild, "TOPRIGHT", -14, dividerY)
             self.trashDivider:Show()
-            SharedWidgets:SyncQuestDividerBar(self.trashDivider)
         end
 
         btnIndex = btnIndex + 1
@@ -2104,8 +2008,8 @@ function DungeonBookView:RenderCategorizedDropEntries(entries, filterByItem, par
 
     for _, entry in ipairs(entries) do
         local itemID = entry.itemID
-        local itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, _, classID, subclassID = safeGetItemInfo(itemID)
-        local catalogRec = ns.ItemsManager and ns.ItemsManager.GetItem and ns.ItemsManager:GetItem(itemID) or nil
+        local itemName, itemLink, itemQuality, _, _, itemType, itemSubType, _, itemEquipLoc, itemTexture, _, classID, subclassID = safeGetItemInfo(itemID)
+        local items = itemStore()
 
         -- Fallback and async cache loading for items not yet in local client cache
         if not itemName or itemName == "" then
@@ -2122,36 +2026,23 @@ function DungeonBookView:RenderCategorizedDropEntries(entries, filterByItem, par
                 classID = classID or instClassID
                 subclassID = subclassID or instSubclassID
             end
-            local cachedName = (catalogRec and catalogRec.name) or (ns.ItemsManager and ns.ItemsManager:GetItemName(itemID))
+            local cachedName = items and items:GetLabel(itemID)
             if cachedName and cachedName ~= "" then
                 itemName = cachedName
-            end
-        end
-
-        if catalogRec then
-            if itemQuality == nil and catalogRec.q ~= nil then
-                itemQuality = catalogRec.q
-            end
-            if (not itemSubType or itemSubType == "") and catalogRec.subType then
-                itemSubType = catalogRec.subType
             end
         end
 
         local displayName = (itemName and itemName ~= "") and itemName or ("Item #" .. tostring(itemID))
         local matchesQuery = true
         if filterByItem then
-            if ns.ItemsManager and ns.ItemsManager.ItemMatchesQuery then
-                matchesQuery = ns.ItemsManager:ItemMatchesQuery(itemID, parsedQuery or q)
-            else
-                matchesQuery = strfind(strlower(displayName), q, 1, true) ~= nil
-            end
+            matchesQuery = Search:ItemMatches(itemID, parsedQuery or q)
             if not matchesQuery and entry.sourceBossName and q ~= "" then
                 matchesQuery = strfind(strlower(entry.sourceBossName), q, 1, true) ~= nil
             end
         end
 
         if matchesQuery then
-            local cat = (ns.ItemsManager and ns.ItemsManager:GetItemCategory(itemType, itemSubType, itemEquipLoc, itemID, itemName, classID, subclassID)) or "MISC"
+            local cat = (items and items:GetCategory(itemID)) or "MISC"
             local isGreyEquipment = (cat == "EQUIPMENT" and (itemQuality == 0 or itemQuality == "0"))
             if not isGreyEquipment then
                 local itemData = {
@@ -2161,6 +2052,7 @@ function DungeonBookView:RenderCategorizedDropEntries(entries, filterByItem, par
                     quality = itemQuality or 1,
                     itemType = itemType,
                     itemSubType = itemSubType,
+                    subType = items and items:GetTypeLabel(itemID),
                     equipLoc = itemEquipLoc,
                     texture = itemTexture or "Interface\\Icons\\INV_Misc_QuestionMark",
                     classID = classID,
@@ -2254,7 +2146,7 @@ function DungeonBookView:RenderCategorizedDropEntries(entries, filterByItem, par
                     end
                     row.subLeftText:SetText(slotName)
 
-                    local subType = item.itemSubType or ""
+                    local subType = item.subType or ""
                     local isUniversalSlot = (item.equipLoc == "INVTYPE_NECK"
                         or item.equipLoc == "INVTYPE_FINGER"
                         or item.equipLoc == "INVTYPE_TRINKET"
@@ -2267,7 +2159,8 @@ function DungeonBookView:RenderCategorizedDropEntries(entries, filterByItem, par
                         row.subRightText:SetText("")
                     else
                         row.subRightText:SetText(subType)
-                        local isUsable = ns.ItemsManager:IsItemUsableByPlayer(item.itemType, item.itemSubType, item.equipLoc)
+                        local itemData = itemStore()
+                        local isUsable = not itemData or itemData:IsUsableByPlayer(item.id)
                         if not isUsable then
                             row.subRightText:SetTextColor(0.90, 0.20, 0.20)
                         else
@@ -2329,12 +2222,11 @@ end
 --- @param d table
 --- @param boss table
 function DungeonBookView:RenderItemDrops(d, boss)
-    local bossKey = (boss.isZone or boss.isTrash) and "Zone Drops" or boss.name
-    local dropIDs = ns.ItemsManager and ns.ItemsManager:GetEncounterDrops(d.id, bossKey) or {}
+    local dropIDs = boss.itemIDs or {}
 
     local q = (type(self.searchQuery) == "string" and strlower(self.searchQuery:match("^%s*(.-)%s*$") or "")) or ""
-    local parsedQuery = (q ~= "" and ns.ItemsManager and ns.ItemsManager.ParseQuery) and ns.ItemsManager:ParseQuery(q) or nil
-    local isMultiConstraint = parsedQuery and ((#parsedQuery.tags > 1) or parsedQuery.minLevel or parsedQuery.maxLevel or (#parsedQuery.tags == 1 and #parsedQuery.textTerms > 0))
+    local parsedQuery = (q ~= "") and Search:Parse(q) or nil
+    local isMultiConstraint = Search:IsMultiConstraint(parsedQuery)
     local bossNameMatches = (not isMultiConstraint) and (boss.name and strfind(strlower(boss.name), q, 1, true))
     local filterByItem = (q ~= "" and not bossNameMatches)
 
@@ -2364,7 +2256,7 @@ function DungeonBookView:RenderDungeonItemDrops(d)
     end
 
     local q = (type(self.searchQuery) == "string" and strlower(self.searchQuery:match("^%s*(.-)%s*$") or "")) or ""
-    local parsedQuery = (q ~= "" and ns.ItemsManager and ns.ItemsManager.ParseQuery) and ns.ItemsManager:ParseQuery(q) or nil
+    local parsedQuery = (q ~= "") and Search:Parse(q) or nil
     local isSearching = (q ~= "")
 
     local eventBosses = {}
@@ -2373,7 +2265,7 @@ function DungeonBookView:RenderDungeonItemDrops(d)
     local minorBosses = {}
     local challengeBosses = {}
 
-    for _, boss in ipairs(d.bosses or {}) do
+    for _, boss in ipairs(Access:GetBosses(d)) do
         if boss.isEvent then
             local shouldShow = true
             local holidayMgr = ns.HolidayManager or (_G.JournalBase and _G.JournalBase.HolidayManager)
@@ -2405,18 +2297,18 @@ function DungeonBookView:RenderDungeonItemDrops(d)
     end
 
     local orderedSources = {}
-    for _, b in ipairs(eventBosses) do orderedSources[#orderedSources + 1] = { key = b.name, label = b.name } end
-    for _, b in ipairs(mainBosses) do orderedSources[#orderedSources + 1] = { key = b.name, label = b.name } end
-    for _, b in ipairs(rareBosses) do orderedSources[#orderedSources + 1] = { key = b.name, label = b.name } end
-    for _, b in ipairs(minorBosses) do orderedSources[#orderedSources + 1] = { key = b.name, label = b.name } end
-    for _, b in ipairs(challengeBosses) do orderedSources[#orderedSources + 1] = { key = b.name, label = b.name } end
-    orderedSources[#orderedSources + 1] = { key = "Zone Drops", label = "Zone Drops" }
+    for _, list in ipairs({ eventBosses, mainBosses, rareBosses, minorBosses, challengeBosses }) do
+        for _, b in ipairs(list) do
+            orderedSources[#orderedSources + 1] = { label = b.name, itemIDs = b.itemIDs }
+        end
+    end
+    orderedSources[#orderedSources + 1] = { label = "Zone Drops", itemIDs = d.zoneItemIDs }
 
     local entries = {}
     local entryByItemID = {}
 
     for _, src in ipairs(orderedSources) do
-        local dropIDs = ns.ItemsManager and ns.ItemsManager:GetEncounterDrops(d.id, src.key) or {}
+        local dropIDs = src.itemIDs or {}
         for _, itemID in ipairs(dropIDs) do
             local existing = entryByItemID[itemID]
             if not existing then
@@ -2449,20 +2341,17 @@ function DungeonBookView:RenderDungeonQuests(d)
 
     if not d then return end
 
-    local questDb = parent.QuestDatabase or (ns.QuestDatabase) or (_G.AdventureJournal and _G.AdventureJournal.QuestDatabase)
+    local questDb = QuestAccess
     local playerFaction = UnitFactionGroup("player") or "Both"
     local _, playerClass = UnitClass("player")
 
-    local showBoth = (parent.Database and parent.Database.GetQuestSetting and parent.Database:GetQuestSetting("showBothFactionData", false))
-        or (ns.Database and ns.Database.GetQuestSetting and ns.Database:GetQuestSetting("showBothFactionData", false))
-        or (_G.JournalBaseDB and _G.JournalBaseDB.quests and _G.JournalBaseDB.quests.showBothFactionData)
-        or false
+    local showBoth = parent.Settings:IsBothFactionQuestsShown()
 
     local topQuests = {}
     local bottomQuests = {}
 
     if showBoth then
-        local allQuests = (questDb and questDb:GetDungeonQuests(d.id, "All", playerClass)) or {}
+        local allQuests = (questDb and questDb:GetDungeonQuests(d, "All", playerClass)) or {}
         for _, q in ipairs(allQuests) do
             local qFaction = q.faction or "Both"
             if qFaction == "Both" or qFaction == playerFaction then
@@ -2472,7 +2361,7 @@ function DungeonBookView:RenderDungeonQuests(d)
             end
         end
     else
-        topQuests = (questDb and questDb:GetDungeonQuests(d.id, playerFaction, playerClass)) or {}
+        topQuests = (questDb and questDb:GetDungeonQuests(d, playerFaction, playerClass)) or {}
     end
 
     if #topQuests == 0 and #bottomQuests == 0 then
@@ -2646,9 +2535,6 @@ function DungeonBookView:RenderDungeonQuests(d)
                 self.questFactionDivider:SetPoint("TOPLEFT", self.bossScrollChild, "TOPLEFT", 10, divY)
                 self.questFactionDivider:SetPoint("TOPRIGHT", self.bossScrollChild, "TOPRIGHT", -14, divY)
                 self.questFactionDivider:Show()
-                if ns.UI and ns.UI.SharedWidgets and ns.UI.SharedWidgets.SyncQuestDividerBar then
-                    ns.UI.SharedWidgets:SyncQuestDividerBar(self.questFactionDivider)
-                end
             end
             currentY = divY - 20
         else
@@ -2838,18 +2724,8 @@ function DungeonBookView:CreateQuestItemRewardButton(parent)
     if subText.SetMaxLines then pcall(subText.SetMaxLines, subText, 1) end
     row.subText = subText
 
-    row:SetScript("OnEnter", function(self)
-        if not self.itemID then return end
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        if self.itemLink and self.itemLink:find("|Hitem:") then
-            GameTooltip:SetHyperlink(self.itemLink)
-        elseif GameTooltip.SetItemByID then
-            GameTooltip:SetItemByID(self.itemID)
-        else
-            GameTooltip:SetHyperlink("item:" .. tostring(self.itemID))
-        end
-        GameTooltip:Show()
-    end)
+    row.UpdateTooltip = ShowItemRowTooltip
+    row:SetScript("OnEnter", ShowItemRowTooltip)
     row:SetScript("OnLeave", function()
         if GameTooltip then GameTooltip:Hide() end
     end)
@@ -2873,8 +2749,8 @@ function DungeonBookView:SetupQuestRewardButton(row, itemID)
     row.itemID = itemID
     row.itemLink = nil
 
-    local itemName, itemLink, itemQuality, _, _, itemType, itemSubType, _, itemEquipLoc, itemTexture = safeGetItemInfo(itemID)
-    local catalogRec = ns.ItemsManager and ns.ItemsManager.GetItem and ns.ItemsManager:GetItem(itemID) or nil
+    local itemName, itemLink, itemQuality, _, _, _, _, _, _, itemTexture = safeGetItemInfo(itemID)
+    local items = itemStore()
 
     if not itemName or itemName == "" then
         if C_Item and C_Item.RequestLoadItemDataByID then
@@ -2882,27 +2758,12 @@ function DungeonBookView:SetupQuestRewardButton(row, itemID)
         end
         local getInstant = (C_Item and C_Item.GetItemInfoInstant) or _G.GetItemInfoInstant
         if getInstant then
-            local _, instType, instSubType, instEquipLoc, instIcon = getInstant(itemID)
-            itemType = itemType or instType
-            itemSubType = itemSubType or instSubType
-            itemEquipLoc = itemEquipLoc or instEquipLoc
+            local _, _, _, _, instIcon = getInstant(itemID)
             itemTexture = itemTexture or instIcon
         end
-        local cachedName = (catalogRec and catalogRec.name) or (ns.ItemsManager and ns.ItemsManager:GetItemName(itemID))
+        local cachedName = items and items:GetLabel(itemID)
         if cachedName and cachedName ~= "" then
             itemName = cachedName
-        end
-    end
-
-    if catalogRec then
-        if itemQuality == nil and catalogRec.q ~= nil then
-            itemQuality = catalogRec.q
-        end
-        if (not itemSubType or itemSubType == "") and catalogRec.subType then
-            itemSubType = catalogRec.subType
-        end
-        if (not itemTexture or itemTexture == "") and catalogRec.icon then
-            itemTexture = catalogRec.icon
         end
     end
 
@@ -2914,11 +2775,7 @@ function DungeonBookView:SetupQuestRewardButton(row, itemID)
         row:SetBorderColor(r, g, b, 0.85)
         row.icon:SetTexture(itemTexture or "Interface\\Icons\\INV_Misc_QuestionMark")
 
-        local sub = itemSubType or itemType or ""
-        if itemEquipLoc and _G[itemEquipLoc] then
-            sub = _G[itemEquipLoc] .. (sub ~= "" and (" • " .. sub) or "")
-        end
-        row.subText:SetText(sub)
+        row.subText:SetText(items and items:GetTypeLabel(itemID) or "")
     else
         row.nameText:SetText("Item #" .. tostring(itemID))
         row.nameText:SetTextColor(0.8, 0.8, 0.8)
@@ -3192,7 +3049,13 @@ function DungeonBookView:RenderQuestBodyDetails(q, giverInfo, dungeon)
         fs:SetWidth(customW or textW)
         fs:SetJustifyH("LEFT")
         fs:SetWordWrap(wrap ~= false)
-        fs:SetTextColor(r or 1.0, g or 1.0, b or 1.0)
+        if font == "GameFontHighlightSmall" then
+            -- Body text: ink on a light background
+            WindowBackground:ColorBodyText(fs, r or 1.0, g or 1.0, b or 1.0)
+        else
+            fs:SetTextColor(r or 1.0, g or 1.0, b or 1.0)
+            fs:SetShadowOffset(1, -1)
+        end
         fs:Show()
         return fs
     end
@@ -3287,7 +3150,7 @@ function DungeonBookView:RenderQuestBodyDetails(q, giverInfo, dungeon)
     end
 
     local curY = -4
-    local questDb = parent.QuestDatabase or (parent.Utility_Quests and parent.Utility_Quests.QuestDatabase) or _G.AdventureJournalQuestDatabase or (ns and ns.QuestDatabase) or (_G.AdventureJournal and _G.AdventureJournal.QuestDatabase)
+    local questDb = QuestAccess
     local fullChain = (questDb and questDb.GetFullChain and questDb:GetFullChain(q.id))
 
     -- ========================================================================
@@ -3719,9 +3582,6 @@ function DungeonBookView:RenderQuestBodyDetails(q, giverInfo, dungeon)
     end
 end
 
-local cachedNpcDisplayIDs = {}
-local npcModelResolver = nil
-
 --- Resolves and renders the circular medallion portrait for a quest giver (Item or NPC).
 --- Uses native engine creature display 2D render or item texture with bronze ring border.
 --- Strictly hides classification dragons (no elite horns/wings).
@@ -3747,32 +3607,8 @@ function DungeonBookView:RenderQuestGiverPortrait(medallion, quest, giverInfo)
     -- 1. Quest Starts from an Item
     if giverInfo.isItem then
         tex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-        local itemIcon = giverInfo.itemIcon
-
-        -- Attempt 1: Pre-mapped item icon from Utility_Quests
-        if not itemIcon then
-            local uq = parent.Utility_Quests or ns.Utility_Quests
-            if uq and uq.QuestsItemIcons then
-                itemIcon = uq.QuestsItemIcons[giverInfo.giverName]
-            end
-        end
-
-        -- Attempt 2: Lookup via ItemsManager
-        if not itemIcon and ns.ItemsManager and ns.ItemsManager.FindItemByName then
-            local rec = ns.ItemsManager:FindItemByName(giverInfo.giverName)
-            if rec and rec.id then
-                itemIcon = C_Item and C_Item.GetItemIconByID and C_Item.GetItemIconByID(rec.id)
-            end
-        end
-
-        -- Attempt 3: Instant item query
-        if not itemIcon and _G.GetItemInfoInstant then
-            local _, _, _, _, instIcon = _G.GetItemInfoInstant(giverInfo.giverName)
-            if instIcon then itemIcon = instIcon end
-        end
-
-        -- Fallback icon for quest items
-        itemIcon = itemIcon or "Interface\\Icons\\INV_Misc_Bag_10_Red"
+        -- The item's or object's icon (QuestAccess); missing shows the question mark
+        local itemIcon = giverInfo.itemIcon or Constants.ASSETS.MISSING_ICON
 
         if SetPortraitToTexture then
             local ok = pcall(SetPortraitToTexture, tex, itemIcon)
@@ -3786,13 +3622,6 @@ function DungeonBookView:RenderQuestGiverPortrait(medallion, quest, giverInfo)
     -- 2. Quest Starts from an NPC: Use authoritative 3D Creature Display ID
     tex:SetTexCoord(0, 1, 0, 1)
     local displayID = giverInfo.displayID
-
-    if not displayID then
-        local uq = parent.Utility_Quests or ns.Utility_Quests
-        if uq and uq.QuestsNpcDisplayIds then
-            displayID = uq.QuestsNpcDisplayIds[giverInfo.giverName]
-        end
-    end
 
     if displayID and type(displayID) == "number" and displayID > 0 then
         if type(SetPortraitTextureFromCreatureDisplayID) == "function" then
@@ -3867,9 +3696,6 @@ function DungeonBookView:RefreshRightPage()
             self.detailScroll:Hide()
             if self.questDetailContainer then
                 self.questDetailContainer:Show()
-                if self.questDivider then
-                    SharedWidgets:SyncQuestDividerBar(self.questDivider)
-                end
                 if self.questGiverMedallion then
                     self.questGiverMedallion:Hide()
                 end
@@ -3894,7 +3720,7 @@ function DungeonBookView:RefreshRightPage()
                     end
 
                     local dungeonLoc = (d and d.location and d.location ~= "") and (d.name .. ", " .. d.location) or (d and d.name)
-                    local questDb = parent.QuestDatabase or (ns.QuestDatabase) or (_G.AdventureJournal and _G.AdventureJournal.QuestDatabase)
+                    local questDb = QuestAccess
                     local giverInfo = (questDb and questDb.GetQuestGiverInfo and questDb:GetQuestGiverInfo(q, d and d.name, dungeonLoc)) or {
                         isItem = false,
                         giverName = "",
@@ -3973,15 +3799,10 @@ function DungeonBookView:RefreshRightPage()
         self.detailScroll:Hide()
         self.overviewPane:Show()
 
-        self.artBannerTitle:SetText(string.upper(d.name or ""))
+        self.artBannerTitle:SetText(string.upper(d.fullName or ""))
         SharedWidgets:ApplyDungeonArtwork(self.overviewArt, d)
         self.overviewLoreText:SetText(d.description or "")
-        if self.overviewDivider then
-            SharedWidgets:SyncQuestDividerBar(self.overviewDivider)
-        end
-        if self.questDivider then
-            SharedWidgets:SyncQuestDividerBar(self.questDivider)
-        end
+        WindowBackground:ColorBodyText(self.overviewLoreText, 0.92, 0.85, 0.72)
         if self.showOnMapBtn then
             local shouldShow = ShouldShowDungeonMapButton(d)
             self.showOnMapBtn:SetShown(shouldShow)
@@ -4058,6 +3879,7 @@ function DungeonBookView:RefreshRightPage()
     self.detailDesc:ClearAllPoints()
     self.detailDesc:SetPoint("TOPLEFT", self.rightPage, "TOPLEFT", 10, -(headerH + 12))
     self.detailDesc:SetText(boss.description or "Encounter overview and lore for this encounter.")
+    WindowBackground:ColorBodyText(self.detailDesc, 0.92, 0.86, 0.72)
     self.detailDesc:Show()
 
     -- 3. Dynamic Dividing Line directly below the Lore Snippet
@@ -4068,7 +3890,6 @@ function DungeonBookView:RefreshRightPage()
     self.rightDivider:SetPoint("TOPRIGHT", self.rightPage, "TOPRIGHT", -24, dividerY)
     self.rightDivider:SetHeight(4)
     self.rightDivider:Show()
-    SharedWidgets:SyncQuestDividerBar(self.rightDivider)
 
     -- 4. Clean Scrollable Container under Divider
     self.detailScroll:ClearAllPoints()

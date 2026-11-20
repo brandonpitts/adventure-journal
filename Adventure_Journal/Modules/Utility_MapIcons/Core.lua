@@ -15,14 +15,11 @@ local Constants = ns.MapIconsConstants
 -- ----------------------------------------------------------------------------
 -- 2. Module Registration with JournalBase
 -- ----------------------------------------------------------------------------
-local MapIconsPlugin = {
+local MapIconsModule = {
     id = "map_icons",
     title = "Map Icons",
     addonName = "Utility_MapIcons",
-    version = Constants.VERSION,
-    lastUpdated = "2026-11-13",
     description = "Provides world and zone map indicators for dungeon and raid entrances, with level-bracket filtering.",
-    apiVersion = 1,
     icon = "Interface\\Icons\\INV_Misc_Map02",
     order = 900,
     isUtility = true,
@@ -32,7 +29,7 @@ local eventFrame = CreateFrame("Frame")
 
 --- Unloads all Map Icons coordinate tables, World Map pins, and event listeners from memory
 --- when the module is disabled, requiring a UI `/reload` to restore.
-function MapIconsPlugin:OnUnload()
+function MapIconsModule:OnUnload()
     if eventFrame then
         eventFrame:UnregisterAllEvents()
         eventFrame:SetScript("OnEvent", nil)
@@ -44,55 +41,44 @@ function MapIconsPlugin:OnUnload()
         table.wipe(ns.MapPinProvider)
         ns.MapPinProvider = nil
     end
-    if ns.EntranceCoordinates and type(ns.EntranceCoordinates) == "table" then
-        table.wipe(ns.EntranceCoordinates)
-        ns.EntranceCoordinates = nil
-    end
-    if ns.ZoneLevels and type(ns.ZoneLevels) == "table" then
-        table.wipe(ns.ZoneLevels)
-        ns.ZoneLevels = nil
-    end
-    if ns.FlightPaths and type(ns.FlightPaths) == "table" then
-        table.wipe(ns.FlightPaths)
-        ns.FlightPaths = nil
-    end
+    ns.MapAccess = nil
     ns.AreaLabelProvider = nil
     ns.MapIconsConstants = nil
     ns.OpenDungeon = nil
-    ns.GetDungeonMapLocation = nil
-    _G.AdventureJournal_GetDungeonMapLocation = nil
 end
 
-if _G.JournalBase and _G.JournalBase.RegisterPlugin then
-    _G.JournalBase:RegisterPlugin(MapIconsPlugin)
+if _G.JournalBase and _G.JournalBase.RegisterModule then
+    _G.JournalBase:RegisterModule(MapIconsModule)
 end
 
-ns.MapIconsPlugin = MapIconsPlugin
+ns.MapIconsModule = MapIconsModule
 
 -- ----------------------------------------------------------------------------
 -- 3. Module Lifecycle & Navigation
 -- ----------------------------------------------------------------------------
 
---- Checks whether a given Journal plugin is active and enabled.
---- @param pluginID string
+--- Checks whether a given Journal module is active and enabled.
+--- @param moduleID string
 --- @return boolean
-function ns.IsPluginEnabled(pluginID)
-    if not pluginID then
+function ns.IsModuleEnabled(moduleID)
+    if not moduleID then
         return true
     end
-    if ns.Database and ns.Database.IsPluginDisabled then
-        return not ns.Database:IsPluginDisabled(pluginID)
+    if ns.Settings and ns.Settings.IsModuleDisabled then
+        return not ns.Settings:IsModuleDisabled(moduleID)
     end
-    if _G.JournalBaseDB and _G.JournalBaseDB.disabledPlugins then
-        return not _G.JournalBaseDB.disabledPlugins[pluginID]
+    if _G.JournalBaseDB and _G.JournalBaseDB.disabledModules then
+        return not _G.JournalBaseDB.disabledModules[moduleID]
     end
     return true
 end
 
---- Opens Adventure Journal directly to the specified dungeon encounter book.
---- @param dungeonID string
-function ns.OpenDungeon(dungeonID)
-    if not dungeonID then
+--- Opens Adventure Journal directly to a dungeon (or wing) page.
+--- @param dungeonKey number|string instance map ID or wing slug
+function ns.OpenDungeon(dungeonKey)
+    local dungeons = ns.Dungeons
+    local target = dungeons and dungeons.Data.DungeonAccess:GetDungeon(dungeonKey)
+    if not target then
         return
     end
 
@@ -106,45 +92,21 @@ function ns.OpenDungeon(dungeonID)
     end
 
     -- 2. Activate the Dungeons module tab
-    if ns.PluginRegistry and ns.PluginRegistry.ActivatePlugin then
-        ns.PluginRegistry:ActivatePlugin("dungeons")
-    elseif _G.JournalBase and _G.JournalBase.ActivatePlugin then
-        _G.JournalBase:ActivatePlugin("dungeons")
+    if ns.ModuleRegistry and ns.ModuleRegistry.ActivateModule then
+        ns.ModuleRegistry:ActivateModule("dungeons")
+    elseif _G.JournalBase and _G.JournalBase.ActivateModule then
+        _G.JournalBase:ActivateModule("dungeons")
     end
 
-    -- 3. Resolve dungeon data
-    local dData = (ns.Dungeons and ns.Dungeons.Data and ns.Dungeons.Data.DungeonsData)
-        or (_G.JournalDungeons and _G.JournalDungeons.ns and _G.JournalDungeons.ns.Data and _G.JournalDungeons.ns.Data.DungeonsData)
-        or ns.DungeonsData
-
-    local targetDungeon = nil
-    if dData and dData.GetByID then
-        targetDungeon = dData:GetByID(dungeonID)
+    -- 3. Navigate: a wing opens with its dungeon in the breadcrumb
+    local mainView = dungeons.UI and dungeons.UI.MainView
+    if not mainView then
+        return
     end
-    if not targetDungeon and dData and dData.GetAll then
-        for _, d in ipairs(dData:GetAll()) do
-            if d.id == dungeonID then
-                targetDungeon = d
-                break
-            end
-        end
-    end
-    if not targetDungeon and dData and dData.dungeons then
-        for _, d in ipairs(dData.dungeons) do
-            if d.id == dungeonID then
-                targetDungeon = d
-                break
-            end
-        end
-    end
-
-    -- 4. Navigate to the dungeon in MainView
-    local mainView = (ns.Dungeons and ns.Dungeons.UI and ns.Dungeons.UI.MainView)
-        or (_G.JournalDungeons and _G.JournalDungeons.ns and _G.JournalDungeons.ns.UI and _G.JournalDungeons.ns.UI.MainView)
-        or (ns.UI and ns.UI.MainView)
-
-    if mainView and targetDungeon and mainView.SelectDungeon then
-        mainView:SelectDungeon(targetDungeon)
+    if target.wingKey then
+        mainView:SelectWing(target)
+    else
+        mainView:SelectDungeon(target)
     end
 end
 

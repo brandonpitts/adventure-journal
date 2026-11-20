@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Journal_Quests - UI/MainView.lua
--- Base view for the Quests plugin ("Under Construction" WoW Forever plaque).
+-- Base view for the Quests module ("Under Construction" WoW Forever plaque).
 -- ============================================================================
 local addonName, parent = ...
 local ns = parent.Quests or {} ; parent.Quests = ns

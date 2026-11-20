@@ -1,6 +1,6 @@
 -- ============================================================================
--- Journal_Base - UI/MainFrame.lua
--- Top-level 830x596 native bronze ButtonFrameTemplate window and empty state.
+-- Adventure Journal - Core/UI/MainFrame.lua
+-- Top-level 800x496 native bronze ButtonFrameTemplate window and empty state.
 -- ============================================================================
 local addonName, ns = ...
 
@@ -98,7 +98,7 @@ function MainFrame:Init()
         tinsert(UISpecialFrames, FRAME_NAME)
     end
 
-    self:OnPluginsChanged()
+    self:OnModulesChanged()
 end
 
 --- @return boolean
@@ -134,13 +134,13 @@ function MainFrame:SetPortraitIcon(texturePath)
     end
 end
 
---- Restores the saved window anchor point from `Database`, or centers the window.
+--- Restores the saved window anchor point from `Settings`, or centers the window.
 function MainFrame:RestorePosition()
     if not self.frame then
         return
     end
     self.frame:ClearAllPoints()
-    local saved = ns.Database:GetWindowPoint()
+    local saved = ns.Settings:GetWindowPoint()
     if saved and saved.point and saved.relativePoint and saved.x and saved.y then
         self.frame:SetPoint(saved.point, UIParent, saved.relativePoint, saved.x, saved.y)
     else
@@ -266,7 +266,7 @@ function MainFrame:SetupDragAndLifecycle(frame)
     local isMoving = false
 
     local function canMove()
-        local isLocked = ns.Database and ns.Database.IsWindowLocked and ns.Database:IsWindowLocked()
+        local isLocked = ns.Settings and ns.Settings.IsWindowLocked and ns.Settings:IsWindowLocked()
         if isLocked then
             return (IsShiftKeyDown and IsShiftKeyDown()) and true or false
         end
@@ -285,8 +285,8 @@ function MainFrame:SetupDragAndLifecycle(frame)
             isMoving = false
             frame:StopMovingOrSizing()
             local point, _, relativePoint, x, y = frame:GetPoint(1)
-            if point and relativePoint and ns.Database and ns.Database.SetWindowPoint then
-                ns.Database:SetWindowPoint({
+            if point and relativePoint and ns.Settings and ns.Settings.SetWindowPoint then
+                ns.Settings:SetWindowPoint({
                     point = point,
                     relativePoint = relativePoint,
                     x = x,
@@ -338,16 +338,21 @@ function MainFrame:SetupDragAndLifecycle(frame)
         if PlaySound then
             PlaySound(Constants.SOUNDS.OPEN)
         end
-        local defaultLandingId = (ns.PluginRegistry and ns.PluginRegistry.GetEffectiveDefaultLandingPluginId and ns.PluginRegistry:GetEffectiveDefaultLandingPluginId())
-            or ns.Database:GetDefaultLandingPluginId()
-        if defaultLandingId and ns.PluginRegistry:GetPlugin(defaultLandingId) and not ns.Database:IsPluginDisabled(defaultLandingId) then
-            -- Open directly to the selected default landing tab whenever the window opens
-            ns.PluginRegistry:ActivatePlugin(defaultLandingId)
-        elseif not self.hasOpenedOnce then
-            self.hasOpenedOnce = true
-            if not ns.PluginRegistry:GetActivePlugin() then
-                ns.PluginRegistry:ActivateDefaultPlugin()
+
+        -- A module may take focus (the player is inside its content); otherwise the first open of the
+        -- session lands on the default tab and later opens keep the tab and page left open.
+        local isFirstOpen = not self.hasOpenedOnce
+        self.hasOpenedOnce = true
+        if ns.ModuleRegistry:FocusModuleForWindowShow() then
+            return
+        end
+        if isFirstOpen then
+            local defaultLandingId = ns.ModuleRegistry:GetEffectiveDefaultLandingModuleId()
+            if not ns.ModuleRegistry:ActivateModule(defaultLandingId) then
+                ns.ModuleRegistry:ActivateDefaultModule()
             end
+        elseif not ns.ModuleRegistry:GetActiveModule() then
+            ns.ModuleRegistry:ActivateDefaultModule()
         end
     end)
 
@@ -421,6 +426,7 @@ function MainFrame:SetupHeaderAndCanvas(frame)
         frame.Inset:SetPoint("TOPLEFT", frame, "TOPLEFT", Constants.WINDOW.INSET_LEFT_OFFSET, Constants.WINDOW.INSET_TOP_OFFSET)
         frame.Inset:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", Constants.WINDOW.INSET_RIGHT_OFFSET, Constants.WINDOW.INSET_BOTTOM_OFFSET)
         applyAppearancesStoneBackground(frame.Inset)
+        ns.UI.WindowBackground:Init(frame.Inset)
     end
 
     local canvas = CreateFrame("Frame", nil, frame.Inset or frame)
@@ -436,7 +442,7 @@ function MainFrame:SetupHeaderAndCanvas(frame)
     frame.ContentCanvas = canvas
 end
 
---- Initializes the empty state fallback on parentCanvas if no plugins are enabled.
+--- Initializes the empty state fallback on parentCanvas if no modules are enabled.
 --- @param parentCanvas Frame
 function MainFrame:SetupEmptyState(parentCanvas)
     local empty = CreateFrame("Frame", nil, parentCanvas)
@@ -498,16 +504,16 @@ end
 
 --- Shows or hides the reload-required prompt on the active module page.
 --- @param isVisible boolean
---- @param pluginTitle string|nil
-function MainFrame:SetReloadPromptVisible(isVisible, pluginTitle)
+--- @param moduleTitle string|nil
+function MainFrame:SetReloadPromptVisible(isVisible, moduleTitle)
     if not self.frame or not self.frame.ReloadPromptState then
         return
     end
     local prompt = self.frame.ReloadPromptState
     if isVisible then
         prompt.title:SetText("Required reload to enable this")
-        if pluginTitle and pluginTitle ~= "" then
-            prompt.subText:SetText(pluginTitle .. " is currently unloaded from memory.\nReload your UI (/rl) to load this module.")
+        if moduleTitle and moduleTitle ~= "" then
+            prompt.subText:SetText(moduleTitle .. " is currently unloaded from memory.\nReload your UI (/rl) to load this module.")
         else
             prompt.subText:SetText("This module's data is currently unloaded from memory.\nReload your UI (/rl) to load this module.")
         end
@@ -525,19 +531,19 @@ function MainFrame:GetContentCanvas()
     return self.frame and self.frame.ContentCanvas
 end
 
---- Refreshes tabs whenever plugins or their sort order change.
-function MainFrame:OnPluginsChanged()
+--- Refreshes tabs whenever modules or their sort order change.
+function MainFrame:OnModulesChanged()
     if not self.frame then
         return
     end
-    local plugins = ns.PluginRegistry:GetOrderedPlugins()
-    ns.UI.TabBar:RefreshTabs(plugins)
+    local modules = ns.ModuleRegistry:GetOrderedModules()
+    ns.UI.TabBar:RefreshTabs(modules)
 
-    local activePlugin = ns.PluginRegistry:GetActivePlugin()
-    if activePlugin then
+    local activeModule = ns.ModuleRegistry:GetActiveModule()
+    if activeModule then
         self:SetEmptyStateVisible(false)
-        self:SetReloadPromptVisible(activePlugin.isUnloaded == true, activePlugin.title)
-        self:SelectTabByPluginId(activePlugin.id)
+        self:SetReloadPromptVisible(activeModule.isUnloaded == true, activeModule.title)
+        self:SelectTabByModuleId(activeModule.id)
     else
         self:SetReloadPromptVisible(false)
         self:SetEmptyStateVisible(true)
@@ -545,9 +551,9 @@ function MainFrame:OnPluginsChanged()
     end
 end
 
---- @param pluginId string
-function MainFrame:SelectTabByPluginId(pluginId)
-    ns.UI.TabBar:SelectPlugin(pluginId)
+--- @param moduleId string
+function MainFrame:SelectTabByModuleId(moduleId)
+    ns.UI.TabBar:SelectModule(moduleId)
 end
 
 --- Clears bottom tab selection when no module tab is active.

@@ -1,5 +1,0 @@
--- ============================================================================
--- Journal_Base - UI/HomeView.lua
--- Deprecated: The Home tab has been scrapped completely. Dungeons is the primary view.
--- This file is omitted from Adventure_Journal.toc.
--- ============================================================================

@@ -1,5 +1,5 @@
 -- ============================================================================
--- Journal_Base - UI/TabBar.lua
+-- Adventure Journal - Core/UI/TabBar.lua
 -- Bottom PanelTabButtonTemplate manager and tab selection state.
 -- ============================================================================
 local addonName, ns = ...
@@ -99,7 +99,7 @@ function TabBar:PositionTabs()
     local prevTab = nil
 
     for _, tab in ipairs(self.tabs) do
-        if tab:IsShown() and tab.pluginId then
+        if tab:IsShown() and tab.moduleId then
             tab:ClearAllPoints()
             resizeTabButton(tab)
 
@@ -131,8 +131,8 @@ function TabBar:AcquireTab(index)
         if PlaySound then
             PlaySound(Constants.SOUNDS.TAB)
         end
-        if btn.pluginId then
-            ns.PluginRegistry:ActivatePlugin(btn.pluginId)
+        if btn.moduleId then
+            ns.ModuleRegistry:ActivateModule(btn.moduleId)
         end
     end)
 
@@ -147,28 +147,28 @@ function TabBar:AcquireTab(index)
     return tab
 end
 
---- Rebuilds and positions bottom tabs to match the currently registered plugins.
+--- Rebuilds and positions bottom tabs to match the currently registered modules.
 --- Tabs anchor left-to-right from `BOTTOMLEFT`.
---- @param orderedPlugins table[]
-function TabBar:RefreshTabs(orderedPlugins)
+--- @param orderedModules table[]
+function TabBar:RefreshTabs(orderedModules)
     if not self.parentFrame then
         return
     end
 
     for _, tab in ipairs(self.tabs) do
         tab:Hide()
-        tab.pluginId = nil
+        tab.moduleId = nil
     end
 
-    local count = #orderedPlugins
+    local count = #orderedModules
     if count == 0 then
         return
     end
 
-    for index, plugin in ipairs(orderedPlugins) do
+    for index, module in ipairs(orderedModules) do
         local tab = self:AcquireTab(index)
-        tab.pluginId = plugin.id
-        tab:SetText(plugin.title)
+        tab.moduleId = module.id
+        tab:SetText(module.title)
         tab:Show()
     end
 
@@ -179,15 +179,15 @@ function TabBar:RefreshTabs(orderedPlugins)
     self:PositionTabs()
 end
 
---- Visually selects the bottom tab corresponding to `pluginId`.
---- @param pluginId string
-function TabBar:SelectPlugin(pluginId)
+--- Visually selects the bottom tab corresponding to `moduleId`.
+--- @param moduleId string
+function TabBar:SelectModule(moduleId)
     if not self.parentFrame then
         return
     end
 
     for index, tab in ipairs(self.tabs) do
-        if tab:IsShown() and tab.pluginId == pluginId then
+        if tab:IsShown() and tab.moduleId == moduleId then
             if PanelTemplates_SetTab then
                 PanelTemplates_SetTab(self.parentFrame, index)
             end
@@ -197,7 +197,7 @@ function TabBar:SelectPlugin(pluginId)
     end
 end
 
---- Deselects all bottom plugin tabs (used when viewing the base `Home` screen).
+--- Deselects all bottom module tabs (used when viewing the base `Home` screen).
 function TabBar:ClearSelection()
     if not self.parentFrame then
         return

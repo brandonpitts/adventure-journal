@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Journal_Raids - UI/MainView.lua
--- Base view for the Raids plugin ("Under Construction" WoW Forever plaque).
+-- Base view for the Raids module ("Under Construction" WoW Forever plaque).
 -- ============================================================================
 local addonName, parent = ...
 local ns = parent.Raids or {} ; parent.Raids = ns

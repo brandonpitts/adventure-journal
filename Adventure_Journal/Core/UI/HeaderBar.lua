@@ -1,5 +1,5 @@
 -- ============================================================================
--- Journal_Base - UI/HeaderBar.lua
+-- Adventure Journal - Core/UI/HeaderBar.lua
 -- Top header bar with breadcrumb navigation track, SearchBox, and Settings button.
 -- ============================================================================
 local addonName, ns = ...
@@ -16,6 +16,8 @@ local CreateFrame = CreateFrame
 local Mixin = Mixin
 local GameTooltip = GameTooltip
 local PlaySound = PlaySound
+local InCombatLockdown = InCombatLockdown
+local ERR_NOT_IN_COMBAT = ERR_NOT_IN_COMBAT
 local NavBar_Initialize = NavBar_Initialize
 local NavBar_AddButton = NavBar_AddButton
 local NavBar_Reset = NavBar_Reset
@@ -202,8 +204,8 @@ function HeaderBarMixin:Init(parentFrame)
     self:CreateSearchBox(self.HeaderBand)
     self:CreateBreadcrumbTrack(self.HeaderBand)
     self:ResetBreadcrumbs("Home", function()
-        if ns.PluginRegistry and ns.PluginRegistry.ShowCatalogHome then
-            ns.PluginRegistry:ShowCatalogHome()
+        if ns.ModuleRegistry and ns.ModuleRegistry.DeactivateAll then
+            ns.ModuleRegistry:DeactivateAll()
         end
     end)
 
@@ -247,12 +249,31 @@ function HeaderBarMixin:CreateSettingsButton(headerBand)
 
     button:SetHighlightTexture(Constants.ASSETS.BUTTON_HIGHLIGHT, "ADD")
 
+    -- Settings can't be opened in combat: grey out and disable the gear until combat ends
+    local function setCombatState(inCombat)
+        button:SetEnabled(not inCombat)
+        normalTex:SetDesaturated(inCombat)
+        normalTex:SetVertexColor(inCombat and 0.55 or 1.0, inCombat and 0.55 or 1.0, inCombat and 0.55 or 1.0)
+    end
+    button:RegisterEvent("PLAYER_REGEN_DISABLED")
+    button:RegisterEvent("PLAYER_REGEN_ENABLED")
+    button:SetScript("OnEvent", function(_, event)
+        setCombatState(event == "PLAYER_REGEN_DISABLED")
+        if GameTooltip and GameTooltip:IsOwned(button) then
+            button:GetScript("OnEnter")(button)
+        end
+    end)
+    setCombatState(InCombatLockdown() and true or false)
+
     button:SetScript("OnEnter", function(btn)
         if not GameTooltip then
             return
         end
         GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
         GameTooltip:AddLine("Journal Settings", 1.0, 0.82, 0.0)
+        if not btn:IsEnabled() then
+            GameTooltip:AddLine(ERR_NOT_IN_COMBAT, 1.0, 0.25, 0.25)
+        end
         GameTooltip:Show()
     end)
 
@@ -294,7 +315,7 @@ function HeaderBarMixin:CreateSearchBox(headerBand)
         local normalized = text or ""
         if normalized ~= lastDispatchedText then
             lastDispatchedText = normalized
-            ns.PluginRegistry:DispatchSearch(normalized)
+            ns.ModuleRegistry:DispatchSearch(normalized)
         end
     end
 
@@ -400,23 +421,17 @@ function HeaderBarMixin:CreateBreadcrumbTrack(headerBand)
 end
 
 --- Invoked when the root breadcrumb button is clicked.
---- Always takes the player directly back to the root of whatever module tab is currently selected.
+--- Runs the root step's callback, or shows the active module's root page when it has none.
 function HeaderBarMixin:OnRootClicked()
     local rootStep = self.steps and self.steps[1]
     local rootCb = rootStep and rootStep.onClick
 
     self:PopToIndex(1)
 
-    local active = ns.PluginRegistry and ns.PluginRegistry.GetActivePlugin and ns.PluginRegistry:GetActivePlugin()
-    if active and active.OnActivate then
-        local mainFrame = ns.UI.MainFrame
-        local headerBar = mainFrame and mainFrame:GetHeaderBar()
-        active:OnActivate(active.canvas, headerBar or self)
-        return
-    end
-
     if type(rootCb) == "function" then
         rootCb()
+    elseif ns.ModuleRegistry then
+        ns.ModuleRegistry:ShowActiveModuleHome()
     end
 end
 
@@ -424,9 +439,7 @@ end
 --- @param crumbList table Array of `{ id, label, onClick }`
 function HeaderBarMixin:SetBreadcrumbs(crumbList)
     if not crumbList or #crumbList == 0 then
-        self:ResetBreadcrumbs("Home", function()
-            self:OnRootClicked()
-        end)
+        self:ResetBreadcrumbs("Home", nil)
         return
     end
 

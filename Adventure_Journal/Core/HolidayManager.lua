@@ -1,8 +1,8 @@
 -- ============================================================================
 -- Adventure Journal - Core/HolidayManager.lua
 -- Detection and scheduling service for in-game seasonal holidays and events.
--- Supports live C_Calendar queries, legacy CalendarGetDayEvent API,
--- and real-world calendar date ranges as a reliable fallback.
+-- Reads the in-game calendar via C_Calendar, falling back to the older
+-- CalendarGetDayEvent API. Never uses real-world dates.
 -- ============================================================================
 local addonName, ns = ...
 
@@ -26,15 +26,11 @@ ns.HolidayManager = HolidayManager
 -- ----------------------------------------------------------------------------
 -- 3. Boss to Holiday Mappings
 -- ----------------------------------------------------------------------------
--- Boss name to canonical holiday identifier mapping
-local BOSS_TO_HOLIDAY = {
-    ["crown chemical co."] = "love is in the air",
-    ["apothecary hummel"] = "love is in the air",
-    ["apothecary hummel <crown chemical co.>"] = "love is in the air",
-    ["headless horseman"] = "hallow's end",
-    ["coren direbrew"] = "brewfest",
-    ["lord ahune"] = "midsummer fire festival",
-    ["ahune"] = "midsummer fire festival",
+-- The client's holiday names (Holidays -> HolidayNames tables) for the holiday IDs encounters use,
+-- matched against calendar event titles
+local HOLIDAY_NAMES = {
+    [324] = "Hallow's End",
+    [335] = "Love is in the Air",
 }
 
 -- ----------------------------------------------------------------------------
@@ -96,18 +92,14 @@ function HolidayManager:IsHolidayActive(holidayName)
 end
 
 --- Determines whether an event boss encounter is currently active.
---- @param boss table
+--- @param boss table a boss with `isEvent` and `holidayID` (EncounterStore)
 --- @return boolean
 function HolidayManager:IsBossEventActive(boss)
     if not boss or not boss.isEvent then
         return false
     end
 
-    local holidayName = boss.holiday
-    if not holidayName and boss.name then
-        holidayName = BOSS_TO_HOLIDAY[strlower(boss.name)]
-    end
-
+    local holidayName = boss.holidayID and HOLIDAY_NAMES[boss.holidayID]
     if not holidayName then
         return true
     end

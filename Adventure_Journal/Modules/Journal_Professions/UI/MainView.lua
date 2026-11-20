@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Journal_Professions - UI/MainView.lua
--- Base view for the Professions plugin ("Under Construction" WoW Forever plaque).
+-- Base view for the Professions module ("Under Construction" WoW Forever plaque).
 -- ============================================================================
 local addonName, parent = ...
 local ns = parent.Professions or {} ; parent.Professions = ns

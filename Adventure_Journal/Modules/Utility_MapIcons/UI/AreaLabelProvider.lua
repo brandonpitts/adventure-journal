@@ -34,7 +34,6 @@ local AreaLabelProvider = {
 -- ----------------------------------------------------------------------------
 -- 2. Zone Difficulty Coloring System
 -- ----------------------------------------------------------------------------
--- TODO: Attach to Unified Difficulty Coloring System when implemented (see roadmap)
 --- Evaluates difficulty color considering both the top end and bottom end of the zone.
 --- - If player is 5+ levels above maxLevel: Grey (Trivial)
 --- - If player is 3-4 levels above maxLevel: Green
@@ -136,13 +135,11 @@ local function BuildZoneNameLookup()
     end
 
     local lookup = {}
-    if ns.ZoneLevels then
-        for mapID, data in pairs(ns.ZoneLevels) do
-            if C_Map and C_Map.GetMapInfo then
-                local info = C_Map.GetMapInfo(mapID)
-                if info and info.name and info.name ~= "" then
-                    lookup[info.name] = data
-                end
+    for mapID, data in pairs(ns.MapAccess:GetZones()) do
+        if C_Map and C_Map.GetMapInfo then
+            local info = C_Map.GetMapInfo(mapID)
+            if info and info.name and info.name ~= "" then
+                lookup[info.name] = data
             end
         end
     end
@@ -162,9 +159,7 @@ local function GetZoneData(map, zoneName)
             if nx and ny and nx >= 0 and nx <= 1 and ny >= 0 and ny <= 1 then
                 local posInfo = C_Map and C_Map.GetMapInfoAtPosition and C_Map.GetMapInfoAtPosition(currentMapID, nx, ny)
                 if posInfo and posInfo.mapID and posInfo.mapID ~= currentMapID then
-                    if ns.ZoneLevels and ns.ZoneLevels[posInfo.mapID] then
-                        zData = ns.ZoneLevels[posInfo.mapID]
-                    end
+                    zData = ns.MapAccess:GetZone(posInfo.mapID)
                 end
             end
         end
@@ -210,9 +205,9 @@ local function OnEvaluateLabels(provider, labelFrame)
 
     local showLevels = true
     local showFishing = true
-    if ns.Database and ns.Database.GetMapIconsSetting then
-        showLevels = ns.Database:GetMapIconsSetting("showZoneLevels", true) ~= false
-        showFishing = ns.Database:GetMapIconsSetting("showFishingLevels", true) ~= false
+    if ns.Settings and ns.Settings.GetMapIconsSetting then
+        showLevels = ns.Settings:GetMapIconsSetting("showZoneLevels", true) ~= false
+        showFishing = ns.Settings:GetMapIconsSetting("showFishingLevels", true) ~= false
     end
 
     local map = (provider and provider.GetMap and provider:GetMap()) or _G.WorldMapFrame

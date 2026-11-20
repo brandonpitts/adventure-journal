@@ -1,5 +1,5 @@
 -- ============================================================================
--- Journal_Base - UI/MinimapButton.lua
+-- Adventure Journal - Core/UI/MinimapButton.lua
 -- Native circular minimap launcher button, perimeter drag math, and tooltip.
 -- ============================================================================
 local addonName, ns = ...
@@ -116,7 +116,7 @@ function MinimapButton:SetupScripts(button)
         btn:SetScript("OnUpdate", function()
             local angle = computeCursorAngleOnMinimap()
             if angle then
-                ns.Database:SetMinimapAngle(angle)
+                ns.Settings:SetMinimapAngle(angle)
                 self:UpdatePosition()
             end
         end)
@@ -158,7 +158,7 @@ function MinimapButton:UpdatePosition()
         return
     end
 
-    local angleRad = math.rad(ns.Database:GetMinimapAngle())
+    local angleRad = math.rad(ns.Settings:GetMinimapAngle())
     local mapWidth = Minimap:GetWidth() or 140
     local mapHeight = Minimap:GetHeight() or 140
     local radius = (math.max(mapWidth, mapHeight) * 0.5) + Constants.MINIMAP.RADIUS_OFFSET
@@ -173,12 +173,12 @@ function MinimapButton:UpdatePosition()
     )
 end
 
---- Updates button visibility to match `Database:IsMinimapHidden()`.
+--- Updates button visibility to match `Settings:IsMinimapHidden()`.
 function MinimapButton:RefreshVisibility()
     if not self.button then
         return
     end
-    local shouldShow = not ns.Database:IsMinimapHidden()
+    local shouldShow = not ns.Settings:IsMinimapHidden()
     self.button:SetShown(shouldShow)
     if shouldShow then
         self:UpdatePosition()

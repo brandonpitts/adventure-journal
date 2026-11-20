@@ -1,5 +1,5 @@
 -- ============================================================================
--- Journal_Base - Constants.lua
+-- Adventure Journal - Core/Constants.lua
 -- Single source of truth for dimensions, asset paths, sound kits, and defaults.
 -- ============================================================================
 local addonName, ns = ...
@@ -20,9 +20,8 @@ local SOUNDKIT = SOUNDKIT
 local Constants = {
     ADDON_NAME = addonName,
     TITLE = "Adventure Journal",
-    VERSION = "0.8.0",
+    VERSION = "0.9.0",
     AUTHOR = "Brandon (Endoria)",
-    PLUGIN_API_VERSION = 1,
 
     BINDING_HEADER = "JOURNALBASE",
     BINDING_ACTION = "JOURNALBASE_TOGGLE",
@@ -85,42 +84,6 @@ local Constants = {
         NAV_CHEVRON_ARROW = "Interface\\ChatFrame\\ChatFrameExpandArrow",
     },
 
-    -- Canonical module catalog for installed modules within Adventure Journal.
-    KNOWN_PLUGINS = {
-        {
-            id = "dungeons",
-            title = "Dungeons",
-            addonName = "Adventure_Journal",
-            defaultOrder = 10,
-            icon = "Interface\\Icons\\INV_Misc_Key_03",
-            description = "Explore 5-player dungeons across Classic and WoW Forever, including level brackets, boss encounters, role notes, and loot drops.",
-            version = "0.6.0",
-            lastUpdated = "2026-11-14",
-        },
-        {
-            id = "utility_quests",
-            title = "Quests",
-            addonName = "Utility_Quests",
-            defaultOrder = 850,
-            icon = "Interface\\Icons\\INV_Misc_Book_08",
-            description = "Provides dungeon quest catalogs, prerequisite chain tracking, map markers, and level-relative reward XP calculations.",
-            version = "0.6.0",
-            lastUpdated = "2026-11-14",
-            isUtility = true,
-        },
-        {
-            id = "map_icons",
-            title = "Map Icons",
-            addonName = "Utility_MapIcons",
-            defaultOrder = 900,
-            icon = "Interface\\Icons\\INV_Misc_Map02",
-            description = "Provides world and zone map indicators for dungeon and raid entrances, with level-bracket filtering.",
-            version = "0.6.0",
-            lastUpdated = "2026-11-14",
-            isUtility = true,
-        },
-    },
-
     SOUNDS = {
         OPEN = (SOUNDKIT and SOUNDKIT.IG_CHARACTER_INFO_OPEN) or 839,
         CLOSE = (SOUNDKIT and SOUNDKIT.IG_CHARACTER_INFO_CLOSE) or 840,
@@ -131,7 +94,7 @@ local Constants = {
     },
 
     DB_DEFAULTS = {
-        schemaVersion = 4,
+        schemaVersion = 7,
         showInAddonCompartment = false,
         enableAdvancedSearch = false,
         minimap = {
@@ -140,14 +103,14 @@ local Constants = {
             angle = 225,
         },
         window = {
-            lastPluginId = "dungeons",
-            homePluginId = "dungeons",
-            defaultLandingPluginId = "dungeons",
+            lastModuleId = "dungeons",
+            defaultLandingModuleId = "dungeons",
             point = nil,
             lockWindow = false,
+            background = "stone",
+            showFiligree = true,
         },
-        disabledPlugins = {},
-        pluginOrder = {},
+        disabledModules = {},
         dungeons = {
             showBossLevel = true,
             showBossDifficultyColor = true,
@@ -156,8 +119,6 @@ local Constants = {
             showDungeonSetChallenges = false,
             worldMapDungeonIcons = "min_level",
             dungeonGridSort = "level",
-        },
-        quests = {
             showBothFactionData = false,
         },
         map_icons = {

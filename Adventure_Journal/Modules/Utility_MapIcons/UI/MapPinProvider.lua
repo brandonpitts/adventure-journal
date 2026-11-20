@@ -44,8 +44,6 @@ local function createPinFrame()
 
     local pin = CreateFrame("Button", nil, canvas)
     pin:SetSize(Constants.PIN.SIZE, Constants.PIN.SIZE)
-    pin:SetFrameStrata(Constants.PIN.FRAME_STRATA)
-    pin:SetFrameLevel(Constants.PIN.FRAME_LEVEL)
     pin:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 
     -- Base Atlas Texture (Dungeon blue swirl)
@@ -54,7 +52,7 @@ local function createPinFrame()
     texture:SetAtlas(Constants.ATLAS.DUNGEON)
     pin.Texture = texture
 
-    -- Hover Highlight Texture (re-enabled for world map pins)
+    -- Hover Highlight Texture
     local highlight = pin:CreateTexture(nil, "OVERLAY")
     highlight:SetAllPoints()
     highlight:SetAtlas(Constants.ATLAS.DUNGEON)
@@ -81,8 +79,8 @@ local function createPinFrame()
             PlaySound(1115) -- IG_MAINMENU_OPTION
         end
 
-        if self.pinData and self.pinData.dungeonID and ns.OpenDungeon then
-            ns.OpenDungeon(self.pinData.dungeonID)
+        if self.pinData and self.pinData.dungeonKey and ns.OpenDungeon then
+            ns.OpenDungeon(self.pinData.dungeonKey)
         end
     end)
 
@@ -113,8 +111,8 @@ local function positionPin(pin)
     local scale = pin:GetScale() or 1
     if scale <= 0 then scale = 1 end
 
-    local x = (pin.pinData.x or 50) / 100
-    local y = (pin.pinData.y or 50) / 100
+    local x = pin.pinData.x or 0.5
+    local y = pin.pinData.y or 0.5
 
     pin:ClearAllPoints()
     pin:SetPoint("CENTER", canvas, "TOPLEFT", (canvas:GetWidth() * x) / scale, -(canvas:GetHeight() * y) / scale)
@@ -174,6 +172,19 @@ function MapPinProvider:ShowTooltip(pin)
     local r2, g2, b2 = unpack(Constants.TOOLTIP.SUBTITLE_COLOR)
     GameTooltip:AddLine(data.kind or "Dungeon", r2, g2, b2)
 
+    -- Level range, colored by difficulty for the player like the journal's dungeon cards
+    if data.minLevel then
+        local levels = (data.maxLevel and data.maxLevel ~= data.minLevel)
+            and string.format("Level %d-%d", data.minLevel, data.maxLevel) or string.format("Level %d", data.minLevel)
+        local color = _G.GetQuestDifficultyColor and _G.GetQuestDifficultyColor(
+            math.floor((data.minLevel + (data.maxLevel or data.minLevel)) / 2 + 0.5))
+        if color then
+            GameTooltip:AddLine(levels, color.r, color.g, color.b)
+        else
+            GameTooltip:AddLine(levels, 1.0, 1.0, 1.0)
+        end
+    end
+
     -- Line 3: Action Prompt (Bright Green "<Click to open Adventure Journal>")
     local r3, g3, b3 = unpack(Constants.TOOLTIP.ACTION_COLOR)
     GameTooltip:AddLine(Constants.TOOLTIP.ACTION_TEXT, r3, g3, b3)
@@ -198,18 +209,18 @@ local function shouldShowPin(pinData)
     end
 
     -- Verify Map Icons utility module is enabled
-    if ns.IsPluginEnabled and not ns.IsPluginEnabled("map_icons") then
+    if ns.IsModuleEnabled and not ns.IsModuleEnabled("map_icons") then
         return false
     end
 
     -- Raid Pins Handling (Groundwork - default disabled while under construction)
     if pinData.kind == "Raid" then
-        if ns.IsPluginEnabled and not ns.IsPluginEnabled("raids") then
+        if ns.IsModuleEnabled and not ns.IsModuleEnabled("raids") then
             return false
         end
         local raidSetting = "disabled"
-        if ns.Database and ns.Database.GetMapIconsSetting then
-            raidSetting = ns.Database:GetMapIconsSetting("worldMapRaidIcons", "disabled")
+        if ns.Settings and ns.Settings.GetMapIconsSetting then
+            raidSetting = ns.Settings:GetMapIconsSetting("worldMapRaidIcons", "disabled")
         end
         if raidSetting == "disabled" then
             return false
@@ -229,15 +240,15 @@ local function shouldShowPin(pinData)
     end
 
     -- Verify supporting content module is active (dungeons)
-    if ns.IsPluginEnabled and not ns.IsPluginEnabled("dungeons") then
+    if ns.IsModuleEnabled and not ns.IsModuleEnabled("dungeons") then
         return false
     end
 
     local setting = "min_level"
-    if ns.Database and ns.Database.GetMapIconsSetting then
-        setting = ns.Database:GetMapIconsSetting("worldMapDungeonIcons", "min_level")
-    elseif ns.Database and ns.Database.GetDungeonSetting then
-        setting = ns.Database:GetDungeonSetting("worldMapDungeonIcons", "min_level")
+    if ns.Settings and ns.Settings.GetMapIconsSetting then
+        setting = ns.Settings:GetMapIconsSetting("worldMapDungeonIcons", "min_level")
+    elseif ns.Settings and ns.Settings.GetDungeonSetting then
+        setting = ns.Settings:GetDungeonSetting("worldMapDungeonIcons", "min_level")
     end
 
     if setting == "disabled" then
@@ -251,14 +262,6 @@ local function shouldShowPin(pinData)
     local playerLevel = UnitLevel("player") or 1
     local minLevel = pinData.minLevel or 1
     local maxLevel = pinData.maxLevel or 60
-
-    if pinData.dungeonID and ns.Data and ns.Data.DungeonsData and ns.Data.DungeonsData.GetByID then
-        local d = ns.Data.DungeonsData:GetByID(pinData.dungeonID)
-        if d then
-            minLevel = d.minLevel or minLevel
-            maxLevel = d.maxLevel or maxLevel
-        end
-    end
 
     if setting == "min_level" then
         return playerLevel >= minLevel
@@ -294,6 +297,13 @@ function MapPinProvider:AddPin(pinData)
 
     pin.pinData = pinData
 
+    -- Layer the pin with Blizzard's map pins (below the player arrow)
+    local levelsManager = _G.WorldMapFrame.GetPinFrameLevelsManager and _G.WorldMapFrame:GetPinFrameLevelsManager()
+    if levelsManager then
+        local levelType = Constants.PIN.FRAME_LEVEL_TYPES[pinData.kind] or Constants.PIN.FRAME_LEVEL_TYPES.Dungeon
+        pin:SetFrameLevel(levelsManager:GetValidFrameLevel(levelType))
+    end
+
     local canvasScale = (_G.WorldMapFrame and _G.WorldMapFrame.GetCanvasScale and _G.WorldMapFrame:GetCanvasScale()) or 1
     if canvasScale <= 0 then canvasScale = 1 end
 
@@ -303,8 +313,8 @@ function MapPinProvider:AddPin(pinData)
         pin:SetSize(Constants.PIN.FLIGHT_SIZE, Constants.PIN.FLIGHT_SIZE)
 
         local useFactionColors = true
-        if ns.Database and ns.Database.GetMapIconsSetting then
-            useFactionColors = ns.Database:GetMapIconsSetting("useFactionColorsForFlightPaths", true) ~= false
+        if ns.Settings and ns.Settings.GetMapIconsSetting then
+            useFactionColors = ns.Settings:GetMapIconsSetting("useFactionColorsForFlightPaths", true) ~= false
         end
 
         -- Native Blizzard Taxi Node Atlas Identifiers
@@ -370,42 +380,26 @@ function MapPinProvider:Refresh()
     end
 
     -- 1. Dungeon / Raid Entrance Pins
-    if ns.EntranceCoordinates then
-        local candidates = ns.EntranceCoordinates[mapID]
-        if candidates then
-            for _, pinData in ipairs(candidates) do
-                if shouldShowPin(pinData) then
-                    self:AddPin(pinData)
-                end
-            end
+    for _, pinData in ipairs(ns.MapAccess:GetEntrancePins(mapID)) do
+        if shouldShowPin(pinData) then
+            self:AddPin(pinData)
         end
     end
 
     -- 2. Flight Path Pins
     local showFlight = true
     local showEnemy = false
-    if ns.Database and ns.Database.GetMapIconsSetting then
-        showFlight = ns.Database:GetMapIconsSetting("showFlightPaths", true) ~= false
-        showEnemy = ns.Database:GetMapIconsSetting("showEnemyFactionFlightPaths", false) == true
+    if ns.Settings and ns.Settings.GetMapIconsSetting then
+        showFlight = ns.Settings:GetMapIconsSetting("showFlightPaths", true) ~= false
+        showEnemy = ns.Settings:GetMapIconsSetting("showEnemyFactionFlightPaths", false) == true
     end
 
-    if showFlight and ns.FlightPaths then
-        local fps = ns.FlightPaths[mapID]
-        if fps then
-            local playerFaction = (_G.UnitFactionGroup and _G.UnitFactionGroup("player")) or "Neutral"
-            for _, fp in ipairs(fps) do
-                local isEnemy = (fp.faction ~= "Neutral" and fp.faction ~= playerFaction)
-                local allowFaction = (not isEnemy or showEnemy)
-
-                if allowFaction then
-                    self:AddPin({
-                        kind = "FlightPath",
-                        faction = fp.faction,
-                        x = fp.x,
-                        y = fp.y,
-                        name = fp.name,
-                    })
-                end
+    if showFlight then
+        local playerFaction = (_G.UnitFactionGroup and _G.UnitFactionGroup("player")) or "Neutral"
+        for _, fp in ipairs(ns.MapAccess:GetFlightPins(mapID)) do
+            local isEnemy = (fp.faction ~= "Neutral" and fp.faction ~= playerFaction)
+            if not isEnemy or showEnemy then
+                self:AddPin(fp)
             end
         end
     end

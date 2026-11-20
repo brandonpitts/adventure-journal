@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Journal_Dungeons - UI/DungeonGridView.lua
--- 4-column scrollable dungeon tile browser.
+-- Scrollable dungeon tile browser.
 -- ============================================================================
 local addonName, parent = ...
 local ns = parent.Dungeons or {} ; parent.Dungeons = ns
@@ -13,7 +13,6 @@ local math = math
 local string = string
 local pcall = pcall
 local CreateFrame = CreateFrame
-local CreateColor = CreateColor
 local GameTooltip = GameTooltip
 local PlaySound = PlaySound
 local Constants = ns.Constants
@@ -22,45 +21,43 @@ local Constants = ns.Constants
 -- 2. Private Helper Functions
 -- ----------------------------------------------------------------------------
 
---- Formats a dungeon name in uppercase with clean wrapping for the 4-column tile.
-local function formatTileTitle(name)
-    if not name then
-        return ""
+--- The zone part of a dungeon's location ("Moonbrook, Westfall" -> "Westfall").
+local function zoneOf(location)
+    if not location then
+        return nil
     end
-    return string.upper(name)
+    return location:match(",%s*([^,]+)$") or location
 end
 
---- Applies Morpheus or QuestTitleFont typography to fontString.
-local function applyDungeonTileTypography(fontString)
-    local fontApplied = false
-    local candidateFonts = {
-        "Fonts\\MORPHEUS.TTF",
-        "Fonts\\MORPHEUS_CYR.TTF",
-        "Fonts\\morpheus.ttf",
-    }
-    for _, fontFile in ipairs(candidateFonts) do
-        local ok = pcall(fontString.SetFont, fontString, fontFile, 14, "")
-        if ok and fontString:GetFont() then
-            fontApplied = true
-            break
+-- Grid order: by the top of the level range, then the bottom, then name; or by name
+local function compareByLevel(a, b)
+    local maxA, maxB = a.maxLevel or 0, b.maxLevel or 0
+    if maxA ~= maxB then
+        return maxA < maxB
+    end
+    local minA, minB = a.minLevel or 0, b.minLevel or 0
+    if minA ~= minB then
+        return minA < minB
+    end
+    return (a.name or "") < (b.name or "")
+end
+
+local function compareByName(a, b)
+    return (a.name or "") < (b.name or "")
+end
+
+--- The grid's dungeons, filtered by the search box and sorted ("level" or "alphabetical").
+local function filteredDungeons(searchQuery, sortOrder)
+    local Access = ns.Data.DungeonAccess
+    local results = {}
+    for _, dungeon in ipairs(Access:GetDungeonList()) do
+        if Access:DungeonMatches(dungeon, searchQuery) then
+            results[#results + 1] = dungeon
         end
     end
-
-    if not fontApplied then
-        if _G.QuestTitleFont then
-            fontString:SetFontObject("QuestTitleFont")
-        elseif _G.QuestFont_Huge then
-            fontString:SetFontObject("QuestFont_Huge")
-        elseif _G.GameFontNormalLarge then
-            fontString:SetFontObject("GameFontNormalLarge")
-        else
-            fontString:SetFontObject("GameFontNormal")
-        end
-    end
-
-    fontString:SetTextColor(1.0, 0.82, 0.15)
-    fontString:SetShadowOffset(1, -1)
-    fontString:SetShadowColor(0, 0, 0, 0.95)
+    local byName = (sortOrder == "alphabetical" or sortOrder == "name")
+    table.sort(results, byName and compareByName or compareByLevel)
+    return results
 end
 
 -- ----------------------------------------------------------------------------
@@ -75,7 +72,7 @@ local DungeonGridView = {
     onSelectDungeon = nil,
 }
 
---- Initializes the 4-column Dungeon Browser Grid inside `parent`.
+--- Initializes the Dungeon Browser Grid inside `parent`.
 --- @param parent Frame
 --- @param onSelectDungeon function `function(dungeon)`
 function DungeonGridView:Init(parent, onSelectDungeon)
@@ -88,7 +85,7 @@ function DungeonGridView:Init(parent, onSelectDungeon)
     frame:SetAllPoints(parent)
     self.frame = frame
 
-    -- Scrollable 4-Column Grid Container shifted up to fill the whole window
+    -- Scrollable Grid Container filling the whole window
     local gridCfg = Constants.GRID
     local scrollFrame = CreateFrame("ScrollFrame", "JournalDungeonsGridScrollFrame", frame, "UIPanelScrollFrameTemplate")
     scrollFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", gridCfg.SCROLL_LEFT_X, gridCfg.SCROLL_TOP_Y)
@@ -125,8 +122,9 @@ function DungeonGridView:Init(parent, onSelectDungeon)
         end
     end)
 
-    if ns.ItemsManager and ns.ItemsManager.RegisterUpdateListener then
-        ns.ItemsManager:RegisterUpdateListener(function()
+    local liveData = parent.DataStore and parent.DataStore.Live
+    if liveData then
+        liveData:AddListener(function()
             if self.frame and self.frame:IsShown() and self.searchQuery and self.searchQuery ~= "" then
                 self:Refresh()
             end
@@ -134,7 +132,8 @@ function DungeonGridView:Init(parent, onSelectDungeon)
     end
 end
 
---- Acquires or creates an outward-bulging 3D dungeon tile button at `index`.
+--- Acquires or creates a dungeon tile at `index`: a card (UI/StoneCard.lua) with the dungeon's loading
+--- screen cropped in its window and the name and levels centered on it.
 --- @param index number
 --- @return Button
 function DungeonGridView:AcquireTile(index)
@@ -144,84 +143,11 @@ function DungeonGridView:AcquireTile(index)
         return tile
     end
 
-    local SharedWidgets = ns.UI.SharedWidgets
     local gridCfg = Constants.GRID
-
-    tile = CreateFrame("Button", nil, self.scrollChild)
-    tile:SetSize(gridCfg.TILE_WIDTH, gridCfg.TILE_HEIGHT)
-
-    SharedWidgets:StyleOutwardBulgingButton(tile)
-
-    local artTex = tile:CreateTexture(nil, "ARTWORK", nil, 0)
-    artTex:SetPoint("TOPLEFT", tile, "TOPLEFT", 1, -1)
-    artTex:SetPoint("BOTTOMRIGHT", tile, "BOTTOMRIGHT", -1, 1)
-    tile.artTex = artTex
-
-    local fallbackMedallion = SharedWidgets:CreateCircularMedallion(tile, 36, 48)
-    fallbackMedallion:SetPoint("CENTER", tile, "CENTER", 0, -4)
-    tile.fallbackMedallion = fallbackMedallion
-
-    local topVignette = tile:CreateTexture(nil, "ARTWORK", nil, 2)
-    topVignette:SetPoint("TOPLEFT", tile, "TOPLEFT", 1, -1)
-    topVignette:SetPoint("TOPRIGHT", tile, "TOPRIGHT", -1, -1)
-    topVignette:SetHeight(44)
-    topVignette:SetTexture(Constants.ASSETS.WHITE_8X8)
-    if topVignette.SetGradient and CreateColor then
-        topVignette:SetGradient("VERTICAL", CreateColor(0, 0, 0, 0.05), CreateColor(0, 0, 0, 0.82))
-    else
-        topVignette:SetVertexColor(0, 0, 0, 0.58)
-    end
-
-    -- Bottom readability vignette behind the level range
-    local botVignette = tile:CreateTexture(nil, "ARTWORK", nil, 2)
-    botVignette:SetPoint("BOTTOMLEFT", tile, "BOTTOMLEFT", 1, 1)
-    botVignette:SetPoint("BOTTOMRIGHT", tile, "BOTTOMRIGHT", -1, 1)
-    botVignette:SetHeight(24)
-    botVignette:SetTexture(Constants.ASSETS.WHITE_8X8)
-    if botVignette.SetGradient and CreateColor then
-        botVignette:SetGradient("VERTICAL", CreateColor(0, 0, 0, 0.82), CreateColor(0, 0, 0, 0.05))
-    else
-        botVignette:SetVertexColor(0, 0, 0, 0.58)
-    end
-    tile.botVignette = botVignette
-
-    -- Golden Centered Dungeon Title (Morpheus / QuestTitleFont from game files)
-    local nameText = tile:CreateFontString(nil, "OVERLAY")
-    nameText:SetPoint("TOPLEFT", tile, "TOPLEFT", 8, -8)
-    nameText:SetPoint("TOPRIGHT", tile, "TOPRIGHT", -8, -8)
-    nameText:SetJustifyH("CENTER")
-    nameText:SetJustifyV("TOP")
-    nameText:SetWordWrap(true)
-    applyDungeonTileTypography(nameText)
-    tile.nameText = nameText
-
-    -- Bottom-Left Level Bracket Badge
-    local levelText = tile:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    levelText:SetPoint("BOTTOMLEFT", tile, "BOTTOMLEFT", 8, 6)
-    levelText:SetTextColor(0.92, 0.86, 0.70)
-    levelText:SetShadowOffset(1, -1)
-    levelText:SetShadowColor(0, 0, 0, 0.95)
-    tile.levelText = levelText
-
-    -- Interactive Hover Glow
-    local hoverGlow = tile:CreateTexture(nil, "HIGHLIGHT")
-    hoverGlow:SetPoint("TOPLEFT", tile, "TOPLEFT", 3, -3)
-    hoverGlow:SetPoint("BOTTOMRIGHT", tile, "BOTTOMRIGHT", -3, 3)
-    hoverGlow:SetTexture(Constants.ASSETS.WHITE_8X8)
-    hoverGlow:SetBlendMode("ADD")
-    hoverGlow:SetVertexColor(0.95, 0.75, 0.30, 0.22)
-
-    -- Push-down visual feedback on mouse click
-    tile:SetScript("OnMouseDown", function(btn)
-        nameText:SetPoint("TOPLEFT", btn, "TOPLEFT", 9, -9)
-        nameText:SetPoint("TOPRIGHT", btn, "TOPRIGHT", -7, -9)
-        levelText:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", 9, 5)
-    end)
-    tile:SetScript("OnMouseUp", function(btn)
-        nameText:SetPoint("TOPLEFT", btn, "TOPLEFT", 8, -8)
-        nameText:SetPoint("TOPRIGHT", btn, "TOPRIGHT", -8, -8)
-        levelText:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", 8, 6)
-    end)
+    -- The card's own text: the name in gold on the left, "Lvl 17-26 - Westfall" under it
+    tile = ns.UI.StoneCard:Create(self.scrollChild, gridCfg.TILE_WIDTH, gridCfg.TILE_HEIGHT, { picture = true })
+    tile.subText:SetPoint("RIGHT", tile, "RIGHT", -16, 0)
+    tile.subText:SetWordWrap(false)
 
     tile:SetScript("OnClick", function(btn)
         if PlaySound then
@@ -232,13 +158,14 @@ function DungeonGridView:AcquireTile(index)
         end
     end)
 
-    tile:SetScript("OnEnter", function(btn)
+    -- Hooked, not set: the card's own hover and press visuals are hooks too
+    tile:HookScript("OnEnter", function(btn)
         local d = btn.dungeon
         if not d or not GameTooltip then
             return
         end
         GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
-        GameTooltip:AddLine(d.name, 1.0, 0.82, 0.0)
+        GameTooltip:AddLine(d.fullName, 1.0, 0.82, 0.0)
         GameTooltip:AddLine("Level " .. (d.level or "?") .. " • " .. (d.location or ""), 0.90, 0.82, 0.62)
         if d.description and d.description ~= "" then
             GameTooltip:AddLine(" ")
@@ -249,7 +176,7 @@ function DungeonGridView:AcquireTile(index)
         GameTooltip:Show()
     end)
 
-    tile:SetScript("OnLeave", function()
+    tile:HookScript("OnLeave", function()
         if GameTooltip then
             GameTooltip:Hide()
         end
@@ -259,7 +186,7 @@ function DungeonGridView:AcquireTile(index)
     return tile
 end
 
---- Updates the active search filter and re-renders the 4-column grid.
+--- Updates the active search filter and re-renders the grid.
 --- @param queryText string
 function DungeonGridView:SetSearchQuery(queryText)
     self.searchQuery = queryText or ""
@@ -268,7 +195,7 @@ function DungeonGridView:SetSearchQuery(queryText)
     end
 end
 
---- Rebuilds the 4-column dungeon tile grid sorted by level range or alphabetical name.
+--- Rebuilds the dungeon tile grid sorted by level range or alphabetical name.
 function DungeonGridView:Refresh()
     if not self.frame then
         return
@@ -283,7 +210,7 @@ function DungeonGridView:Refresh()
         showDiffColor = _G.JournalBase:GetDungeonSetting("showBossDifficultyColor", true) == true
         sortOrder = _G.JournalBase:GetDungeonSetting("dungeonGridSort", "level")
     end
-    local dungeons = ns.Data.DungeonsData:GetFiltered(self.searchQuery, sortOrder)
+    local dungeons = filteredDungeons(self.searchQuery, sortOrder)
 
     for _, tile in ipairs(self.tilePool) do
         tile:Hide()
@@ -303,34 +230,20 @@ function DungeonGridView:Refresh()
         tile:ClearAllPoints()
         tile:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", x, y)
 
-        tile.nameText:SetText(formatTileTitle(dungeon.name))
+        tile.nameText:SetText(dungeon.name or "")
+        local info = {}
         if showBossLevel then
-            tile.levelText:SetText("Lvl " .. (dungeon.level or ""))
+            local level = "Lvl " .. (dungeon.level or "")
             if showDiffColor then
                 local r, g, b = SharedWidgets:GetDungeonDifficultyColor(dungeon)
-                tile.levelText:SetTextColor(r, g, b)
-            else
-                tile.levelText:SetTextColor(0.92, 0.86, 0.70)
+                level = string.format("|cff%02x%02x%02x%s|r", r * 255, g * 255, b * 255, level)
             end
-            tile.levelText:Show()
-            if tile.botVignette then
-                tile.botVignette:Show()
-            end
-        else
-            tile.levelText:Hide()
-            if tile.botVignette then
-                tile.botVignette:Hide()
-            end
+            info[#info + 1] = level
         end
+        info[#info + 1] = zoneOf(dungeon.location)
+        tile.subText:SetText(table.concat(info, " - "))
 
-        local hasArt = SharedWidgets:ApplyDungeonArtwork(tile.artTex, dungeon)
-        if hasArt then
-            tile.fallbackMedallion:Hide()
-        else
-            SharedWidgets:SetMedallionIcon(tile.fallbackMedallion, dungeon.icon)
-            SharedWidgets:SyncWindowPortraitBorder(tile.fallbackMedallion)
-            tile.fallbackMedallion:Show()
-        end
+        ns.UI.StoneCard:SetDungeonPicture(tile, dungeon)
     end
 
     local totalRows = math.max(1, math.ceil(#dungeons / cols))

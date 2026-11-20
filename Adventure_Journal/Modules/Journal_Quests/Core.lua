@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Journal_Quests - Core.lua
--- Registers the standalone Quests plugin with Journal_Base.
+-- Registers the Quests module with the Journal.
 -- ============================================================================
 local addonName, parent = ...
 local ns = parent.Quests or {} ; parent.Quests = ns
@@ -18,47 +18,44 @@ local Constants = ns.Constants
 -- ----------------------------------------------------------------------------
 -- 3. Module / Mixin Definition
 -- ----------------------------------------------------------------------------
-local QuestsPlugin = {
-    id = Constants.PLUGIN_ID,
+local QuestsModule = {
+    id = Constants.MODULE_ID,
     title = Constants.TITLE,
     addonName = Constants.ADDON_NAME,
-    version = Constants.VERSION,
-    lastUpdated = Constants.LAST_UPDATED,
     description = Constants.DESCRIPTION,
-    apiVersion = Constants.API_VERSION,
     order = Constants.TAB_ORDER,
     icon = Constants.ASSETS.ICON,
 }
 
---- Called once by `Journal_Base` when the Quests tab is first opened.
+--- Called once by the Journal when the Quests tab is first opened.
 --- @param canvas Frame
-function QuestsPlugin:OnInitialize(canvas)
+function QuestsModule:OnInitialize(canvas)
     ns.UI.MainView:Init(canvas)
 end
 
 --- Called whenever the Quests bottom tab is selected or when `Quests` is
 --- clicked in the breadcrumb navigation track (`Home > Quests`).
-function QuestsPlugin:OnActivate()
+function QuestsModule:OnActivate()
     ns.UI.MainView:ShowRoot()
 end
 
---- Called when the user switches away to Home or another plugin tab.
-function QuestsPlugin:OnDeactivate()
+--- Called when the user switches away to Home or another module tab.
+function QuestsModule:OnDeactivate()
     ns.UI.MainView:Hide()
 end
 
 --- Called when the user types in the Journal header search box while Quests is active.
 --- @param queryText string
-function QuestsPlugin:OnSearch(queryText)
+function QuestsModule:OnSearch(queryText)
     -- Phase 2: Filter quest entries by `queryText`.
 end
 
-if _G.JournalBase and _G.JournalBase.RegisterPlugin then
-    _G.JournalBase:RegisterPlugin(QuestsPlugin)
+if _G.JournalBase and _G.JournalBase.RegisterModule then
+    _G.JournalBase:RegisterModule(QuestsModule)
 end
 
 -- ----------------------------------------------------------------------------
 -- 4. Namespace Attachment
 -- ----------------------------------------------------------------------------
-ns.Plugin = QuestsPlugin
+ns.Module = QuestsModule
 

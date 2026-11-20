@@ -2,7 +2,7 @@
 ## Title: Adventure Journal
 ## Notes: Complete in-game adventure guide, dungeon and raid reference for WoW Forever.
 ## Author: Brand
-## Version: 0.8.0
+## Version: 0.9.0
 ## IconTexture: Interface\Icons\INV_Misc_Book_09
 ## SavedVariables: JournalBaseDB
 ## AddonCompartmentFunc: AdventureJournal_OnAddonCompartmentClick
@@ -11,50 +11,103 @@
 
 # Core Framework
 Core\Constants.lua
-Core\Database.lua
-Core\Data\TagTaxonomy.lua
-Core\Data\Sources\Sources_Overrides.lua
-Core\Data\Sources\Drops_Dungeons.lua
-Core\Data\Items_Catalog.lua
-Core\ItemDatabase.lua
+Core\Settings.lua
+Core\Search.lua
 Core\KeybindManager.lua
-Core\PluginRegistry.lua
+Core\ModuleRegistry.lua
 Core\HolidayManager.lua
 Core\UI\HeaderBar.lua
 Core\UI\TabBar.lua
+Core\UI\WindowBackground.lua
 Core\UI\MainFrame.lua
 Core\UI\MinimapButton.lua
 Core\UI\KeybindButton.lua
 Core\UI\SettingsPanel.lua
 Core\Core.lua
 
+# Modules: Utility - DataStore (loads before every journal module)
+Modules\Utility_DataStore\Constants.lua
+Modules\Utility_DataStore\Core\DataStore.lua
+Modules\Utility_DataStore\Core\Schema.lua
+Modules\Utility_DataStore\Core\Live.lua
+Modules\Utility_DataStore\Core\Indexes.lua
+Modules\Utility_DataStore\Core\StoreBase.lua
+Modules\Utility_DataStore\Core\StoreTexts.lua
+Modules\Utility_DataStore\Tags\TagRegistry.lua
+Modules\Utility_DataStore\Stores\ItemStore\Schema.lua
+Modules\Utility_DataStore\Stores\ItemStore\Data.lua
+Modules\Utility_DataStore\Stores\ItemStore\Overrides.lua
+Modules\Utility_DataStore\Stores\ItemStore\Texts.lua
+Modules\Utility_DataStore\Stores\ItemStore\TextOverrides.lua
+Modules\Utility_DataStore\Stores\ItemStore\Rules.lua
+Modules\Utility_DataStore\Stores\ItemStore\ItemCalls.lua
+Modules\Utility_DataStore\Stores\InstanceStore\Schema.lua
+Modules\Utility_DataStore\Stores\InstanceStore\Data.lua
+Modules\Utility_DataStore\Stores\InstanceStore\Overrides.lua
+Modules\Utility_DataStore\Stores\InstanceStore\Texts.lua
+Modules\Utility_DataStore\Stores\InstanceStore\TextOverrides.lua
+Modules\Utility_DataStore\Stores\EncounterStore\Schema.lua
+Modules\Utility_DataStore\Stores\EncounterStore\Data.lua
+Modules\Utility_DataStore\Stores\EncounterStore\Overrides.lua
+Modules\Utility_DataStore\Stores\EncounterStore\Texts.lua
+Modules\Utility_DataStore\Stores\EncounterStore\TextOverrides.lua
+Modules\Utility_DataStore\Stores\NpcStore\Schema.lua
+Modules\Utility_DataStore\Stores\NpcStore\Data.lua
+Modules\Utility_DataStore\Stores\NpcStore\Overrides.lua
+Modules\Utility_DataStore\Stores\NpcStore\Texts.lua
+Modules\Utility_DataStore\Stores\NpcStore\TextOverrides.lua
+Modules\Utility_DataStore\Stores\QuestStore\Schema.lua
+Modules\Utility_DataStore\Stores\QuestStore\Data.lua
+Modules\Utility_DataStore\Stores\QuestStore\Overrides.lua
+Modules\Utility_DataStore\Stores\QuestStore\Texts.lua
+Modules\Utility_DataStore\Stores\QuestStore\TextOverrides.lua
+Modules\Utility_DataStore\Stores\FixtureStore\Schema.lua
+Modules\Utility_DataStore\Stores\FixtureStore\Data.lua
+Modules\Utility_DataStore\Stores\FixtureStore\Overrides.lua
+Modules\Utility_DataStore\Stores\FixtureStore\Texts.lua
+Modules\Utility_DataStore\Stores\FixtureStore\TextOverrides.lua
+Modules\Utility_DataStore\Stores\ZoneStore\Schema.lua
+Modules\Utility_DataStore\Stores\ZoneStore\Data.lua
+Modules\Utility_DataStore\Stores\ZoneStore\Overrides.lua
+Modules\Utility_DataStore\Stores\ZoneStore\Texts.lua
+Modules\Utility_DataStore\Stores\ZoneStore\TextOverrides.lua
+Modules\Utility_DataStore\Stores\AreaStore\Schema.lua
+Modules\Utility_DataStore\Stores\AreaStore\Data.lua
+Modules\Utility_DataStore\Stores\AreaStore\Overrides.lua
+Modules\Utility_DataStore\Stores\AreaStore\Texts.lua
+Modules\Utility_DataStore\Stores\AreaStore\TextOverrides.lua
+Modules\Utility_DataStore\Stores\FlightPointStore\Schema.lua
+Modules\Utility_DataStore\Stores\FlightPointStore\Data.lua
+Modules\Utility_DataStore\Stores\FlightPointStore\Overrides.lua
+Modules\Utility_DataStore\Stores\FlightPointStore\Texts.lua
+Modules\Utility_DataStore\Stores\FlightPointStore\TextOverrides.lua
+Modules\Utility_DataStore\Stores\LocationStore\Schema.lua
+Modules\Utility_DataStore\Stores\LocationStore\Data.lua
+Modules\Utility_DataStore\Stores\LocationStore\Overrides.lua
+Modules\Utility_DataStore\Stores\LocationStore\Texts.lua
+Modules\Utility_DataStore\Stores\LocationStore\TextOverrides.lua
+Modules\Utility_DataStore\Stores\AbilityStore\Schema.lua
+Modules\Utility_DataStore\Stores\AbilityStore\Data.lua
+Modules\Utility_DataStore\Stores\AbilityStore\Overrides.lua
+Modules\Utility_DataStore\Stores\AbilityStore\Texts.lua
+Modules\Utility_DataStore\Stores\AbilityStore\TextOverrides.lua
+Modules\Utility_DataStore\Tags\TagDefinitions.lua
+Modules\Utility_DataStore\Core.lua
+
 # Modules: Dungeons
 Modules\Journal_Dungeons\Constants.lua
-Modules\Journal_Dungeons\Data\DungeonsData.lua
-Modules\Journal_Dungeons\Data\Items\ItemsManager.lua
+Modules\Journal_Dungeons\Data\DungeonAccess.lua
+Modules\Journal_Dungeons\Data\QuestAccess.lua
 Modules\Journal_Dungeons\UI\SharedWidgets.lua
+Modules\Journal_Dungeons\UI\StoneCard.lua
 Modules\Journal_Dungeons\UI\DungeonGridView.lua
 Modules\Journal_Dungeons\UI\DungeonBookView.lua
 Modules\Journal_Dungeons\UI\MainView.lua
 Modules\Journal_Dungeons\Core.lua
 
-# Modules: Utility - Quests
-Modules\Utility_Quests\Constants.lua
-Modules\Utility_Quests\Data\Quests_Catalog.lua
-Modules\Utility_Quests\Data\Quests_Dungeons.lua
-Modules\Utility_Quests\Data\Quests_Chains.lua
-Modules\Utility_Quests\Data\Quests_PrereqDetails.lua
-Modules\Utility_Quests\Data\Quests_Maps.lua
-Modules\Utility_Quests\Data\Quests_NpcIds.lua
-Modules\Utility_Quests\Data\Quests_Shareability.lua
-Modules\Utility_Quests\QuestDatabase.lua
-Modules\Utility_Quests\Core.lua
-
 # Modules: Utility - Map Icons
 Modules\Utility_MapIcons\Constants.lua
-Modules\Utility_MapIcons\Data\EntranceCoordinates.lua
-Modules\Utility_MapIcons\Data\ZoneLevels.lua
-Modules\Utility_MapIcons\Data\FlightPaths.lua
+Modules\Utility_MapIcons\Data\MapAccess.lua
 Modules\Utility_MapIcons\UI\MapPinProvider.lua
 Modules\Utility_MapIcons\UI\AreaLabelProvider.lua
 Modules\Utility_MapIcons\Core.lua

@@ -1,5 +1,5 @@
 -- ============================================================================
--- Journal_Base - Core.lua
+-- Adventure Journal - Core/Core.lua
 -- Addon bootstrap, centralized event dispatcher, slash commands, and public API.
 -- ============================================================================
 local addonName, ns = ...
@@ -39,10 +39,7 @@ end
 -- ----------------------------------------------------------------------------
 local JournalBase = {
     VERSION = Constants.VERSION,
-    PLUGIN_API_VERSION = Constants.PLUGIN_API_VERSION,
     HolidayManager = ns.HolidayManager,
-    ItemDatabase = ns.ItemDatabase,
-    Items = ns.ItemDatabase,
 }
 
 --- Standardized chat message helper prefixed with `[Journal]`.
@@ -74,43 +71,38 @@ end
 --- Returns whether the Adventure Journal window is locked against dragging.
 --- @return boolean
 function JournalBase:IsWindowLocked()
-    return ns.Database and ns.Database.IsWindowLocked and ns.Database:IsWindowLocked() or false
+    return ns.Settings and ns.Settings.IsWindowLocked and ns.Settings:IsWindowLocked() or false
 end
 
 --- Sets whether the Adventure Journal window is locked against dragging.
 --- @param isLocked boolean
 function JournalBase:SetWindowLocked(isLocked)
-    if ns.Database and ns.Database.SetWindowLocked then
-        ns.Database:SetWindowLocked(isLocked)
+    if ns.Settings and ns.Settings.SetWindowLocked then
+        ns.Settings:SetWindowLocked(isLocked)
     end
 end
 
---- Public contract for standalone `Journal_*` plugins to register a tab.
---- @param pluginDef table
+--- Public contract for Journal modules to register a tab.
+--- @param moduleDef table
 --- @return boolean success, string|nil errorMessage
-function JournalBase:RegisterPlugin(pluginDef)
-    local ok, err = ns.PluginRegistry:Register(pluginDef)
+function JournalBase:RegisterModule(moduleDef)
+    local ok, err = ns.ModuleRegistry:Register(moduleDef)
     if not ok and err then
         self:Print(err)
     end
     return ok, err
 end
 
---- Retrieves a registered plugin by its `id`.
---- @param pluginId string
+--- Retrieves a registered module by its `id`.
+--- @param moduleId string
 --- @return table|nil
-function JournalBase:GetPlugin(pluginId)
-    return ns.PluginRegistry:GetPlugin(pluginId)
+function JournalBase:GetModule(moduleId)
+    return ns.ModuleRegistry:GetModule(moduleId)
 end
 
 --- Activates the default opening tab (e.g. Dungeons).
-function JournalBase:ActivateDefaultPlugin()
-    ns.PluginRegistry:ActivateDefaultPlugin()
-end
-
---- Backwards-compatibility alias.
-function JournalBase:ActivateHome()
-    ns.PluginRegistry:ActivateDefaultPlugin()
+function JournalBase:ActivateDefaultModule()
+    ns.ModuleRegistry:ActivateDefaultModule()
 end
 
 -- ----------------------------------------------------------------------------
@@ -166,7 +158,7 @@ end
 --- @param defaultVal any
 --- @return any
 function JournalBase:GetModuleSetting(moduleKey, settingKey, defaultVal)
-    return ns.Database:GetModuleSetting(moduleKey, settingKey, defaultVal)
+    return ns.Settings:GetModuleSetting(moduleKey, settingKey, defaultVal)
 end
 
 --- Persists a module-specific setting.
@@ -174,7 +166,7 @@ end
 --- @param settingKey string
 --- @param val any
 function JournalBase:SetModuleSetting(moduleKey, settingKey, val)
-    ns.Database:SetModuleSetting(moduleKey, settingKey, val)
+    ns.Settings:SetModuleSetting(moduleKey, settingKey, val)
     if self.OnModuleSettingChanged then
         self:OnModuleSettingChanged(moduleKey, settingKey, val)
     end
@@ -185,40 +177,19 @@ end
 --- @param defaultVal any
 --- @return any
 function JournalBase:GetDungeonSetting(key, defaultVal)
-    return ns.Database:GetDungeonSetting(key, defaultVal)
+    return ns.Settings:GetDungeonSetting(key, defaultVal)
 end
 
 --- Convenience setter for Dungeons module settings.
 --- @param key string
 --- @param val any
 function JournalBase:SetDungeonSetting(key, val)
-    ns.Database:SetDungeonSetting(key, val)
+    ns.Settings:SetDungeonSetting(key, val)
     if self.OnDungeonSettingChanged then
         self:OnDungeonSettingChanged(key, val)
     end
     if self.OnModuleSettingChanged then
         self:OnModuleSettingChanged("dungeons", key, val)
-    end
-end
-
---- Convenience getter for Quests module settings.
---- @param key string
---- @param defaultVal any
---- @return any
-function JournalBase:GetQuestSetting(key, defaultVal)
-    return ns.Database:GetQuestSetting(key, defaultVal)
-end
-
---- Convenience setter for Quests module settings.
---- @param key string
---- @param val any
-function JournalBase:SetQuestSetting(key, val)
-    ns.Database:SetQuestSetting(key, val)
-    if self.OnQuestSettingChanged then
-        self:OnQuestSettingChanged(key, val)
-    end
-    if self.OnModuleSettingChanged then
-        self:OnModuleSettingChanged("quests", key, val)
     end
 end
 
@@ -254,7 +225,7 @@ end
 
 local function RegisterAddonCompartment()
     if _G.AddonCompartmentFrame and _G.AddonCompartmentFrame.RegisterAddOn then
-        if ns.Database and not ns.Database:IsAddonCompartmentShown() then
+        if ns.Settings and not ns.Settings:IsAddonCompartmentShown() then
             return
         end
         _G.AddonCompartmentFrame:RegisterAddOn({
@@ -287,12 +258,8 @@ function EventDispatcher:ADDON_LOADED(loadedAddonName)
     end
     self:UnregisterEvent("ADDON_LOADED")
 
-    ns.Database:Init()
-    ns.PluginRegistry:PurgeDisabledModules()
-    if ns.ItemDatabase then
-        ns.ItemDatabase:Init()
-    end
-    ns.PluginRegistry:RegisterBuiltInPlugins()
+    ns.Settings:Init()
+    ns.ModuleRegistry:PurgeDisabledModules()
     ns.UI.MainFrame:Init()
     ns.UI.MinimapButton:Init()
     ns.UI.SettingsPanel:Init()
@@ -302,7 +269,7 @@ end
 function EventDispatcher:PLAYER_ENTERING_WORLD()
     ns.UI.MinimapButton:RefreshVisibility()
     ns.UI.SettingsPanel:Refresh()
-    ns.UI.MainFrame:OnPluginsChanged()
+    ns.UI.MainFrame:OnModulesChanged()
 end
 
 EventDispatcher:SetScript("OnEvent", function(self, event, ...)

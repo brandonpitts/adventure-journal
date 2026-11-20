@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Journal_Quests - Constants.lua
--- Single source of truth for Quests plugin metadata, assets, and dimensions.
+-- Single source of truth for Quests module metadata, assets, and dimensions.
 -- ============================================================================
 local addonName, parent = ...
 local ns = parent.Quests or {} ; parent.Quests = ns
@@ -20,12 +20,9 @@ local ns = parent.Quests or {} ; parent.Quests = ns
 -- ----------------------------------------------------------------------------
 local Constants = {
     ADDON_NAME = addonName,
-    PLUGIN_ID = "quests",
+    MODULE_ID = "quests",
     TITLE = "Quests",
-    VERSION = "0.0.0",
-    LAST_UPDATED = "2026-11-13",
     DESCRIPTION = "Track dungeon questlines, raid attunement chains, class quests, and notable reward paths across Azeroth.",
-    API_VERSION = 1,
     TAB_ORDER = 40,
 
     CARD = {

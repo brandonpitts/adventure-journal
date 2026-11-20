@@ -16,7 +16,6 @@ local Constants = {
     ADDON_NAME = addonName,
     MODULE_ID = "map_icons",
     TITLE = "Map Icons",
-    VERSION = "0.6.0",
 
     -- Native Blizzard Atlas Identifiers
     ATLAS = {
@@ -40,8 +39,11 @@ local Constants = {
         FLIGHT_SIZE = 30,
         HIT_SCALE = 0.8,
         POI_SCALE = 0.70,
-        FRAME_STRATA = "HIGH",
-        FRAME_LEVEL = 120,
+        -- Blizzard map pin layers (WorldMapFrame:GetPinFrameLevelsManager()); all sit below the player arrow
+        FRAME_LEVEL_TYPES = {
+            Dungeon = "PIN_FRAME_LEVEL_DUNGEON_ENTRANCE",
+            FlightPath = "PIN_FRAME_LEVEL_FLIGHT_POINT",
+        },
     },
 
     -- Retail-style Tooltip Formatting

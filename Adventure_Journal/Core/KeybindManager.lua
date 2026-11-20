@@ -1,5 +1,5 @@
 -- ============================================================================
--- Journal_Base - KeybindManager.lua
+-- Adventure Journal - Core/KeybindManager.lua
 -- Combat-safe keybinding reader, formatter, conflict checker, and binder.
 -- ============================================================================
 local addonName, ns = ...

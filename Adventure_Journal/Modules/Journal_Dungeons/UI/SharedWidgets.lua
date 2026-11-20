@@ -19,50 +19,7 @@ local Constants = ns.Constants
 -- ----------------------------------------------------------------------------
 -- 2. Private Helper Functions
 -- ----------------------------------------------------------------------------
-
---- Resolves texture path and UV coordinates for objective tracker header background.
-local function getObjectiveHeaderTextureInfo()
-    local tracker = _G.ObjectiveTrackerFrame
-    local srcBg = tracker and tracker.Header and tracker.Header.Background
-    if not srcBg then
-        local questTracker = _G.QuestObjectiveTracker
-        srcBg = questTracker and questTracker.Header and questTracker.Header.Background
-    end
-
-    if srcBg then
-        local atlas = srcBg.GetAtlas and srcBg:GetAtlas()
-        if atlas and C_Texture and C_Texture.GetAtlasInfo then
-            local info = C_Texture.GetAtlasInfo(atlas)
-            if info and (info.file or info.filename) then
-                return (info.file or info.filename),
-                    info.leftTexCoord or 0,
-                    info.rightTexCoord or 1,
-                    info.topTexCoord or 0,
-                    info.bottomTexCoord or 1
-            end
-        end
-
-        local tex = srcBg.GetTexture and srcBg:GetTexture()
-        if tex then
-            local ulx, uly, llx, lly, urx = srcBg:GetTexCoord()
-            return tex, ulx or 0, urx or 1, uly or 0, lly or 1
-        end
-    end
-
-    -- Fallback if ObjectiveTrackerFrame not initialized yet
-    if C_Texture and C_Texture.GetAtlasInfo then
-        local info = C_Texture.GetAtlasInfo("Objective-Header")
-        if info and (info.file or info.filename) then
-            return (info.file or info.filename),
-                info.leftTexCoord or 0,
-                info.rightTexCoord or 1,
-                info.topTexCoord or 0,
-                info.bottomTexCoord or 1
-        end
-    end
-
-    return nil, 0, 1, 0, 1
-end
+-- (None required)
 
 -- ----------------------------------------------------------------------------
 -- 3. Module / Mixin Definition
@@ -136,16 +93,6 @@ function SharedWidgets:CreateHorizontalDividerBar(parent, height)
     end
 
     return bar
-end
-
---- Backward-compatible alias for CreateHorizontalDividerBar.
-function SharedWidgets:CreateQuestDividerBar(parent, height, _capWidth)
-    return self:CreateHorizontalDividerBar(parent, height)
-end
-
---- Synchronizes a divider bar.
---- @param bar Frame
-function SharedWidgets:SyncQuestDividerBar(bar)
 end
 
 --- Creates a vertical 2-tone etched divider bar with alpha fade finials.
@@ -531,67 +478,6 @@ function SharedWidgets:SyncWindowPortraitBorder(medallion)
             end
             return
         end
-    end
-end
-
---- Applies a beveled metallic border to a grid tile button.
---- @param btn Button
-function SharedWidgets:StyleOutwardBulgingButton(btn)
-    local ok, templateFrame = pcall(CreateFrame, "Frame", nil, btn, "EncounterInstanceButtonTemplate")
-    if ok and templateFrame then
-        templateFrame:SetAllPoints(btn)
-        templateFrame:EnableMouse(false)
-        btn._templateFrame = templateFrame
-        return
-    end
-
-    local shadow = btn:CreateTexture(nil, "BACKGROUND", nil, -5)
-    shadow:SetPoint("TOPLEFT", btn, "TOPLEFT", -1, 1)
-    shadow:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 1, -1)
-    shadow:SetTexture(Constants.ASSETS.WHITE_8X8)
-    shadow:SetVertexColor(0.02, 0.02, 0.01, 0.75)
-    btn._dropShadow = shadow
-
-    local baseRim = btn:CreateTexture(nil, "BACKGROUND", nil, -4)
-    baseRim:SetAllPoints(btn)
-    baseRim:SetTexture(Constants.ASSETS.WHITE_8X8)
-    baseRim:SetVertexColor(0.12, 0.10, 0.07, 1.0)
-    btn._baseRim = baseRim
-
-    local topHi = btn:CreateTexture(nil, "BACKGROUND", nil, -3)
-    topHi:SetHeight(1)
-    topHi:SetPoint("TOPLEFT", btn, "TOPLEFT", 0, 0)
-    topHi:SetPoint("TOPRIGHT", btn, "TOPRIGHT", 0, 0)
-    topHi:SetTexture(Constants.ASSETS.WHITE_8X8)
-    topHi:SetVertexColor(0.56, 0.48, 0.35, 0.95)
-    btn._topHi = topHi
-
-    local leftHi = btn:CreateTexture(nil, "BACKGROUND", nil, -3)
-    leftHi:SetWidth(1)
-    leftHi:SetPoint("TOPLEFT", btn, "TOPLEFT", 0, 0)
-    leftHi:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", 0, 0)
-    leftHi:SetTexture(Constants.ASSETS.WHITE_8X8)
-    leftHi:SetVertexColor(0.48, 0.42, 0.32, 0.95)
-    btn._leftHi = leftHi
-
-    local botSh = btn:CreateTexture(nil, "BACKGROUND", nil, -3)
-    botSh:SetHeight(1)
-    botSh:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", 0, 0)
-    botSh:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 0, 0)
-    botSh:SetTexture(Constants.ASSETS.WHITE_8X8)
-    botSh:SetVertexColor(0.02, 0.02, 0.02, 0.98)
-    btn._botSh = botSh
-
-    local rightSh = btn:CreateTexture(nil, "BACKGROUND", nil, -3)
-    rightSh:SetWidth(1)
-    rightSh:SetPoint("TOPRIGHT", btn, "TOPRIGHT", 0, 0)
-    rightSh:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 0, 0)
-    rightSh:SetTexture(Constants.ASSETS.WHITE_8X8)
-    rightSh:SetVertexColor(0.03, 0.02, 0.02, 0.98)
-    btn._rightSh = rightSh
-
-    if btn.SetPushedTextOffset then
-        btn:SetPushedTextOffset(1, -1)
     end
 end
 

@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Journal_Professions - Constants.lua
--- Single source of truth for Professions plugin metadata, assets, and dimensions.
+-- Single source of truth for Professions module metadata, assets, and dimensions.
 -- ============================================================================
 local addonName, parent = ...
 local ns = parent.Professions or {} ; parent.Professions = ns
@@ -20,12 +20,9 @@ local ns = parent.Professions or {} ; parent.Professions = ns
 -- ----------------------------------------------------------------------------
 local Constants = {
     ADDON_NAME = addonName,
-    PLUGIN_ID = "professions",
+    MODULE_ID = "professions",
     TITLE = "Professions",
-    VERSION = "0.0.0",
-    LAST_UPDATED = "2026-11-13",
     DESCRIPTION = "Browse primary and secondary professions, recipe and schematic sources, trainer locations, and crafting reagent breakdowns.",
-    API_VERSION = 1,
     TAB_ORDER = 30,
 
     CARD = {

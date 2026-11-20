@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Journal_Raids - Constants.lua
--- Single source of truth for Raids plugin metadata, assets, and dimensions.
+-- Single source of truth for Raids module metadata, assets, and dimensions.
 -- ============================================================================
 local addonName, parent = ...
 local ns = parent.Raids or {} ; parent.Raids = ns
@@ -20,12 +20,9 @@ local ns = parent.Raids or {} ; parent.Raids = ns
 -- ----------------------------------------------------------------------------
 local Constants = {
     ADDON_NAME = addonName,
-    PLUGIN_ID = "raids",
+    MODULE_ID = "raids",
     TITLE = "Raids",
-    VERSION = "0.0.0",
-    LAST_UPDATED = "2026-11-13",
     DESCRIPTION = "Prepare for 10, 20, and 40-player raid tiers with multi-phase encounter strategies, boss abilities, and tier set loot tables.",
-    API_VERSION = 1,
     TAB_ORDER = 20,
 
     CARD = {

@@ -1,9 +1,10 @@
 -- ============================================================================
 -- Journal_Dungeons - UI/MainView.lua
 -- State controller for `Journal_Dungeons`, coordinating:
---   * Level 1 (`Dungeons`): 4-Column Dungeon Browser Grid
---   * Level 2 (`Dungeons > <Dungeon>`): Open-Book Instance Overview
---   * Level 3 (`Dungeons > <Dungeon> > <Boss>`): Boss Encounter Lore & Drops
+--   * `Home`: the dungeon grid (one card per instance)
+--   * `Home > <Dungeon>`: a dungeon's book page, or for a dungeon with wings, its wing page
+--   * `Home > <Dungeon> > <Wing>`: a wing's book page (the breadcrumb shows only the wing's name)
+--   * `... > <Boss>` or `... > Dungeon Quests`: a boss or the quests tab
 -- ============================================================================
 local addonName, parent = ...
 local ns = parent.Dungeons or {} ; parent.Dungeons = ns
@@ -26,7 +27,8 @@ local Constants = ns.Constants
 local MainView = {
     rootFrame = nil,
     headerBar = nil,
-    currentDungeon = nil,
+    wingParent = nil,     -- the dungeon whose wing page (or one of whose wings) is open
+    currentDungeon = nil, -- the dungeon or wing whose book page is open
     selectedBoss = nil,
 }
 
@@ -54,26 +56,49 @@ function MainView:Init(parentCanvas, headerBar)
         onSelectDungeonOverview = function()
             self:ReturnToDungeonOverview()
         end,
-        onTabChanged = function(tabKey)
+        onTabChanged = function()
             self:UpdateBreadcrumbs()
         end,
     })
 end
 
---- Synchronizes the breadcrumb track to the current view state:
---- Home > <Dungeon Name> (> <Boss Name> | > Dungeon Quests)
+--- Breadcrumb steps for the open dungeon: Home, the dungeon (or its parent then the wing).
+function MainView:PushDungeonSteps()
+    local bar = self.headerBar
+    if not bar then
+        return
+    end
+    bar:ResetBreadcrumbs("Home", function()
+        self:ShowRoot()
+    end)
+    local wingParent = self.wingParent
+    if wingParent then
+        bar:PushStep(wingParent.name, function()
+            self:ShowWingPage(wingParent)
+        end)
+    end
+    if self.currentDungeon then
+        bar:PushStep(self.currentDungeon.name, function()
+            self:ReturnToDungeonOverview()
+        end)
+    end
+end
+
+--- Synchronizes the breadcrumb track to the current view state.
 function MainView:UpdateBreadcrumbs()
     if not self.headerBar or not self.headerBar.PopToIndex or not self.headerBar.PushStep then
         return
     end
-    if not self.currentDungeon then
+    if not self.currentDungeon and not self.wingParent then
         self.headerBar:ResetBreadcrumbs("Home", function()
             self:ShowRoot()
         end)
         return
     end
-
-    self.headerBar:PopToIndex(2)
+    self:PushDungeonSteps()
+    if not self.currentDungeon then
+        return
+    end
 
     if self.selectedBoss then
         local boss = self.selectedBoss
@@ -87,8 +112,7 @@ function MainView:UpdateBreadcrumbs()
     end
 end
 
---- Displays the root 4-column Dungeon Browser Grid,
---- resetting any open dungeon/boss book view.
+--- Displays the dungeon grid, closing any open book or wing page.
 --- @param headerBar table|nil
 function MainView:ShowRoot(headerBar)
     if headerBar then
@@ -98,14 +122,10 @@ function MainView:ShowRoot(headerBar)
         return
     end
 
+    self.wingParent = nil
     self.currentDungeon = nil
     self.selectedBoss = nil
-
-    if self.headerBar and self.headerBar.ResetBreadcrumbs then
-        self.headerBar:ResetBreadcrumbs("Home", function()
-            self:ShowRoot()
-        end)
-    end
+    self:UpdateBreadcrumbs()
 
     if ns.UI.DungeonGridView and ns.UI.DungeonGridView.SetSearchQuery then
         ns.UI.DungeonGridView:SetSearchQuery(self.searchQuery or "")
@@ -116,26 +136,92 @@ function MainView:ShowRoot(headerBar)
     ns.UI.DungeonGridView:Show()
 end
 
---- Transitions to the Open-Book Instance View (`Home > <Dungeon Name>`).
---- @param dungeon table
+--- Restores the previously open book or wing view when returning to the Dungeons tab,
+--- or opens the root grid when no dungeon is currently open.
+--- @param headerBar table|nil
+function MainView:Show(headerBar)
+    if headerBar then
+        self.headerBar = headerBar
+    end
+    if not self.rootFrame then
+        return
+    end
+    if self.currentDungeon or self.wingParent then
+        self.rootFrame:Show()
+        ns.UI.DungeonGridView:Hide()
+        ns.UI.DungeonBookView:Show()
+        self:UpdateBreadcrumbs()
+        return
+    end
+    self:ShowRoot(headerBar)
+end
+
+--- Opens the dungeon or wing the player is inside, keeping the open boss or tab when its page is already
+--- open. When the wing is unknown, opens the wing page unless a page of that instance is already open.
+function MainView:OpenCurrentInstance()
+    local target = ns.Data.DungeonAccess:GetCurrentInstanceDungeon()
+    if not target then
+        return
+    end
+    if target.wingKey then
+        if not (self.currentDungeon and self.currentDungeon.key == target.key) then
+            self:SelectWing(target)
+        end
+        return
+    end
+    local open = self.currentDungeon or self.wingParent
+    if open and open.instanceID == target.instanceID then
+        return
+    end
+    self:SelectDungeon(target)
+end
+
+--- Opens a grid entry: its wing page when it has wings, otherwise its book page.
+--- @param dungeon table a dungeon view (DungeonAccess)
 function MainView:SelectDungeon(dungeon)
     if not dungeon then
         return
     end
+    if dungeon.wingCount and dungeon.wingCount > 0 then
+        self:ShowWingPage(dungeon)
+        return
+    end
+    self.wingParent = nil
+    self:OpenBook(dungeon)
+end
+
+--- Shows a dungeon's wing selection page (`Home > <Dungeon>`).
+--- @param dungeon table a dungeon view with wings
+function MainView:ShowWingPage(dungeon)
+    self.wingParent = dungeon
+    self.currentDungeon = nil
+    self.selectedBoss = nil
+    if PlaySound then
+        PlaySound(Constants.SOUNDS.PAGE_TURN)
+    end
+    self:UpdateBreadcrumbs()
+    ns.UI.DungeonGridView:Hide()
+    ns.UI.DungeonBookView:SetWingContext(dungeon, function(wing)
+        self:OpenBook(wing)
+    end)
+    ns.UI.DungeonBookView:Show()
+end
+
+--- Opens a wing's book page directly, with its dungeon in the breadcrumb (`Home > <Dungeon> > <Wing>`).
+--- @param wing table a wing view (DungeonAccess)
+function MainView:SelectWing(wing)
+    self.wingParent = ns.Data.DungeonAccess:GetDungeon(wing.instanceID)
+    self:OpenBook(wing)
+end
+
+--- Opens a dungeon's or wing's book page.
+--- @param dungeon table a dungeon or wing view
+function MainView:OpenBook(dungeon)
     self.currentDungeon = dungeon
     self.selectedBoss = nil
 
     if PlaySound then
         PlaySound(Constants.SOUNDS.PAGE_TURN)
-    end
-
-    if self.headerBar and self.headerBar.ResetBreadcrumbs and self.headerBar.PushStep then
-        self.headerBar:ResetBreadcrumbs("Home", function()
-            self:ShowRoot()
-        end)
-        self.headerBar:PushStep(dungeon.name, function()
-            self:ReturnToDungeonOverview()
-        end)
     end
 
     local query = self.searchQuery or (self.headerBar and self.headerBar.SearchBox and self.headerBar.SearchBox:GetText()) or ""
@@ -149,12 +235,16 @@ function MainView:SelectDungeon(dungeon)
     self:UpdateBreadcrumbs()
 end
 
---- Returns from a selected boss or quest tab back to the main Dungeon page (`Home > <Dungeon Name>`).
+--- Returns from a selected boss or quest tab back to the dungeon's book page.
 --- If currently viewing the Loot tab, preserves the Loot tab to show Full Dungeon Loot
 --- while re-enabling the Overview tab so the user can switch back.
 function MainView:ReturnToDungeonOverview()
     if not self.currentDungeon then
-        self:ShowRoot()
+        if self.wingParent then
+            self:ShowWingPage(self.wingParent)
+        else
+            self:ShowRoot()
+        end
         return
     end
     self.selectedBoss = nil
@@ -167,8 +257,7 @@ function MainView:ReturnToDungeonOverview()
     self:UpdateBreadcrumbs()
 end
 
---- Selects a boss on the Left Page and pushes `<Boss Name>` to the breadcrumb bar
---- (`Home > <Dungeon Name> > <Boss Name>`).
+--- Selects a boss on the left page and pushes `<Boss Name>` to the breadcrumb bar.
 --- @param boss table
 function MainView:SelectBoss(boss)
     if not self.currentDungeon or not boss then
@@ -179,7 +268,7 @@ function MainView:SelectBoss(boss)
     ns.UI.DungeonBookView:SetSelectedBoss(boss)
 end
 
---- Forwards live search box queries to the active Dungeon view (Grid or Book).
+--- Forwards live search box queries to the active Dungeon view (grid or book).
 --- @param queryText string
 function MainView:OnSearch(queryText)
     self.searchQuery = queryText or ""
@@ -193,7 +282,7 @@ function MainView:OnSearch(queryText)
             self.selectedBoss = nil
             self:UpdateBreadcrumbs()
         end
-    else
+    elseif not self.wingParent then
         ns.UI.DungeonGridView:SetSearchQuery(queryText or "")
     end
 end

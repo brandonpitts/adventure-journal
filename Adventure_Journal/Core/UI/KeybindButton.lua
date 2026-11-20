@@ -1,5 +1,5 @@
 -- ============================================================================
--- Journal_Base - UI/KeybindButton.lua
+-- Adventure Journal - Core/UI/KeybindButton.lua
 -- Reusable combat-safe interactive keybind recorder button widget.
 -- ============================================================================
 local addonName, ns = ...

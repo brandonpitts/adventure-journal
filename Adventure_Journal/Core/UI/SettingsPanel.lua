@@ -1,5 +1,5 @@
 -- ============================================================================
--- Journal_Base - UI/SettingsPanel.lua
+-- Adventure Journal - Core/UI/SettingsPanel.lua
 -- Interface Options settings panel for Journal configuration.
 -- ============================================================================
 local addonName, ns = ...
@@ -13,7 +13,6 @@ local pcall = pcall
 local tostring = tostring
 local CreateFrame = CreateFrame
 local GameTooltip = GameTooltip
-local GetCursorPosition = GetCursorPosition
 local InCombatLockdown = InCombatLockdown
 local PlaySound = PlaySound
 local ReloadUI = ReloadUI or (C_UI and C_UI.Reload)
@@ -22,15 +21,15 @@ local Settings = Settings
 local InterfaceOptions_AddCategory = InterfaceOptions_AddCategory
 local Constants = ns.Constants
 
-local PLUGIN_ROW_HEIGHT = 38
-local PLUGIN_ROW_GAP = 6
+local MODULE_ROW_HEIGHT = 38
+local MODULE_ROW_GAP = 6
 
 -- ----------------------------------------------------------------------------
 -- 2. Private Helper Functions
 -- ----------------------------------------------------------------------------
 
---- Applies background and border textures to a plugin row frame.
-local function stylePluginRow(row)
+--- Applies background and border textures to a module row frame.
+local function styleModuleRow(row)
     local white = Constants.ASSETS.WHITE_8X8
 
     local bg = row:CreateTexture(nil, "BACKGROUND")
@@ -71,7 +70,7 @@ local function stylePluginRow(row)
     bRight:SetVertexColor(0.36, 0.29, 0.17, 0.78)
 end
 
---- Builds a native WoW Radio Button (`22x22`) to the left of the plugin icon.
+--- Builds a native WoW Radio Button (`22x22`) to the left of the module icon.
 --- Enforces exclusive "there always must be one" selection for the Default Landing Tab
 --- (with Dungeons selected by default).
 local function createDefaultLandingButton(parentRow)
@@ -146,8 +145,7 @@ end
 local SettingsPanel = {
     panel = nil,
     category = nil,
-    pluginRows = {},
-    draggingPluginId = nil,
+    moduleRows = {},
 }
 
 --- Creates and registers the Journal Settings panel in WoW's AddOn Options.
@@ -159,7 +157,7 @@ function SettingsPanel:Init()
     local panel = CreateFrame("Frame", nil)
     panel.name = Constants.SETTINGS.CATEGORY_NAME
     self.panel = panel
-    self.pluginRows = {}
+    self.moduleRows = {}
 
     self:CreateHeader(panel)
 
@@ -184,7 +182,7 @@ function SettingsPanel:Init()
     self.scrollFrame = scrollFrame
 
     local scrollChild = CreateFrame("Frame", nil, scrollFrame)
-    scrollChild:SetSize(580, 820)
+    scrollChild:SetSize(580, 876)
     scrollFrame:SetScrollChild(scrollChild)
     self.scrollChild = scrollChild
 
@@ -194,10 +192,12 @@ function SettingsPanel:Init()
     self:CreateAddonCompartmentToggleRow(scrollChild)
     self:CreateCompareItemsToggleRow(scrollChild)
     self:CreateLockWindowToggleRow(scrollChild)
+    self:CreateWindowBackgroundRow(scrollChild)
+    self:CreateFiligreeToggleRow(scrollChild)
     self:CreateAdvancedSearchSection(scrollChild)
-    self:CreateInstalledPluginsSection(scrollChild)
+    self:CreateInstalledModulesSection(scrollChild)
     self:CreateDungeonModuleSection(scrollChild)
-    self:CreateQuestsModuleSection(scrollChild)
+    self:CreateBothFactionQuestsRow(scrollChild)
     self:CreateMapIconsModuleSection(scrollChild)
 
     -- Populate immediately and on OnShow so the first view in 16001 is never blank.
@@ -360,7 +360,7 @@ function SettingsPanel:CreateMinimapToggleRow(panel)
         if PlaySound then
             PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
         end
-        ns.Database:SetMinimapShown(isChecked)
+        ns.Settings:SetMinimapShown(isChecked)
         ns.UI.MinimapButton:RefreshVisibility()
     end)
 
@@ -401,7 +401,7 @@ function SettingsPanel:CreateAddonCompartmentToggleRow(panel)
         if PlaySound then
             PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
         end
-        ns.Database:SetAddonCompartmentShown(isChecked)
+        ns.Settings:SetAddonCompartmentShown(isChecked)
     end)
 
     self.AddonCompartmentCheckbox = checkbox
@@ -479,10 +479,93 @@ function SettingsPanel:CreateLockWindowToggleRow(panel)
         if PlaySound then
             PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
         end
-        ns.Database:SetWindowLocked(isChecked)
+        ns.Settings:SetWindowLocked(isChecked)
     end)
 
     self.LockWindowCheckbox = checkbox
+end
+
+--- Builds the "Window Background" dropdown row (choices from Core/UI/WindowBackground.lua).
+--- @param panel Frame
+function SettingsPanel:CreateWindowBackgroundRow(panel)
+    local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -196)
+    label:SetText("Window Background")
+
+    local dropdown = CreateFrame("Frame", "AdventureJournalWindowBackgroundDropdown", panel, "UIDropDownMenuTemplate")
+    dropdown:SetPoint("RIGHT", panel, "RIGHT", -16, 0)
+    dropdown:SetPoint("CENTER", label, "CENTER", 0, -2)
+    UIDropDownMenu_SetWidth(dropdown, 140)
+
+    local backgrounds = ns.UI.WindowBackground
+    UIDropDownMenu_Initialize(dropdown, function(_, level)
+        local selected = ns.Settings:GetWindowBackground()
+        for _, option in ipairs(backgrounds:GetOptions()) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = option.label
+            info.value = option.key
+            info.checked = (option.key == selected)
+            info.func = function(btn)
+                UIDropDownMenu_SetSelectedValue(dropdown, btn.value)
+                UIDropDownMenu_SetText(dropdown, btn:GetText())
+                backgrounds:Select(btn.value)
+            end
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end)
+
+    dropdown:SetScript("OnEnter", function(dd)
+        if GameTooltip then
+            GameTooltip:SetOwner(dd, "ANCHOR_RIGHT")
+            GameTooltip:AddLine("Window Background", 1.0, 0.82, 0.0)
+            GameTooltip:AddLine("The background behind every page of the journal:\n\n• Stone: the Collections window's stone (Default).\n• Parchment: the spellbook's parchment page.\n• Legacy: the Legacy window's background.", 1.0, 1.0, 1.0, true)
+            GameTooltip:Show()
+        end
+    end)
+    dropdown:SetScript("OnLeave", function()
+        if GameTooltip then
+            GameTooltip:Hide()
+        end
+    end)
+
+    self.WindowBackgroundDropdown = dropdown
+end
+
+--- Builds the "Show Corner Filigree" checkbox row.
+--- @param panel Frame
+function SettingsPanel:CreateFiligreeToggleRow(panel)
+    local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -224)
+    label:SetText("Show Corner Filigree")
+
+    local checkbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+    checkbox:SetSize(28, 28)
+    checkbox:SetPoint("RIGHT", panel, "RIGHT", -24, 0)
+    checkbox:SetPoint("CENTER", label, "CENTER", 0, 0)
+
+    checkbox:SetScript("OnEnter", function(cb)
+        if GameTooltip then
+            GameTooltip:SetOwner(cb, "ANCHOR_RIGHT")
+            GameTooltip:AddLine("Show Corner Filigree", 1.0, 0.82, 0.0)
+            GameTooltip:AddLine("The bronze filigree in the window's four corners. It comes with the dark shading along the window's edges (they are one texture), so turning it off removes both.", 1.0, 1.0, 1.0, true)
+            GameTooltip:Show()
+        end
+    end)
+    checkbox:SetScript("OnLeave", function()
+        if GameTooltip then
+            GameTooltip:Hide()
+        end
+    end)
+    checkbox:SetScript("OnClick", function(cb)
+        local isChecked = cb:GetChecked() and true or false
+        if PlaySound then
+            PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
+        end
+        ns.Settings:SetFiligreeShown(isChecked)
+        ns.UI.WindowBackground:Apply()
+    end)
+
+    self.FiligreeCheckbox = checkbox
 end
 
 --- Builds the compartmentalized "Advanced Searching" section with definition help text
@@ -490,7 +573,7 @@ end
 --- @param panel Frame
 function SettingsPanel:CreateAdvancedSearchSection(panel)
     local sectionHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    sectionHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 18, -212)
+    sectionHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 18, -268)
     sectionHeader:SetText("Advanced Searching")
     self.AdvancedSearchHeader = sectionHeader
 
@@ -570,6 +653,10 @@ function SettingsPanel:CreateAdvancedSearchSection(panel)
             GameTooltip:AddLine("Unlocks multi-tag and level requirement queries across the item catalog:\n\n• Equipment Slots & Types: \"one-hand, sword\", \"cloth, head\", \"2h, axe\"\n• Combat & Caster Stats: \"intellect\", \"spell power\", \"healing\", \"crit\"\n• Categories & Professions: \"recipe, blacksmithing\", \"quest, key\"\n• Required Character Level: \"lvl 30-40\", \">=45\", \"<=35\"", 1.0, 1.0, 1.0, true)
             GameTooltip:AddLine(" ")
             GameTooltip:AddLine("Performance & Memory Warning: Building the inverted tag index and scanning item tooltips increases memory usage and may cause brief stuttering while typing in the search bar.", 1.0, 0.40, 0.40, true)
+            if not cb:IsEnabled() then
+                GameTooltip:AddLine(" ")
+                GameTooltip:AddLine("Unavailable: needs the DataStore module. Enable it under Installed Modules, then /reload.", 1.0, 0.40, 0.40, true)
+            end
             GameTooltip:Show()
         end
     end)
@@ -584,35 +671,38 @@ function SettingsPanel:CreateAdvancedSearchSection(panel)
         if PlaySound then
             PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
         end
-        ns.Database:SetAdvancedSearchEnabled(isChecked)
-        if isChecked and ns.ItemDatabase and ns.ItemDatabase.EnsureAdvancedIndex then
-            ns.ItemDatabase:EnsureAdvancedIndex()
+        ns.Settings:SetAdvancedSearchEnabled(isChecked)
+        local tagRegistry = ns.DataStore and ns.DataStore.TagRegistry
+        if tagRegistry then
+            tagRegistry:ClearIndex()
         end
         local mainFrame = ns.UI and ns.UI.MainFrame
         local headerBar = mainFrame and mainFrame.GetHeaderBar and mainFrame:GetHeaderBar()
         local searchBox = headerBar and headerBar.SearchBox
-        if searchBox and ns.PluginRegistry and ns.PluginRegistry.DispatchSearch then
+        if searchBox and ns.ModuleRegistry and ns.ModuleRegistry.DispatchSearch then
             local curText = searchBox:GetText() or ""
             if curText ~= "" then
-                ns.PluginRegistry:DispatchSearch(curText)
+                ns.ModuleRegistry:DispatchSearch(curText)
             end
         end
     end)
 
+    -- Keeps the tooltip working while the checkbox is disabled (DataStore off)
+    checkbox:SetMotionScriptsWhileDisabled(true)
     self.AdvancedSearchCheckbox = checkbox
 end
 
---- Builds the "Installed Modules" section header, instructions, and drag-and-drop list container.
+--- Builds the "Installed Modules" section header, instructions, and module list container.
 --- @param panel Frame
-function SettingsPanel:CreateInstalledPluginsSection(panel)
+function SettingsPanel:CreateInstalledModulesSection(panel)
     local sectionHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     sectionHeader:SetPoint("TOPLEFT", self.AdvancedSearchContainer, "BOTTOMLEFT", 0, -22)
     sectionHeader:SetText("Installed Modules")
-    self.PluginSectionHeader = sectionHeader
+    self.ModuleSectionHeader = sectionHeader
 
     local subNote = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     subNote:SetPoint("LEFT", sectionHeader, "RIGHT", 12, 0)
-    subNote:SetText("Select a default tab, drag to reorder, or disable modules to unload them (/reload to re-enable).")
+    subNote:SetText("Select a default opening tab, or disable modules to unload them (/reload to re-enable).")
     subNote:SetTextColor(0.68, 0.64, 0.56)
 
     local divider = panel:CreateTexture(nil, "ARTWORK")
@@ -626,12 +716,12 @@ function SettingsPanel:CreateInstalledPluginsSection(panel)
     listContainer:SetPoint("TOPLEFT", divider, "BOTTOMLEFT", 0, -12)
     listContainer:SetPoint("RIGHT", panel, "RIGHT", -18, 0)
     listContainer:SetHeight(220)
-    self.PluginListContainer = listContainer
+    self.ModuleListContainer = listContainer
 
     local emptyText = listContainer:CreateFontString(nil, "OVERLAY", "GameFontDisable")
     emptyText:SetPoint("TOPLEFT", listContainer, "TOPLEFT", 6, -8)
     emptyText:SetText("No Journal modules are currently installed.")
-    self.NoPluginsText = emptyText
+    self.NoModulesText = emptyText
 end
 
 --- Builds the "Dungeon Module" section with a clean section header, divider,
@@ -639,7 +729,7 @@ end
 --- @param panel Frame
 function SettingsPanel:CreateDungeonModuleSection(panel)
     local sectionHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    sectionHeader:SetPoint("TOPLEFT", self.PluginListContainer, "BOTTOMLEFT", 0, -20)
+    sectionHeader:SetPoint("TOPLEFT", self.ModuleListContainer, "BOTTOMLEFT", 0, -20)
     sectionHeader:SetText("Dungeon Module")
 
     local subNote = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
@@ -673,7 +763,7 @@ function SettingsPanel:CreateDungeonModuleSection(panel)
     }
 
     local function initializeSortDropdown(selfDD, level)
-        local rawVal = ns.Database and ns.Database.GetDungeonSetting and ns.Database:GetDungeonSetting("dungeonGridSort", "level")
+        local rawVal = ns.Settings and ns.Settings.GetDungeonSetting and ns.Settings:GetDungeonSetting("dungeonGridSort", "level")
         local selectedValue = (rawVal == "alphabetical" or rawVal == "name") and "alphabetical" or "level"
 
         for _, opt in ipairs(DUNGEON_SORT_OPTIONS) do
@@ -687,8 +777,8 @@ function SettingsPanel:CreateDungeonModuleSection(panel)
                 if UIDropDownMenu_SetText then
                     UIDropDownMenu_SetText(sortDropdown, btn:GetText())
                 end
-                if ns.Database and ns.Database.SetDungeonSetting then
-                    ns.Database:SetDungeonSetting("dungeonGridSort", btn.value)
+                if ns.Settings and ns.Settings.SetDungeonSetting then
+                    ns.Settings:SetDungeonSetting("dungeonGridSort", btn.value)
                 end
                 if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
                     _G.JournalBase:OnDungeonSettingChanged("dungeonGridSort", btn.value)
@@ -750,7 +840,7 @@ function SettingsPanel:CreateDungeonModuleSection(panel)
         if PlaySound then
             PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
         end
-        ns.Database:SetDungeonSetting("showBossLevel", isChecked)
+        ns.Settings:SetDungeonSetting("showBossLevel", isChecked)
 
         if self.UpdateDifficultyDependency then
             self.UpdateDifficultyDependency()
@@ -794,7 +884,7 @@ function SettingsPanel:CreateDungeonModuleSection(panel)
         if PlaySound then
             PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
         end
-        ns.Database:SetDungeonSetting("showBossDifficultyColor", isChecked)
+        ns.Settings:SetDungeonSetting("showBossDifficultyColor", isChecked)
 
         if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
             _G.JournalBase:OnDungeonSettingChanged("showBossDifficultyColor", isChecked)
@@ -846,8 +936,8 @@ function SettingsPanel:CreateDungeonModuleSection(panel)
         if PlaySound then
             PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
         end
-        ns.Database:SetDungeonSetting("showMinorMonsters", isChecked)
-        ns.Database:SetDungeonSetting("hideMinorMonsters", not isChecked)
+        ns.Settings:SetDungeonSetting("showMinorMonsters", isChecked)
+        ns.Settings:SetDungeonSetting("hideMinorMonsters", not isChecked)
 
         if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
             _G.JournalBase:OnDungeonSettingChanged("showMinorMonsters", isChecked)
@@ -877,7 +967,7 @@ function SettingsPanel:CreateDungeonModuleSection(panel)
     }
 
     local function initializeEventDropdown(selfDD, level)
-        local rawVal = ns.Database and ns.Database.GetDungeonSetting and ns.Database:GetDungeonSetting("showEventBosses", "holiday")
+        local rawVal = ns.Settings and ns.Settings.GetDungeonSetting and ns.Settings:GetDungeonSetting("showEventBosses", "holiday")
         local selectedValue = "holiday"
         if rawVal == "always" or rawVal == true then
             selectedValue = (rawVal == true and "holiday" or "always")
@@ -898,8 +988,8 @@ function SettingsPanel:CreateDungeonModuleSection(panel)
                 if UIDropDownMenu_SetText then
                     UIDropDownMenu_SetText(eventDropdown, btn:GetText())
                 end
-                if ns.Database and ns.Database.SetDungeonSetting then
-                    ns.Database:SetDungeonSetting("showEventBosses", btn.value)
+                if ns.Settings and ns.Settings.SetDungeonSetting then
+                    ns.Settings:SetDungeonSetting("showEventBosses", btn.value)
                 end
                 if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
                     _G.JournalBase:OnDungeonSettingChanged("showEventBosses", btn.value)
@@ -961,7 +1051,7 @@ function SettingsPanel:CreateDungeonModuleSection(panel)
         if PlaySound then
             PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
         end
-        ns.Database:SetDungeonSetting("showDungeonSetChallenges", isChecked)
+        ns.Settings:SetDungeonSetting("showDungeonSetChallenges", isChecked)
 
         if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
             _G.JournalBase:OnDungeonSettingChanged("showDungeonSetChallenges", isChecked)
@@ -972,29 +1062,11 @@ function SettingsPanel:CreateDungeonModuleSection(panel)
     self.ChallengeBossesLabel = challengeLabel
 end
 
---- Builds the "Quests Module" section with options and display preferences for quests.
+--- Adds the Dungeons section's last row: "Show Both Faction's Instance Quests".
 --- @param panel Frame
-function SettingsPanel:CreateQuestsModuleSection(panel)
-    local sectionHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    sectionHeader:SetPoint("TOPLEFT", self.ChallengeBossesLabel, "BOTTOMLEFT", -6, -26)
-    sectionHeader:SetText("Quests Module")
-    self.QuestsSectionHeader = sectionHeader
-
-    local subNote = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    subNote:SetPoint("LEFT", sectionHeader, "RIGHT", 12, 0)
-    subNote:SetText("Options and display preferences for the Quests tab.")
-    subNote:SetTextColor(0.68, 0.64, 0.56)
-
-    local divider = panel:CreateTexture(nil, "ARTWORK")
-    divider:SetHeight(1)
-    divider:SetPoint("TOPLEFT", sectionHeader, "BOTTOMLEFT", 0, -6)
-    divider:SetPoint("RIGHT", panel, "RIGHT", -18, 0)
-    divider:SetTexture(Constants.ASSETS.WHITE_8X8)
-    divider:SetVertexColor(0.68, 0.52, 0.20, 0.35)
-
-    -- Row 1: "Show Both Faction's Instance Quests"
+function SettingsPanel:CreateBothFactionQuestsRow(panel)
     local bothFactionLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    bothFactionLabel:SetPoint("TOPLEFT", divider, "BOTTOMLEFT", 6, -14)
+    bothFactionLabel:SetPoint("TOPLEFT", self.ChallengeBossesLabel, "BOTTOMLEFT", 0, -22)
     bothFactionLabel:SetText("Show Both Faction's Instance Quests")
     self.BothFactionQuestsLabel = bothFactionLabel
 
@@ -1022,11 +1094,8 @@ function SettingsPanel:CreateQuestsModuleSection(panel)
         if PlaySound then
             PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
         end
-        ns.Database:SetQuestSetting("showBothFactionData", isChecked)
-
-        if _G.JournalBase and _G.JournalBase.SetQuestSetting then
-            _G.JournalBase:SetQuestSetting("showBothFactionData", isChecked)
-        elseif _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
+        ns.Settings:SetDungeonSetting("showBothFactionData", isChecked)
+        if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
             _G.JournalBase:OnDungeonSettingChanged("showBothFactionData", isChecked)
         end
     end)
@@ -1080,8 +1149,8 @@ function SettingsPanel:CreateMapIconsModuleSection(panel)
         if PlaySound then
             PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
         end
-        if ns.Database and ns.Database.SetMapIconsSetting then
-            ns.Database:SetMapIconsSetting("showZoneLevels", isChecked)
+        if ns.Settings and ns.Settings.SetMapIconsSetting then
+            ns.Settings:SetMapIconsSetting("showZoneLevels", isChecked)
         end
     end)
     self.ZoneLevelsCheckbox = zoneLevelsCheckbox
@@ -1113,8 +1182,8 @@ function SettingsPanel:CreateMapIconsModuleSection(panel)
         if PlaySound then
             PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
         end
-        if ns.Database and ns.Database.SetMapIconsSetting then
-            ns.Database:SetMapIconsSetting("showFishingLevels", isChecked)
+        if ns.Settings and ns.Settings.SetMapIconsSetting then
+            ns.Settings:SetMapIconsSetting("showFishingLevels", isChecked)
         end
     end)
     self.FishingLevelsCheckbox = fishingLevelsCheckbox
@@ -1146,8 +1215,8 @@ function SettingsPanel:CreateMapIconsModuleSection(panel)
         if PlaySound then
             PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
         end
-        if ns.Database and ns.Database.SetMapIconsSetting then
-            ns.Database:SetMapIconsSetting("showFlightPaths", isChecked)
+        if ns.Settings and ns.Settings.SetMapIconsSetting then
+            ns.Settings:SetMapIconsSetting("showFlightPaths", isChecked)
         end
         if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
             _G.JournalBase:OnDungeonSettingChanged("showFlightPaths", isChecked)
@@ -1188,8 +1257,8 @@ function SettingsPanel:CreateMapIconsModuleSection(panel)
         if PlaySound then
             PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
         end
-        if ns.Database and ns.Database.SetMapIconsSetting then
-            ns.Database:SetMapIconsSetting("useFactionColorsForFlightPaths", isChecked)
+        if ns.Settings and ns.Settings.SetMapIconsSetting then
+            ns.Settings:SetMapIconsSetting("useFactionColorsForFlightPaths", isChecked)
         end
         if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
             _G.JournalBase:OnDungeonSettingChanged("useFactionColorsForFlightPaths", isChecked)
@@ -1227,8 +1296,8 @@ function SettingsPanel:CreateMapIconsModuleSection(panel)
         if PlaySound then
             PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
         end
-        if ns.Database and ns.Database.SetMapIconsSetting then
-            ns.Database:SetMapIconsSetting("showEnemyFactionFlightPaths", isChecked)
+        if ns.Settings and ns.Settings.SetMapIconsSetting then
+            ns.Settings:SetMapIconsSetting("showEnemyFactionFlightPaths", isChecked)
         end
         if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
             _G.JournalBase:OnDungeonSettingChanged("showEnemyFactionFlightPaths", isChecked)
@@ -1286,8 +1355,8 @@ function SettingsPanel:CreateMapIconsModuleSection(panel)
     }
 
     local function initializeDropdown(selfDD, level)
-        local selectedValue = (ns.Database and ns.Database.GetMapIconsSetting and ns.Database:GetMapIconsSetting("worldMapDungeonIcons", "min_level"))
-            or (ns.Database and ns.Database.GetDungeonSetting and ns.Database:GetDungeonSetting("worldMapDungeonIcons", "min_level"))
+        local selectedValue = (ns.Settings and ns.Settings.GetMapIconsSetting and ns.Settings:GetMapIconsSetting("worldMapDungeonIcons", "min_level"))
+            or (ns.Settings and ns.Settings.GetDungeonSetting and ns.Settings:GetDungeonSetting("worldMapDungeonIcons", "min_level"))
             or "min_level"
         for _, opt in ipairs(MAP_ICON_OPTIONS) do
             local info = UIDropDownMenu_CreateInfo and UIDropDownMenu_CreateInfo() or {}
@@ -1300,10 +1369,10 @@ function SettingsPanel:CreateMapIconsModuleSection(panel)
                 if UIDropDownMenu_SetText then
                     UIDropDownMenu_SetText(dropdown, btn:GetText())
                 end
-                if ns.Database and ns.Database.SetMapIconsSetting then
-                    ns.Database:SetMapIconsSetting("worldMapDungeonIcons", btn.value)
-                elseif ns.Database and ns.Database.SetDungeonSetting then
-                    ns.Database:SetDungeonSetting("worldMapDungeonIcons", btn.value)
+                if ns.Settings and ns.Settings.SetMapIconsSetting then
+                    ns.Settings:SetMapIconsSetting("worldMapDungeonIcons", btn.value)
+                elseif ns.Settings and ns.Settings.SetDungeonSetting then
+                    ns.Settings:SetDungeonSetting("worldMapDungeonIcons", btn.value)
                 end
                 if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
                     _G.JournalBase:OnDungeonSettingChanged("worldMapDungeonIcons", btn.value)
@@ -1402,63 +1471,34 @@ function SettingsPanel:CreateMapIconsModuleSection(panel)
     self.WorldMapRaidIconsDropdown = raidDropdown
 end
 
---- Positions `row` at slot `index` within `self.PluginListContainer`.
+--- Positions `row` at slot `index` within `self.ModuleListContainer`.
 local function anchorRowAtSlot(container, row, index)
-    local yOffset = -((index - 1) * (PLUGIN_ROW_HEIGHT + PLUGIN_ROW_GAP))
+    local yOffset = -((index - 1) * (MODULE_ROW_HEIGHT + MODULE_ROW_GAP))
     row:ClearAllPoints()
     row:SetPoint("TOPLEFT", container, "TOPLEFT", 0, yOffset)
     row:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, yOffset)
 end
 
---- Computes which 1-based slot index the mouse cursor is hovering over inside `PluginListContainer`.
-function SettingsPanel:GetTargetSlotFromCursor(totalRows)
-    if not self.PluginListContainer or totalRows <= 1 then
-        return 1
-    end
-    local _, cursorY = GetCursorPosition()
-    local scale = self.PluginListContainer:GetEffectiveScale() or 1
-    cursorY = cursorY / scale
-
-    local topY = self.PluginListContainer:GetTop() or cursorY
-    local relativeY = topY - cursorY
-    local stride = PLUGIN_ROW_HEIGHT + PLUGIN_ROW_GAP
-    local slot = math.floor(relativeY / stride) + 1
-    if slot < 1 then
-        slot = 1
-    elseif slot > totalRows then
-        slot = totalRows
-    end
-    return slot
-end
-
---- Acquires or creates a pooled row widget for a plugin in Settings, supporting:
----   * Left star icon toggle (`Set as Default Landing Tab`)
----   * Drag-and-drop row reordering
+--- Acquires or creates a pooled row widget for a module in Settings, supporting:
+---   * Left radio button (`Set as Default Landing Tab`)
 ---   * Version & status inspection + Enable/Disable button
 --- @param index number
 --- @return Frame
-function SettingsPanel:AcquirePluginRow(index)
-    local row = self.pluginRows[index]
+function SettingsPanel:AcquireModuleRow(index)
+    local row = self.moduleRows[index]
     if row then
         row:Show()
         return row
     end
 
-    row = CreateFrame("Frame", nil, self.PluginListContainer)
-    row:SetHeight(PLUGIN_ROW_HEIGHT)
+    row = CreateFrame("Frame", nil, self.ModuleListContainer)
+    row:SetHeight(MODULE_ROW_HEIGHT)
     row:EnableMouse(true)
-    row:RegisterForDrag("LeftButton")
-    stylePluginRow(row)
+    styleModuleRow(row)
 
-    -- 1. Drag Grip Dots on the far left (`6px`)
-    local grip = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    grip:SetPoint("LEFT", row, "LEFT", 8, 0)
-    grip:SetText("::")
-    row.grip = grip
-
-    -- 2. Default Landing Tab Radio Button (to the left of the plugin icon)
+    -- 1. Default Landing Tab Radio Button (to the left of the module icon)
     local defaultBtn = createDefaultLandingButton(row)
-    defaultBtn:SetPoint("LEFT", row, "LEFT", 24, 0)
+    defaultBtn:SetPoint("LEFT", row, "LEFT", 10, 0)
     row.defaultBtn = defaultBtn
 
     defaultBtn:SetScript("OnEnter", function(btn)
@@ -1466,16 +1506,16 @@ function SettingsPanel:AcquirePluginRow(index)
             return
         end
         GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
-        local effectiveDefault = (ns.PluginRegistry and ns.PluginRegistry.GetEffectiveDefaultLandingPluginId and ns.PluginRegistry:GetEffectiveDefaultLandingPluginId())
-            or ns.Database:GetDefaultLandingPluginId()
-        local isCurrentDefault = (effectiveDefault == row.pluginId)
+        local effectiveDefault = (ns.ModuleRegistry and ns.ModuleRegistry.GetEffectiveDefaultLandingModuleId and ns.ModuleRegistry:GetEffectiveDefaultLandingModuleId())
+            or ns.Settings:GetDefaultLandingModuleId()
+        local isCurrentDefault = (effectiveDefault == row.moduleId)
         if isCurrentDefault then
             GameTooltip:AddLine("Default Landing Tab (Selected)", 1.0, 0.82, 0.0)
             GameTooltip:AddLine("The Journal opens directly to this tab whenever the window is opened.", 0.9, 0.9, 0.9, true)
             GameTooltip:AddLine("Select another enabled module's radio button to change the default landing tab.", 0.65, 0.65, 0.65, true)
         elseif row.isInstalled and not row.isDisabled then
             GameTooltip:AddLine("Set as Default Landing Tab", 1.0, 0.82, 0.0)
-            GameTooltip:AddLine("Select to make the Journal open directly to " .. tostring(row.pluginTitle or "this tab") .. " whenever the window is opened.", 0.9, 0.9, 0.9, true)
+            GameTooltip:AddLine("Select to make the Journal open directly to " .. tostring(row.moduleTitle or "this tab") .. " whenever the window is opened.", 0.9, 0.9, 0.9, true)
         else
             GameTooltip:AddLine("Default Landing Tab (Unavailable)", 0.65, 0.65, 0.65)
             GameTooltip:AddLine("This module must be installed and enabled to be selected as the default landing tab.", 0.8, 0.8, 0.8, true)
@@ -1490,24 +1530,24 @@ function SettingsPanel:AcquirePluginRow(index)
     end)
 
     defaultBtn:SetScript("OnClick", function(btn)
-        if not row.pluginId or not row.isInstalled or row.isDisabled then
+        if not row.moduleId or not row.isInstalled or row.isDisabled then
             btn:SetChecked(false)
             return
         end
         if PlaySound then
             PlaySound(Constants.SOUNDS.CHECKBOX_ON)
         end
-        ns.PluginRegistry:SetDefaultLandingPlugin(row.pluginId)
+        ns.ModuleRegistry:SetDefaultLandingModule(row.moduleId)
     end)
 
-    -- 3. Plugin Icon (`24x24`, to the right of the Default Landing button)
+    -- 3. Module Icon (`24x24`, to the right of the Default Landing button)
     local icon = row:CreateTexture(nil, "ARTWORK")
     icon:SetSize(24, 24)
     icon:SetPoint("LEFT", defaultBtn, "RIGHT", 8, 0)
     icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     row.icon = icon
 
-    -- 4. Plugin Title, Status, and Enable/Disable Button
+    -- 4. Module Title, Status, and Enable/Disable Button
     local nameText = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     nameText:SetPoint("LEFT", icon, "RIGHT", 10, 0)
     row.nameText = nameText
@@ -1522,7 +1562,7 @@ function SettingsPanel:AcquirePluginRow(index)
     row.toggleBtn = toggleBtn
 
     toggleBtn:SetScript("OnClick", function(btn)
-        if not row.pluginId or not row.isInstalled then
+        if not row.moduleId or not row.isInstalled then
             return
         end
         if PlaySound then
@@ -1537,48 +1577,32 @@ function SettingsPanel:AcquirePluginRow(index)
             return
         end
 
-        local currentlyDisabled = ns.Database:IsPluginDisabled(row.pluginId)
+        local currentlyDisabled = ns.Settings:IsModuleDisabled(row.moduleId)
         local shouldEnable = currentlyDisabled
-        ns.PluginRegistry:SetPluginEnabled(row.pluginId, shouldEnable)
+        ns.ModuleRegistry:SetModuleEnabled(row.moduleId, shouldEnable)
 
-        if row.addonName and row.addonName ~= "Journal_Base" and row.addonName ~= "Adventure_Journal" then
-            if shouldEnable then
-                if C_AddOns and C_AddOns.EnableAddOn then
-                    pcall(C_AddOns.EnableAddOn, row.addonName)
-                elseif _G.EnableAddOn then
-                    pcall(_G.EnableAddOn, row.addonName)
-                end
-            else
-                if C_AddOns and C_AddOns.DisableAddOn then
-                    pcall(C_AddOns.DisableAddOn, row.addonName)
-                elseif _G.DisableAddOn then
-                    pcall(_G.DisableAddOn, row.addonName)
-                end
-            end
-        end
-
-        self:RefreshPluginRows()
+        self:RefreshModuleRows()
     end)
 
     toggleBtn:SetScript("OnEnter", function(btn)
-        if not GameTooltip or not row.pluginId then
+        if not GameTooltip or not row.moduleId then
             return
         end
         GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
         if row.pendingReload then
             GameTooltip:SetText("Reload UI Required", 1.0, 0.82, 0.0)
             GameTooltip:AddLine(
-                (row.pluginTitle or "This module") .. " is enabled and staged to load. Because disabled modules are completely unloaded from memory, click here (or type /rl) to reload your UI and activate it.",
+                (row.moduleTitle or "This module") .. " is enabled and staged to load. Because disabled modules are completely unloaded from memory, click here (or type /rl) to reload your UI and activate it.",
                 0.85, 0.85, 0.85, true
             )
         elseif row.isDisabled or row.isUnloaded then
-            GameTooltip:SetText("Enable " .. (row.pluginTitle or "Module"), 1.0, 0.82, 0.0)
+            GameTooltip:SetText("Enable " .. (row.moduleTitle or "Module"), 1.0, 0.82, 0.0)
             GameTooltip:AddLine(
                 "This module is currently unloaded from memory to conserve resources. Enabling it will stage it to load on your next UI /reload.",
                 0.85, 0.85, 0.85, true
             )
         else
-            GameTooltip:SetText("Disable & Unload " .. (row.pluginTitle or "Module"), 1.0, 0.82, 0.0)
+            GameTooltip:SetText("Disable & Unload " .. (row.moduleTitle or "Module"), 1.0, 0.82, 0.0)
             GameTooltip:AddLine(
                 "Disables this module and immediately purges its data tables and UI frames from memory. Re-enabling it later will require a UI /reload.",
                 0.85, 0.85, 0.85, true
@@ -1593,86 +1617,49 @@ function SettingsPanel:AcquirePluginRow(index)
         end
     end)
 
-    -- 5. Click-and-Drag Row Reordering Scripts
-    row:SetScript("OnDragStart", function(draggedRow)
-        if not draggedRow.pluginId or draggedRow.isUtility then
-            return -- Utility modules cannot be dragged
-        end
-        self.draggingPluginId = draggedRow.pluginId
-        draggedRow:SetFrameLevel((self.PluginListContainer:GetFrameLevel() or 2) + 10)
-        draggedRow.bg:SetVertexColor(0.24, 0.19, 0.11, 0.96)
-        draggedRow.bTop:SetVertexColor(0.95, 0.78, 0.25, 1.0)
-        draggedRow.bBottom:SetVertexColor(0.95, 0.78, 0.25, 1.0)
-
-        draggedRow:SetScript("OnUpdate", function()
-            local catalog = ns.PluginRegistry:GetCatalogPlugins()
-            local maxNonUtilitySlot = 1
-            for i, entry in ipairs(catalog) do
-                if not entry.isUtility then
-                    maxNonUtilitySlot = i
-                end
-            end
-            local rawSlot = self:GetTargetSlotFromCursor(#catalog)
-            local targetSlot = math.max(1, math.min(maxNonUtilitySlot, rawSlot))
-            if targetSlot ~= draggedRow.slotIndex then
-                ns.PluginRegistry:MovePluginToIndex(draggedRow.pluginId, targetSlot)
-            end
-        end)
-    end)
-
-    row:SetScript("OnDragStop", function(draggedRow)
-        draggedRow:SetScript("OnUpdate", nil)
-        self.draggingPluginId = nil
-        draggedRow:SetFrameLevel((self.PluginListContainer:GetFrameLevel() or 2) + 1)
-        self:RefreshPluginRows()
-    end)
-
-    self.pluginRows[index] = row
+    self.moduleRows[index] = row
     return row
 end
 
---- Refreshes the list of plugins, their Default Landing Tab star state, version numbers, and order.
-function SettingsPanel:RefreshPluginRows()
-    if not self.PluginListContainer then
+--- Refreshes the list of modules and their Default Landing Tab state.
+function SettingsPanel:RefreshModuleRows()
+    if not self.ModuleListContainer then
         return
     end
 
-    for _, row in ipairs(self.pluginRows) do
+    for _, row in ipairs(self.moduleRows) do
         row:Hide()
     end
 
-    local catalog = ns.PluginRegistry:GetCatalogPlugins()
+    local catalog = ns.ModuleRegistry:GetCatalogModules()
     if #catalog == 0 then
-        if self.NoPluginsText then
-            self.NoPluginsText:Show()
+        if self.NoModulesText then
+            self.NoModulesText:Show()
         end
         return
     end
 
-    if self.NoPluginsText then
-        self.NoPluginsText:Hide()
+    if self.NoModulesText then
+        self.NoModulesText:Hide()
     end
 
     local totalRows = #catalog
-    local containerHeight = math.max(60, totalRows * (PLUGIN_ROW_HEIGHT + PLUGIN_ROW_GAP) - PLUGIN_ROW_GAP)
-    self.PluginListContainer:SetHeight(containerHeight)
+    local containerHeight = math.max(60, totalRows * (MODULE_ROW_HEIGHT + MODULE_ROW_GAP) - MODULE_ROW_GAP)
+    self.ModuleListContainer:SetHeight(containerHeight)
 
-    local defaultLandingId = (ns.PluginRegistry and ns.PluginRegistry.GetEffectiveDefaultLandingPluginId and ns.PluginRegistry:GetEffectiveDefaultLandingPluginId())
-        or ns.Database:GetDefaultLandingPluginId()
+    local defaultLandingId = (ns.ModuleRegistry and ns.ModuleRegistry.GetEffectiveDefaultLandingModuleId and ns.ModuleRegistry:GetEffectiveDefaultLandingModuleId())
+        or ns.Settings:GetDefaultLandingModuleId()
 
     for index, entry in ipairs(catalog) do
-        local row = self:AcquirePluginRow(index)
-        anchorRowAtSlot(self.PluginListContainer, row, index)
+        local row = self:AcquireModuleRow(index)
+        anchorRowAtSlot(self.ModuleListContainer, row, index)
 
         local isInstalled = entry.isInstalled
         local isDisabled = not entry.isEnabled
-        local isApiCompatible = (entry.apiVersion == Constants.PLUGIN_API_VERSION)
         local isDefault = (defaultLandingId == entry.id and entry.isEnabled)
-        local isDragging = (self.draggingPluginId == entry.id)
 
-        row.slotIndex = index
-        row.pluginId = entry.id
-        row.pluginTitle = entry.title
+        row.moduleId = entry.id
+        row.moduleTitle = entry.title
         row.addonName = entry.addonName
         row.isInstalled = isInstalled
         row.isLoaded = entry.isLoaded
@@ -1681,23 +1668,14 @@ function SettingsPanel:RefreshPluginRows()
         row.isDisabled = isDisabled
         row.isUtility = entry.isUtility
 
-        if isDragging then
-            row.bg:SetVertexColor(0.24, 0.19, 0.11, 0.96)
-            row.bTop:SetVertexColor(0.95, 0.78, 0.25, 1.0)
-            row.bBottom:SetVertexColor(0.95, 0.78, 0.25, 1.0)
-        else
-            row.bg:SetVertexColor(0.12, 0.11, 0.09, 0.88)
-            row.bTop:SetVertexColor(0.45, 0.36, 0.21, 0.78)
-            row.bBottom:SetVertexColor(0.26, 0.21, 0.13, 0.78)
-        end
+        row.bg:SetVertexColor(0.12, 0.11, 0.09, 0.88)
+        row.bTop:SetVertexColor(0.45, 0.36, 0.21, 0.78)
+        row.bBottom:SetVertexColor(0.26, 0.21, 0.13, 0.78)
 
-        -- Utility modules are pinned to the bottom:
-        -- They cannot have drag handles or default landing tab radio buttons.
+        -- Utility modules are pinned to the bottom and cannot be selected as default landing tabs.
         if entry.isUtility then
-            row.grip:Hide()
             row.defaultBtn:Hide()
         else
-            row.grip:Show()
             row.defaultBtn:Show()
             setDefaultLandingButtonState(row.defaultBtn, isDefault, entry.isEnabled)
         end
@@ -1710,10 +1688,6 @@ function SettingsPanel:RefreshPluginRows()
             row.statusText:SetText("|cff808080Not Installed|r")
             row.toggleBtn:SetText("Missing")
             row.toggleBtn:Disable()
-        elseif not isApiCompatible then
-            row.statusText:SetText("|cffff4040Out of Date (API v" .. tostring(entry.apiVersion) .. ")|r")
-            row.toggleBtn:Enable()
-            row.toggleBtn:SetText(isDisabled and "Enable" or "Disable")
         elseif entry.pendingReload then
             row.statusText:SetText("|cffffcc00Reload Required|r")
             row.toggleBtn:Enable()
@@ -1741,15 +1715,15 @@ function SettingsPanel:Refresh()
     if self.AddonCompartmentLabel then self.AddonCompartmentLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -112) end
     if self.CompareItemsLabel then self.CompareItemsLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -140) end
     if self.LockWindowLabel then self.LockWindowLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -168) end
-    if self.AdvancedSearchHeader then self.AdvancedSearchHeader:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 18, -212) end
+    if self.AdvancedSearchHeader then self.AdvancedSearchHeader:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 18, -268) end
 
     if self.KeybindButton then
         self.KeybindButton:Refresh()
     end
     if self.ShowMinimapCheckbox then
-        self.ShowMinimapCheckbox:SetChecked(ns.Database:IsMinimapShown())
+        self.ShowMinimapCheckbox:SetChecked(ns.Settings:IsMinimapShown())
     elseif self.HideMinimapCheckbox then
-        self.HideMinimapCheckbox:SetChecked(ns.Database:IsMinimapShown())
+        self.HideMinimapCheckbox:SetChecked(ns.Settings:IsMinimapShown())
     end
     if self.CompareItemsCheckbox then
         local isAutoCompare = false
@@ -1761,28 +1735,43 @@ function SettingsPanel:Refresh()
         self.CompareItemsCheckbox:SetChecked(isAutoCompare == true)
     end
     if self.AddonCompartmentCheckbox then
-        self.AddonCompartmentCheckbox:SetChecked(ns.Database:IsAddonCompartmentShown())
+        self.AddonCompartmentCheckbox:SetChecked(ns.Settings:IsAddonCompartmentShown())
     end
     if self.LockWindowCheckbox then
-        self.LockWindowCheckbox:SetChecked(ns.Database:IsWindowLocked())
+        self.LockWindowCheckbox:SetChecked(ns.Settings:IsWindowLocked())
+    end
+    if self.FiligreeCheckbox then
+        self.FiligreeCheckbox:SetChecked(ns.Settings:IsFiligreeShown())
+    end
+    if self.WindowBackgroundDropdown then
+        local selected = ns.Settings:GetWindowBackground()
+        for _, option in ipairs(ns.UI.WindowBackground:GetOptions()) do
+            if option.key == selected then
+                UIDropDownMenu_SetSelectedValue(self.WindowBackgroundDropdown, option.key)
+                UIDropDownMenu_SetText(self.WindowBackgroundDropdown, option.label)
+            end
+        end
     end
     if self.AdvancedSearchCheckbox then
-        self.AdvancedSearchCheckbox:SetChecked(ns.Database:IsAdvancedSearchEnabled())
+        self.AdvancedSearchCheckbox:SetChecked(ns.Settings:IsAdvancedSearchEnabled())
+        -- Advanced Search needs the DataStore; off until it's enabled again and the UI reloads
+        local dataStoreOn = ns.DataStore and ns.DataStore.IsEnabled and ns.DataStore:IsEnabled()
+        self.AdvancedSearchCheckbox:SetEnabled(dataStoreOn and true or false)
     end
     if self.BossLevelCheckbox then
-        self.BossLevelCheckbox:SetChecked(ns.Database:GetDungeonSetting("showBossLevel", true) == true)
+        self.BossLevelCheckbox:SetChecked(ns.Settings:GetDungeonSetting("showBossLevel", true) == true)
     end
     if self.DifficultyColorCheckbox then
-        self.DifficultyColorCheckbox:SetChecked(ns.Database:GetDungeonSetting("showBossDifficultyColor", true) == true)
+        self.DifficultyColorCheckbox:SetChecked(ns.Settings:GetDungeonSetting("showBossDifficultyColor", true) == true)
     end
     if self.UpdateDifficultyDependency then
         self.UpdateDifficultyDependency()
     end
     if self.MinorMonstersCheckbox then
-        self.MinorMonstersCheckbox:SetChecked(ns.Database:GetDungeonSetting("showMinorMonsters", true) == true)
+        self.MinorMonstersCheckbox:SetChecked(ns.Settings:GetDungeonSetting("showMinorMonsters", true) == true)
     end
     if self.EventBossesDropdown then
-        local rawVal = ns.Database and ns.Database.GetDungeonSetting and ns.Database:GetDungeonSetting("showEventBosses", "holiday")
+        local rawVal = ns.Settings and ns.Settings.GetDungeonSetting and ns.Settings:GetDungeonSetting("showEventBosses", "holiday")
         local selectedValue = "holiday"
         local labelText = "Only during the Holidays"
         if rawVal == "always" or rawVal == true then
@@ -1800,10 +1789,10 @@ function SettingsPanel:Refresh()
         end
     end
     if self.ChallengeBossesCheckbox then
-        self.ChallengeBossesCheckbox:SetChecked(ns.Database:GetDungeonSetting("showDungeonSetChallenges", false) == true)
+        self.ChallengeBossesCheckbox:SetChecked(ns.Settings:GetDungeonSetting("showDungeonSetChallenges", false) == true)
     end
     if self.DungeonSortDropdown then
-        local rawVal = ns.Database and ns.Database.GetDungeonSetting and ns.Database:GetDungeonSetting("dungeonGridSort", "level")
+        local rawVal = ns.Settings and ns.Settings.GetDungeonSetting and ns.Settings:GetDungeonSetting("dungeonGridSort", "level")
         local selectedValue = (rawVal == "alphabetical" or rawVal == "name") and "alphabetical" or "level"
         local labelText = (selectedValue == "alphabetical") and "Alphabetical (A-Z)" or "Level Bracket (Default)"
         if UIDropDownMenu_SetSelectedValue then
@@ -1814,29 +1803,29 @@ function SettingsPanel:Refresh()
         end
     end
     if self.BothFactionQuestsCheckbox then
-        self.BothFactionQuestsCheckbox:SetChecked(ns.Database:GetQuestSetting("showBothFactionData", false) == true)
+        self.BothFactionQuestsCheckbox:SetChecked(ns.Settings:GetDungeonSetting("showBothFactionData", false) == true)
     end
     if self.ZoneLevelsCheckbox then
-        self.ZoneLevelsCheckbox:SetChecked(ns.Database:GetMapIconsSetting("showZoneLevels", true) ~= false)
+        self.ZoneLevelsCheckbox:SetChecked(ns.Settings:GetMapIconsSetting("showZoneLevels", true) ~= false)
     end
     if self.FishingLevelsCheckbox then
-        self.FishingLevelsCheckbox:SetChecked(ns.Database:GetMapIconsSetting("showFishingLevels", true) ~= false)
+        self.FishingLevelsCheckbox:SetChecked(ns.Settings:GetMapIconsSetting("showFishingLevels", true) ~= false)
     end
     if self.FlightPathsCheckbox then
-        self.FlightPathsCheckbox:SetChecked(ns.Database:GetMapIconsSetting("showFlightPaths", true) ~= false)
+        self.FlightPathsCheckbox:SetChecked(ns.Settings:GetMapIconsSetting("showFlightPaths", true) ~= false)
     end
     if self.FactionColorsCheckbox then
-        self.FactionColorsCheckbox:SetChecked(ns.Database:GetMapIconsSetting("useFactionColorsForFlightPaths", true) ~= false)
+        self.FactionColorsCheckbox:SetChecked(ns.Settings:GetMapIconsSetting("useFactionColorsForFlightPaths", true) ~= false)
     end
     if self.EnemyFactionCheckbox then
-        self.EnemyFactionCheckbox:SetChecked(ns.Database:GetMapIconsSetting("showEnemyFactionFlightPaths", false) == true)
+        self.EnemyFactionCheckbox:SetChecked(ns.Settings:GetMapIconsSetting("showEnemyFactionFlightPaths", false) == true)
     end
     if self.UpdateFlightPathDependencies then
         self:UpdateFlightPathDependencies()
     end
     if self.WorldMapIconsDropdown then
-        local val = (ns.Database and ns.Database.GetMapIconsSetting and ns.Database:GetMapIconsSetting("worldMapDungeonIcons", "min_level"))
-            or (ns.Database and ns.Database.GetDungeonSetting and ns.Database:GetDungeonSetting("worldMapDungeonIcons", "min_level"))
+        local val = (ns.Settings and ns.Settings.GetMapIconsSetting and ns.Settings:GetMapIconsSetting("worldMapDungeonIcons", "min_level"))
+            or (ns.Settings and ns.Settings.GetDungeonSetting and ns.Settings:GetDungeonSetting("worldMapDungeonIcons", "min_level"))
             or "min_level"
         if UIDropDownMenu_SetSelectedValue then
             UIDropDownMenu_SetSelectedValue(self.WorldMapIconsDropdown, val)
@@ -1856,7 +1845,7 @@ function SettingsPanel:Refresh()
     if self.WorldMapRaidIconsDropdown and UIDropDownMenu_SetText then
         UIDropDownMenu_SetText(self.WorldMapRaidIconsDropdown, "Disabled")
     end
-    self:RefreshPluginRows()
+    self:RefreshModuleRows()
 
     local totalH = 1300
     if status and status.isMismatch then

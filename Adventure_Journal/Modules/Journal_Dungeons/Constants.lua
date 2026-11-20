@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Journal_Dungeons - Constants.lua
--- Single source of truth for Dungeons plugin metadata, assets, and dimensions.
+-- Single source of truth for Dungeons module metadata, assets, and dimensions.
 -- ============================================================================
 local addonName, parent = ...
 local ns = parent.Dungeons or {} ; parent.Dungeons = ns
@@ -20,19 +20,16 @@ local SOUNDKIT = SOUNDKIT
 -- ----------------------------------------------------------------------------
 local Constants = {
     ADDON_NAME = addonName,
-    PLUGIN_ID = "dungeons",
+    MODULE_ID = "dungeons",
     TITLE = "Dungeons",
-    VERSION = "0.6.0",
-    LAST_UPDATED = "2026-11-14",
     DESCRIPTION = "Explore 5-player dungeons across Classic and WoW Forever, including level brackets, boss encounters, and item drops.",
-    API_VERSION = 1,
     TAB_ORDER = 10,
 
-    -- View 1: 4-Column Scrollable Dungeon Tile Grid (782 x 424 canvas, fully shifted up)
+    -- View 1: Scrollable Dungeon Tile Grid (782 x 424 canvas)
     GRID = {
-        COLUMNS = 4,
-        TILE_WIDTH = 172,
-        TILE_HEIGHT = 88,
+        COLUMNS = 3,
+        TILE_WIDTH = 234,
+        TILE_HEIGHT = 67,
         GAP_X = 14,
         GAP_Y = 12,
         START_X = 6,
@@ -50,6 +47,8 @@ local Constants = {
         BOSS_BTN_WIDTH = 268,
         BOSS_BTN_HEIGHT = 44,
         BOSS_BTN_GAP = 30,
+        WING_BTN_HEIGHT = 67,
+        WING_BTN_GAP = 18,
         BOSS_ICON_SIZE = 50,
         BOSS_RING_SIZE = 68,
         ART_FRAME_WIDTH = 376,

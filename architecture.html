@@ -832,6 +832,72 @@
       white-space: nowrap;
     }
 
+    /* v0.9 DataStore pane */
+    .tab-pill.past {
+      background: rgba(255, 184, 77, 0.14);
+      border: 1px solid rgba(255, 184, 77, 0.4);
+      color: #ffb84d;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 1rem;
+      margin-bottom: 3rem;
+    }
+
+    .stat-tile {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      padding: 1.2rem 1rem;
+      text-align: center;
+    }
+
+    .stat-num {
+      font-family: 'Cinzel', serif;
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: var(--gold-bright);
+      line-height: 1.1;
+    }
+
+    .stat-label {
+      margin-top: 0.4rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+
+    .plain-list {
+      margin: 0.6rem 0 0 1.1rem;
+      color: #b3b1ba;
+      line-height: 1.7;
+    }
+
+    .plain-list li+li {
+      margin-top: 0.35rem;
+    }
+
+    .plain-list strong {
+      color: #fff;
+    }
+
+    .build-log {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      padding: 1rem 1.4rem;
+      margin-bottom: 3rem;
+    }
+
+    .build-log summary {
+      cursor: pointer;
+      font-family: 'Cinzel', serif;
+      color: var(--gold-bright);
+      font-weight: 700;
+    }
+
     footer {
       text-align: center;
       padding: 3rem 1.5rem;
@@ -874,12 +940,12 @@
 
   <header>
     <div class="eyebrow">System Architecture &amp; Data Engineering</div>
-    <h1><span>Core Item Storage Engine</span></h1>
-    <p class="subtitle">An under-the-hood look at how Adventure Journal evolved from a dungeon-only loot list into a
-      normalized, module-agnostic database capable of evaluating multi-tag and level-range queries in sub-millisecond
-      time.</p>
+    <h1>The Journal's <span>Data Engine</span></h1>
+    <p class="subtitle">An under-the-hood look at how Adventure Journal keeps track of the game: from loot lists
+      typed into each screen, to one engine for items, to a complete DataStore behind every dungeon, boss, quest and
+      map pin.</p>
 
-    <!-- Transitional Era Switcher Tabs -->
+    <!-- Architecture Era Switcher Tabs -->
     <div class="arch-switcher-wrap">
       <div class="arch-switcher" role="tablist" aria-label="Architecture Generation Switcher">
         <button type="button" class="arch-tab-btn" role="tab" aria-selected="false" aria-controls="pane-legacy"
@@ -887,17 +953,23 @@
           <span class="tab-pill legacy">v0.1 – v0.5</span>
           Legacy Siloed Method
         </button>
-        <button type="button" class="arch-tab-btn active" role="tab" aria-selected="true" aria-controls="pane-current"
+        <button type="button" class="arch-tab-btn" role="tab" aria-selected="false" aria-controls="pane-current"
           id="tab-current" onclick="switchArchTab('current')">
-          <span class="tab-pill new">v0.6+ Active</span>
-          Central Storage Engine
+          <span class="tab-pill past">v0.6 – v0.8</span>
+          Item Storage Engine
+        </button>
+        <button type="button" class="arch-tab-btn active" role="tab" aria-selected="true"
+          aria-controls="pane-datastore" id="tab-datastore" onclick="switchArchTab('datastore')">
+          <span class="tab-pill new">v0.9+ Active</span>
+          The DataStore: A Full Data Rebuild
         </button>
       </div>
       <span class="info-tip" tabindex="0" aria-label="What do these tabs compare?">?
         <span class="info-tip-box">
-          <strong>Architecture Evolution Tabs</strong>
-          Switch between our current <strong>v0.6+ Central Storage Engine</strong> and the original <strong>v0.1–v0.5
-            Legacy Siloed Method</strong> to see how item storage, memory usage, and search speed were redesigned.
+          <strong>Three Generations of the Journal</strong>
+          Each tab shows how the Journal stored its information in that era. <strong>v0.9+</strong> is today's
+          DataStore, a rebuild of all of the Journal's data, not just items. The older tabs are kept so you can see
+          how far it has come.
         </span>
       </span>
     </div>
@@ -906,9 +978,364 @@
   <main>
 
     <!-- ================================================================== -->
-    <!-- PANE 1: CURRENT ARCHITECTURE (v0.6+ CENTRAL STORAGE ENGINE)        -->
+    <!-- PANE 0: CURRENT ARCHITECTURE (v0.9+ THE DATASTORE)                 -->
     <!-- ================================================================== -->
-    <div id="pane-current" class="arch-view-pane active" role="tabpanel" aria-labelledby="tab-current">
+    <div id="pane-datastore" class="arch-view-pane active" role="tabpanel" aria-labelledby="tab-datastore">
+
+      <!-- Opus Engineering Spotlight -->
+      <div class="model-spotlight-box">
+        <div class="model-spotlight-header">
+          <span class="model-spotlight-badge">Engineered with Opus 5.5</span>
+          <h3>Architected with Claude Opus 5.5</h3>
+        </div>
+        <p>The <strong>v0.9 DataStore</strong> was designed and built through agentic workflows using Anthropic's
+          <strong>Claude Opus 5.5</strong> model. Opus 5.5 ran the full audit of the old data, checked every record
+          against the game's own files, designed the eleven stores and their rules, wrote the tools that move and
+          verify the data, rebuilt the Dungeons tab and the world map on top of it, and retired about 15,000 lines of
+          old code along the way.</p>
+      </div>
+
+      <h2 class="section-title" style="margin-top: 0.5rem;">
+        Not Just Items: <span>A Ground-Up Rebuild</span>
+        <span class="info-tip" tabindex="0">?
+          <span class="info-tip-box">
+            <strong>What changed in v0.9?</strong>
+            v0.6 rebuilt how the Journal stores <em>items</em>. v0.9 goes much further: every kind of information
+            the Journal shows (dungeons, bosses, creatures, quests, map pins, zones) now lives in one shared system,
+            the DataStore.
+          </span>
+        </span>
+      </h2>
+      <div class="section-divider"></div>
+
+      <p style="color:#b3b1ba; line-height:1.7; margin-bottom:1.6rem;">Version 0.6 gave the Journal a proper home for
+        items. Everything else (dungeons, bosses, quests and map pins) still lived in separate lists, typed into
+        each screen by hand and connected to each other by <strong style="color:#fff;">name</strong>. Version 0.9
+        replaces all of it with one shared system, the <strong style="color:#fff;">DataStore</strong>, so every page
+        of the Journal reads from the same place, and future features (raids, a quest journal, dungeon maps) can be
+        added as new information instead of new copies of old screens.</p>
+
+      <div class="stat-grid">
+        <div class="stat-tile">
+          <div class="stat-num">11</div>
+          <div class="stat-label">stores, one for each kind of in-game thing</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-num">4,178</div>
+          <div class="stat-label">records, each checked against the game</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-num">~15,000</div>
+          <div class="stat-label">lines of old code and data retired</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-num">0</div>
+          <div class="stat-label">broken links between records</div>
+        </div>
+      </div>
+
+      <h2 class="section-title">
+        Why We <span>Rebuilt Everything</span>
+      </h2>
+      <div class="section-divider"></div>
+
+      <div class="grid-2col">
+        <div class="card">
+          <div class="card-tag">The Trigger</div>
+          <h3>Raids Didn't Fit</h3>
+          <p>The first attempt at a Raids tab copied about 1,200 lines of the Dungeons screens, and broke whenever the
+            Dungeons tab was turned off. Adding new content meant copying screens, not adding information. That
+            showed us the real problem was underneath the screens.</p>
+        </div>
+        <div class="card">
+          <div class="card-tag">What We Found</div>
+          <h3>
+            A Full <span style="white-space: nowrap;">Audit&nbsp;<span class="info-tip" tabindex="0">?
+                <span class="info-tip-box">
+                  <strong>The Audit</strong>
+                  Before designing anything, we compared every list in the Journal with the game's own data. Most
+                  of these mistakes were invisible until something checked them.
+                </span>
+              </span></span>
+          </h3>
+          <ul class="plain-list">
+            <li><strong>Stratholme's loot was swapped</strong> between its two halves, so most of its bosses showed
+              nothing.</li>
+            <li><strong>About 25 bosses</strong> were named differently from the game.</li>
+            <li><strong>Some quests were titled</strong> with an NPC's name instead of the quest's.</li>
+            <li><strong>31 items</strong> didn't exist in WoW Forever at all.</li>
+          </ul>
+        </div>
+      </div>
+
+      <h2 class="section-title">
+        The Big Idea: <span>Ask the Game</span>
+        <span class="info-tip" tabindex="0">?
+          <span class="info-tip-box">
+            <strong>A reference library, not a copy</strong>
+            Like a library catalog that tells you where a book is instead of photocopying it, the DataStore keeps
+            track of which game records the Journal uses and asks the game for the details.
+          </span>
+        </span>
+      </h2>
+      <div class="section-divider"></div>
+
+      <p style="color:#b3b1ba; line-height:1.7; margin-bottom:1rem;">WoW Forever already ships with Blizzard's own
+        tables: every dungeon, every boss fight in order, every loading screen and flight point. We had been typing
+        in, by hand, facts the game could tell us. So the DataStore doesn't copy the game. For each record it keeps
+        only three things:</p>
+      <div class="grid-2col" style="margin-bottom:3rem;">
+        <div class="card">
+          <div class="card-tag">1 • The Game's Own Number</div>
+          <h3>
+            An <span style="white-space: nowrap;">ID&nbsp;<span class="info-tip" tabindex="0">?
+                <span class="info-tip-box">
+                  <strong>What's an ID?</strong>
+                  Every item, creature, quest and dungeon in WoW has a permanent number. Names can change or be
+                  spelled differently; the number never does, so the Journal connects everything by number.
+                </span>
+              </span></span>
+          </h3>
+          <p>How the Journal asks the game for a record's current name, icon, quality and stats, so they're always
+            right, even after a game patch.</p>
+        </div>
+        <div class="card">
+          <div class="card-tag">2 • A Readable Name, and 3 • Our Own Knowledge</div>
+          <h3>Labels &amp; Links</h3>
+          <p>A plain name so people can read the files (and something to show while the game is loading), plus the
+            things the game doesn't know: which bosses are in which dungeon, what they drop, who starts each quest,
+            helpful hints, and search tags.</p>
+        </div>
+      </div>
+
+      <!-- v0.6 vs v0.9 Comparison Table -->
+      <h2 class="section-title">
+        v0.6 Item Engine vs. <span>v0.9 DataStore</span>
+        <span class="info-tip" tabindex="0">?
+          <span class="info-tip-box">
+            <strong>Side by Side</strong>
+            How the same jobs were done by the v0.6 – v0.8 Item Storage Engine and are done now by the v0.9
+            DataStore.
+          </span>
+        </span>
+      </h2>
+      <div class="section-divider"></div>
+
+      <div class="compare-table-wrap">
+        <table class="compare-table" aria-label="v0.6 Item Engine vs v0.9 DataStore Comparison">
+          <thead>
+            <tr>
+              <th>What We Compared</th>
+              <th>Item Storage Engine (v0.6 – v0.8)</th>
+              <th>The DataStore (v0.9+)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="col-dimension">What It Covers</td>
+              <td class="col-old"><span class="status-pill old">Items Only</span><br>Items had a proper home.
+                Dungeons, bosses, quests and map pins each kept their own separate lists.</td>
+              <td class="col-new"><span class="status-pill new">Everything</span><br>Eleven stores: items, dungeons
+                and raids, boss fights, creatures, quests, world objects, zones, areas, flight points, places and
+                abilities.</td>
+            </tr>
+            <tr>
+              <td class="col-dimension">
+                How Things Connect
+                <span class="info-tip" tabindex="0">?
+                  <span class="info-tip-box">
+                    <strong>Why this matters</strong>
+                    When a boss's loot was found by the boss's name, renaming the boss (or spelling it the way the
+                    game does) made its loot quietly disappear.
+                  </span>
+                </span>
+              </td>
+              <td class="col-old"><span class="status-pill old">By Name</span><br>A boss's loot was found by the
+                boss's name; a quest giver was a sentence of text.</td>
+              <td class="col-new"><span class="status-pill new">By the Game's IDs</span><br>Every connection uses the
+                game's own permanent numbers, so nothing breaks when a name changes.</td>
+            </tr>
+            <tr>
+              <td class="col-dimension">Names, Icons &amp; Quality</td>
+              <td class="col-old"><span class="status-pill old">Copied In</span><br>Typed into our files, where they
+                could drift out of date.</td>
+              <td class="col-new"><span class="status-pill new">Asked From the Game</span><br>Read live from the
+                game, so they always match what you see in WoW.</td>
+            </tr>
+            <tr>
+              <td class="col-dimension">Checked Against the Game</td>
+              <td class="col-old"><span class="status-pill old">Partly</span><br>Item details were checked; the rest
+                was trusted as written.</td>
+              <td class="col-new"><span class="status-pill new">Every Record</span><br>All 4,178 records were checked
+                on the way in: passed, fixed, flagged for a human, or removed.</td>
+            </tr>
+            <tr>
+              <td class="col-dimension">
+                When Something Is Missing
+                <span class="info-tip" tabindex="0">?
+                  <span class="info-tip-box">
+                    <strong>Missing is visible</strong>
+                    A gap that looks like a gap gets noticed and fixed. A believable guess can stay wrong for
+                    years.
+                  </span>
+                </span>
+              </td>
+              <td class="col-old"><span class="status-pill old">Hidden</span><br>A wrong or missing value looked
+                normal until a player noticed.</td>
+              <td class="col-new"><span class="status-pill new">Visible</span><br>Gaps show as gaps (a question-mark
+                icon, or "Unknown NPC"), and everything unconfirmed goes on one list to check in-game.</td>
+            </tr>
+            <tr>
+              <td class="col-dimension">
+                Keeping It Up to Date
+                <span class="info-tip" tabindex="0">?
+                  <span class="info-tip-box">
+                    <strong>The refresh</strong>
+                    A tool re-checks every store against the game's latest files. Run twice on the same data, it
+                    changes nothing the second time, which is how we know it's safe.
+                  </span>
+                </span>
+              </td>
+              <td class="col-old"><span class="status-pill old">One-Off Scripts</span><br>Each list was refreshed by
+                its own script, and hand fixes could be overwritten.</td>
+              <td class="col-new"><span class="status-pill new">One Safe Refresh</span><br>One refresh re-checks every
+                store; hand corrections live in their own files that it never touches.</td>
+            </tr>
+            <tr>
+              <td class="col-dimension">Journal &amp; World Map</td>
+              <td class="col-old"><span class="status-pill old">Separate Copies</span><br>The map kept its own list
+                of entrances and levels, which could disagree with the Journal.</td>
+              <td class="col-new"><span class="status-pill new">One Source</span><br>The map and the Journal read the
+                same records, so they can't disagree.</td>
+            </tr>
+            <tr>
+              <td class="col-dimension">Adding New Content</td>
+              <td class="col-old"><span class="status-pill old">Copy Screens</span><br>A new tab meant copying an
+                existing screen and its data.</td>
+              <td class="col-new"><span class="status-pill new">Add Information</span><br>New content is new records;
+                the screens ask the DataStore for them.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 class="section-title">
+        The Eleven <span>Stores</span>
+        <span class="info-tip" tabindex="0">?
+          <span class="info-tip-box">
+            <strong>What's a store?</strong>
+            A store is one shelf of the DataStore, holding one kind of real in-game thing. Search words (tags) are
+            kept separately, because they're ours, not the game's.
+          </span>
+        </span>
+      </h2>
+      <div class="section-divider"></div>
+
+      <div class="compare-table-wrap">
+        <table class="compare-table" aria-label="The DataStore's Stores">
+          <thead>
+            <tr>
+              <th>Store</th>
+              <th>What It Holds</th>
+              <th>Records</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="col-dimension">Items</td><td>Anything that can sit in your bags or be equipped</td><td>2,319</td></tr>
+            <tr><td class="col-dimension">NPCs</td><td>Every creature: bosses, their helpers, quest givers, vendors</td><td>699</td></tr>
+            <tr><td class="col-dimension">Quests</td><td>Who starts and ends each quest, what unlocks it, its rewards</td><td>519</td></tr>
+            <tr><td class="col-dimension">Encounters</td><td>The fights in a dungeon's boss list, including multi-boss fights</td><td>307</td></tr>
+            <tr><td class="col-dimension">Areas</td><td>Named places inside a zone, the name under the minimap</td><td>88</td></tr>
+            <tr><td class="col-dimension">Locations</td><td>Places the game has no number for: dungeon entrances, quest hubs, and the named rooms inside dungeons</td><td>76</td></tr>
+            <tr><td class="col-dimension">Flight Points</td><td>Where flight masters offer flights</td><td>65</td></tr>
+            <tr><td class="col-dimension">Zones</td><td>The maps you open in the world map window</td><td>50</td></tr>
+            <tr><td class="col-dimension">Instances</td><td>Dungeons and raids, and the wings some are split into</td><td>39</td></tr>
+            <tr><td class="col-dimension">Fixtures</td><td>Things you click in the world but never carry: posters, books, skeletons</td><td>16</td></tr>
+            <tr><td class="col-dimension">Abilities</td><td>What creatures can cast (ready, filled in a later update)</td><td>0</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 class="section-title">
+        Groundwork for <span>What's Next</span>
+      </h2>
+      <div class="section-divider"></div>
+
+      <div class="grid-2col">
+        <div class="card">
+          <div class="card-tag">Already in v0.9</div>
+          <h3>You Can See It Today</h3>
+          <ul class="plain-list">
+            <li><strong>Opens where you are:</strong> open the Journal inside a dungeon and it goes straight to that
+              dungeon, or to the exact wing you're standing in.</li>
+            <li><strong>Map and Journal agree:</strong> entrance pins, levels and flight points come from the same
+              records.</li>
+            <li><strong>Corrected data:</strong> the game's own boss names, quest titles and loading screens.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-tag">Made Possible</div>
+          <h3>Built to Grow</h3>
+          <ul class="plain-list">
+            <li><strong>Raids</strong> become new records, not copied screens.</li>
+            <li><strong>A quest journal</strong> can read the 519 quests already stored.</li>
+            <li><strong>Dungeon maps:</strong> the named rooms of each dungeon are already being recorded.</li>
+            <li><strong>"Where do I get this?"</strong> every way to get an item is already linked.</li>
+          </ul>
+        </div>
+      </div>
+
+      <h2 class="section-title">Lessons <span>Learned</span></h2>
+      <div class="section-divider"></div>
+
+      <div class="grid-2col" style="margin-bottom:3rem;">
+        <div class="card">
+          <ul class="plain-list" style="margin-top:0;">
+            <li><strong>Check before you design.</strong> The audit changed the plan more than any idea did.</li>
+            <li><strong>The game is the source of truth.</strong> Every time we asked the game instead of trusting a
+              list, we found something.</li>
+            <li><strong>A failed attempt is useful.</strong> The first raid build showed exactly what was
+              missing.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <ul class="plain-list" style="margin-top:0;">
+            <li><strong>Prove a tool by running it twice.</strong> A refresh that changes nothing the second time can
+              be trusted the first time.</li>
+            <li><strong>Keep the part only you know.</strong> "Nalpak, above the entrance to Wailing Caverns, The
+              Barrens" became just the hint "Above the entrance to Wailing Caverns": his name and zone already live
+              on his record.</li>
+          </ul>
+        </div>
+      </div>
+
+      <details class="build-log">
+        <summary>How It Was Built, Step by Step</summary>
+        <ol class="plain-list">
+          <li><strong>Audit:</strong> every list in the Journal, and every screen that reads it, inventoried and
+            checked against the game.</li>
+          <li><strong>Design:</strong> each store defined field by field, with the rules every record must pass.</li>
+          <li><strong>Plan:</strong> the build broken into steps, with a list of every old file that had to go.</li>
+          <li><strong>Foundations:</strong> the empty DataStore built and tested while the Journal kept running on
+            its old data.</li>
+          <li><strong>Moving tools:</strong> scripts that move the old data in, checking every value on the
+            way.</li>
+          <li><strong>Filling the stores:</strong> one store at a time, every link between them checked.</li>
+          <li><strong>Dungeons tab:</strong> switched to the new data; about 5,500 lines of old code removed.</li>
+          <li><strong>World map:</strong> pins and zone levels moved to the same records.</li>
+          <li><strong>Old quest module retired:</strong> about 8,800 lines removed.</li>
+          <li><strong>Keeping it current:</strong> the refresh, plus a safe way to bring in data from other
+            sources (the game confirms it first).</li>
+          <li><strong>Polish:</strong> new dungeon cards, side tabs, wing detection, background choices.</li>
+        </ol>
+      </details>
+
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- PANE 1: PREVIOUS ARCHITECTURE (v0.6 – v0.8 ITEM STORAGE ENGINE)    -->
+    <!-- ================================================================== -->
+    <div id="pane-current" class="arch-view-pane" role="tabpanel" aria-labelledby="tab-current">
 
       <!-- Argon Engineering Spotlight -->
       <div class="model-spotlight-box">
@@ -916,7 +1343,7 @@
           <span class="model-spotlight-badge">Engineered with Argon</span>
           <h3>Architected with Gemini 4 Argon</h3>
         </div>
-        <p>The <strong>v0.6+ Central Item Storage Engine</strong> was designed and developed through agentic workflows
+        <p>The <strong>v0.6 – v0.8 Central Item Storage Engine</strong> was designed and developed through agentic workflows
           utilizing Google's <strong>Argon</strong> model. Argon was leveraged for complex architectural reasoning:
           transforming legacy siloed dungeon loot tables into a normalized relational data model
           (<code>Items_Catalog.lua</code>), formulating the 8-dimension inverted tag taxonomy, and engineering the
@@ -1124,7 +1551,7 @@
         <span class="info-tip" tabindex="0">?
           <span class="info-tip-box">
             <strong>Why Did We Rebuild the Item Engine?</strong>
-            This side-by-side comparison shows how the v0.6+ Central Engine solved the search blind spots, memory
+            This side-by-side comparison shows how the v0.6 – v0.8 Central Engine solved the search blind spots, memory
             overhead, and module silos of the earlier v0.1–v0.5 architecture.
           </span>
         </span>
@@ -1137,7 +1564,7 @@
             <tr>
               <th>Engineering Dimension</th>
               <th>Legacy Siloed Method (v0.1 – v0.5)</th>
-              <th>Central Storage Engine (v0.6+)</th>
+              <th>Central Storage Engine (v0.6 – v0.8)</th>
             </tr>
           </thead>
           <tbody>
@@ -1692,7 +2119,7 @@
             local <code>WDB</code> cache. On a fresh install—or after clearing the game cache—searching for an item name
             or stat only matched items the player had already encountered or manually moused over inside a dungeon book.
           </p>
-          <p>Moving to the <strong>v0.6+ Central Engine</strong> solved this by pre-hydrating static item names, quality
+          <p>Moving to the <strong>v0.6 Central Engine</strong> solved this by pre-hydrating static item names, quality
             tiers, and tags in <code>Items_Catalog.lua</code> while pairing synchronous <code>GetItemInfoInstant</code>
             DBC classification with on-demand candidate tooltip scanning.</p>
         </div>
@@ -1728,21 +2155,18 @@
 
   <script>
     function switchArchTab(mode) {
-      var isCurrent = (mode === 'current');
-      var tabCurrent = document.getElementById('tab-current');
-      var tabLegacy = document.getElementById('tab-legacy');
-      var paneCurrent = document.getElementById('pane-current');
-      var paneLegacy = document.getElementById('pane-legacy');
-
-      if (tabCurrent && tabLegacy && paneCurrent && paneLegacy) {
-        tabCurrent.classList.toggle('active', isCurrent);
-        tabCurrent.setAttribute('aria-selected', isCurrent ? 'true' : 'false');
-        tabLegacy.classList.toggle('active', !isCurrent);
-        tabLegacy.setAttribute('aria-selected', !isCurrent ? 'true' : 'false');
-
-        paneCurrent.classList.toggle('active', isCurrent);
-        paneLegacy.classList.toggle('active', !isCurrent);
-      }
+      ['datastore', 'current', 'legacy'].forEach(function (key) {
+        var tab = document.getElementById('tab-' + key);
+        var pane = document.getElementById('pane-' + key);
+        var isActive = (key === mode);
+        if (tab) {
+          tab.classList.toggle('active', isActive);
+          tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        }
+        if (pane) {
+          pane.classList.toggle('active', isActive);
+        }
+      });
     }
   </script>
 
