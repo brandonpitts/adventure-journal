@@ -2,7 +2,7 @@
 -- Utility_DataStore - Core.lua
 -- Registers the DataStore as a utility module (no tab). It is the only data
 -- module that can be turned off; turning it off empties every store after
--- the next /reload. Also exposes it to Dev_Tools as JournalBase.DataStore.
+-- the next /reload. Also exposes it to developer tools as JournalBase.DataStore.
 -- ============================================================================
 local addonName, ns = ...
 
@@ -40,7 +40,7 @@ elseif ns.ModuleRegistry and ns.ModuleRegistry.Register then
     ns.ModuleRegistry:Register(DataStoreModule)
 end
 
--- Read access for Dev_Tools probes (one field on the existing global; no new global)
+-- Read access for developer tools (one field on the existing global; no new global)
 if _G.JournalBase then
     _G.JournalBase.DataStore = DataStore
 end

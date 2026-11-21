@@ -12,6 +12,9 @@ local pairs = pairs
 local ipairs = ipairs
 local Constants = ns.Constants
 
+-- Modules that start disabled until the user enables them: moduleId -> true (filled as modules register)
+local defaultDisabledModules = {}
+
 -- ----------------------------------------------------------------------------
 -- 2. Private Helper Functions
 -- ----------------------------------------------------------------------------
@@ -59,12 +62,8 @@ function Settings:Init()
         _G.JournalBaseDB.schemaVersion = 3
     end
 
-    -- Schema migration: enforce a mandatory default landing tab ("dungeons" by default)
+    -- Schema 4 added a default landing tab; schema 8 removes it, so nothing is set here
     if _G.JournalBaseDB and (_G.JournalBaseDB.schemaVersion or 0) < 4 then
-        _G.JournalBaseDB.window = _G.JournalBaseDB.window or {}
-        if not _G.JournalBaseDB.window.defaultLandingModuleId or _G.JournalBaseDB.window.defaultLandingModuleId == "" then
-            _G.JournalBaseDB.window.defaultLandingModuleId = "dungeons"
-        end
         _G.JournalBaseDB.schemaVersion = 4
     end
 
@@ -80,10 +79,7 @@ function Settings:Init()
             db.moduleOrder = db.pluginOrder
             db.pluginOrder = nil
         end
-        if db.window.defaultLandingPluginId ~= nil then
-            db.window.defaultLandingModuleId = db.window.defaultLandingPluginId
-            db.window.defaultLandingPluginId = nil
-        end
+        db.window.defaultLandingPluginId = nil
         if db.window.lastPluginId ~= nil then
             db.window.lastModuleId = db.window.lastPluginId
             db.window.lastPluginId = nil
@@ -111,8 +107,22 @@ function Settings:Init()
         _G.JournalBaseDB.schemaVersion = 7
     end
 
-    if _G.JournalBaseDB and _G.JournalBaseDB.window and (not _G.JournalBaseDB.window.defaultLandingModuleId or _G.JournalBaseDB.window.defaultLandingModuleId == "") then
-        _G.JournalBaseDB.window.defaultLandingModuleId = "dungeons"
+    -- Schema migration: the default landing tab is gone; the window opens on the instance the player is in,
+    -- else the tab used last
+    if _G.JournalBaseDB and (_G.JournalBaseDB.schemaVersion or 0) < 8 then
+        if _G.JournalBaseDB.window then
+            _G.JournalBaseDB.window.defaultLandingModuleId = nil
+        end
+        _G.JournalBaseDB.schemaVersion = 8
+    end
+
+    -- Schema migration: the "Legacy" window background is now the "Forever" theme
+    if _G.JournalBaseDB and (_G.JournalBaseDB.schemaVersion or 0) < 9 then
+        local window = _G.JournalBaseDB.window
+        if window and window.background == "legacy" then
+            window.background = "forever"
+        end
+        _G.JournalBaseDB.schemaVersion = 9
     end
 
     self.db = _G.JournalBaseDB
@@ -248,7 +258,7 @@ function Settings:SetWindowLocked(isLocked)
     store.window.lockWindow = (isLocked == true)
 end
 
---- Returns the window background's key ("stone", "parchment" or "legacy"; see Core/UI/WindowBackground.lua).
+--- Returns the window theme's key ("stone", "parchment" or "forever"; see Core/UI/WindowBackground.lua).
 --- @return string
 function Settings:GetWindowBackground()
     local store = self:GetStore()
@@ -291,7 +301,17 @@ function Settings:IsModuleDisabled(moduleId)
         return false
     end
     local store = self:GetStore()
-    return store.disabledModules and store.disabledModules[moduleId] == true
+    local saved = store.disabledModules and store.disabledModules[moduleId]
+    if saved == nil then
+        return defaultDisabledModules[moduleId] == true
+    end
+    return saved == true
+end
+
+--- Marks a module as disabled until the user enables it (a module's `defaultDisabled`).
+--- @param moduleId string
+function Settings:SetModuleDefaultDisabled(moduleId)
+    defaultDisabledModules[moduleId] = true
 end
 
 --- Enables or disables a registered module (`moduleId`) in Settings.
@@ -303,33 +323,8 @@ function Settings:SetModuleDisabled(moduleId, isDisabled)
     end
     local store = self:GetStore()
     store.disabledModules = store.disabledModules or {}
-    if isDisabled then
-        store.disabledModules[moduleId] = true
-    else
-        store.disabledModules[moduleId] = nil
-    end
-end
-
---- Returns the user's configured default opening / landing module ID.
---- Always returns a valid module ID (defaults to `"dungeons"`).
---- @return string
-function Settings:GetDefaultLandingModuleId()
-    local store = self:GetStore()
-    local id = store.window and store.window.defaultLandingModuleId
-    if type(id) == "string" and id ~= "" then
-        return id
-    end
-    return "dungeons"
-end
-
---- Sets the user's preferred default opening / landing module ID.
---- Radio semantics: always stores a non-empty module ID (falls back to `"dungeons"` if nil/empty).
---- @param moduleId string|nil
-function Settings:SetDefaultLandingModuleId(moduleId)
-    local resolved = (type(moduleId) == "string" and moduleId ~= "") and moduleId or "dungeons"
-    local store = self:GetStore()
-    store.window = store.window or {}
-    store.window.defaultLandingModuleId = resolved
+    -- An enabled module is saved as false, so a module that starts disabled stays enabled once chosen
+    store.disabledModules[moduleId] = isDisabled and true or false
 end
 
 --- Returns a module-specific setting (`store[moduleKey][settingKey]`).

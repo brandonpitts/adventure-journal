@@ -20,7 +20,7 @@ local SOUNDKIT = SOUNDKIT
 local Constants = {
     ADDON_NAME = addonName,
     TITLE = "Adventure Journal",
-    VERSION = "0.9.0",
+    VERSION = "0.10.0",
     AUTHOR = "Brandon (Endoria)",
 
     BINDING_HEADER = "JOURNALBASE",
@@ -94,7 +94,7 @@ local Constants = {
     },
 
     DB_DEFAULTS = {
-        schemaVersion = 7,
+        schemaVersion = 9,
         showInAddonCompartment = false,
         enableAdvancedSearch = false,
         minimap = {
@@ -104,7 +104,6 @@ local Constants = {
         },
         window = {
             lastModuleId = "dungeons",
-            defaultLandingModuleId = "dungeons",
             point = nil,
             lockWindow = false,
             background = "stone",
@@ -119,6 +118,7 @@ local Constants = {
             showDungeonSetChallenges = false,
             worldMapDungeonIcons = "min_level",
             dungeonGridSort = "level",
+            dungeonGridLayout = "four",
             showBothFactionData = false,
         },
         map_icons = {

@@ -90,6 +90,24 @@ local function sentence(questID, field)
     return where and (giver.name .. ", " .. where) or giver.name, giver
 end
 
+-- Every quest `questID` requires, directly or through its prerequisites, earliest first
+local function prerequisites(questID)
+    local quests = store("QuestStore")
+    local order, seen = {}, {}
+    local function walk(id)
+        for _, requirement in ipairs(quests:Get(id).requires or {}) do
+            local required = requirement.questID
+            if required and not seen[required] and quests:Get(required) then
+                seen[required] = true
+                walk(required)
+                order[#order + 1] = required
+            end
+        end
+    end
+    walk(questID)
+    return order
+end
+
 local function buildQuest(questID)
     local quests = store("QuestStore")
     local record = quests:Get(questID)
@@ -132,6 +150,7 @@ end
 
 --- A dungeon's (or wing's) quests, filtered by faction ("All" for both) and class ("All" for any),
 --- sorted by required level, then name. A wing also shows its instance's quests that name no wing.
+--- A chain with several steps here is listed once, as its last step.
 function QuestAccess:GetDungeonQuests(view, factionFilter, classFilter)
     local quests = store("QuestStore")
     if not quests or not view then
@@ -155,12 +174,26 @@ function QuestAccess:GetDungeonQuests(view, factionFilter, classFilter)
     local faction = factionFilter or UnitFactionGroup("player")
     local _, playerClass = UnitClass("player")
     local class = classFilter or playerClass
-    local results = {}
+    local shown = {}
     for _, questID in ipairs(ids) do
         local quest = self:GetQuest(questID)
         local factionOk = faction == "All" or quest.faction == "Both" or quest.faction == faction
         local classOk = not quest.classOnly or class == "All" or strupper(quest.classOnly) == class
         if factionOk and classOk then
+            shown[#shown + 1] = quest
+        end
+    end
+    -- One entry per chain: a quest that is an earlier step of another listed quest's chain is
+    -- reached through that quest's chain view
+    local earlierStep = {}
+    for _, quest in ipairs(shown) do
+        for _, required in ipairs(prerequisites(quest.id)) do
+            earlierStep[required] = true
+        end
+    end
+    local results = {}
+    for _, quest in ipairs(shown) do
+        if not earlierStep[quest.id] then
             results[#results + 1] = quest
         end
     end
@@ -179,18 +212,7 @@ function QuestAccess:GetFullChain(questID)
     if not quests or not quests:Get(questID) then
         return nil
     end
-    local order, seen = {}, {}
-    local function walk(id)
-        for _, requirement in ipairs(quests:Get(id).requires or {}) do
-            local required = requirement.questID
-            if required and not seen[required] and quests:Get(required) then
-                seen[required] = true
-                walk(required)
-                order[#order + 1] = required
-            end
-        end
-    end
-    walk(questID)
+    local order = prerequisites(questID)
     if #order == 0 then
         return nil
     end

@@ -84,7 +84,7 @@ local ModuleRegistry = {
 }
 
 --- Validates and registers a module with the Journal.
---- @param moduleDef table `{ id, title, order?, description?, icon?, OnInitialize?, OnActivate?, OnDeactivate?, OnSearch?, OnHome?, WantsWindowFocus?, OnWindowFocus? }`
+--- @param moduleDef table `{ id, title, order?, description?, icon?, defaultDisabled?, OnInitialize?, OnActivate?, OnDeactivate?, OnSearch?, OnHome?, WantsWindowFocus?, OnWindowFocus? }`
 ---   * `OnActivate`: the tab was selected; may restore the page the user left open.
 ---   * `OnHome`: the Home breadcrumb was clicked; show the module's root page (falls back to `OnActivate`).
 ---   * `WantsWindowFocus`: return true to become the active tab when the window opens.
@@ -130,6 +130,10 @@ function ModuleRegistry:Register(moduleDef)
         isInitialized = false,
         canvas = nil,
     }
+
+    if moduleDef.defaultDisabled == true then
+        ns.Settings:SetModuleDefaultDisabled(id)
+    end
 
     self.modulesById[id] = module
     self.orderedModules[#self.orderedModules + 1] = module
@@ -262,32 +266,6 @@ function ModuleRegistry:GetCount()
     return #self:GetOrderedModules()
 end
 
---- Resolves the active default landing module ID, guaranteeing that one enabled
---- non-utility module is always selected as the default (preferring `"dungeons"`).
---- @return string
-function ModuleRegistry:GetEffectiveDefaultLandingModuleId()
-    local savedId = ns.Settings:GetDefaultLandingModuleId()
-    local savedModule = savedId and self.modulesById[savedId]
-    if savedModule and not savedModule.isUtility and not savedModule.isUnloaded and not ns.Settings:IsModuleDisabled(savedId) then
-        return savedId
-    end
-
-    local dungeonsModule = self.modulesById["dungeons"]
-    if dungeonsModule and not dungeonsModule.isUtility and not dungeonsModule.isUnloaded and not ns.Settings:IsModuleDisabled("dungeons") then
-        ns.Settings:SetDefaultLandingModuleId("dungeons")
-        return "dungeons"
-    end
-
-    for _, module in ipairs(self:GetOrderedModules()) do
-        if not module.isUtility then
-            ns.Settings:SetDefaultLandingModuleId(module.id)
-            return module.id
-        end
-    end
-
-    return savedId or "dungeons"
-end
-
 --- Enables or disables an installed module. Disabling a module immediately unloads its data
 --- and UI from memory; re-enabling an unloaded module stages it for the next UI `/reload`.
 --- @param moduleId string
@@ -301,11 +279,6 @@ function ModuleRegistry:SetModuleEnabled(moduleId, isEnabled)
     ns.Settings:SetModuleDisabled(moduleId, not isEnabled)
 
     if not isEnabled then
-        if ns.Settings:GetDefaultLandingModuleId() == moduleId then
-            -- Reassign default landing tab to another enabled non-utility module so there is always one selected
-            self:GetEffectiveDefaultLandingModuleId()
-        end
-
         if self.activeModuleId == moduleId then
             self:ActivateDefaultModule()
         end
@@ -323,28 +296,6 @@ function ModuleRegistry:SetModuleEnabled(moduleId, isEnabled)
     end
 end
 
---- Sets `moduleId` as the user's preferred default opening / landing tab using radio-button
---- semantics ("there always must be one" — clicking the active default keeps it selected).
---- @param moduleId string|nil
-function ModuleRegistry:SetDefaultLandingModule(moduleId)
-    if not moduleId or moduleId == "" then
-        return
-    end
-    local module = self.modulesById[moduleId]
-    if not module or module.isUtility or module.isUnloaded or ns.Settings:IsModuleDisabled(moduleId) then
-        return -- Only installed, enabled, loaded, non-utility modules can be selected
-    end
-
-    ns.Settings:SetDefaultLandingModuleId(moduleId)
-
-    if ns.UI.MainFrame and ns.UI.MainFrame:IsInitialized() then
-        ns.UI.MainFrame:OnModulesChanged()
-    end
-    if ns.UI.SettingsPanel and ns.UI.SettingsPanel.Refresh then
-        ns.UI.SettingsPanel:Refresh()
-    end
-end
-
 --- @return table|nil
 function ModuleRegistry:GetActiveModule()
     if not self.activeModuleId then
@@ -353,19 +304,17 @@ function ModuleRegistry:GetActiveModule()
     return self.modulesById[self.activeModuleId]
 end
 
---- Navigates to the user's configured default opening / landing destination:
----   * If a valid, enabled `defaultLandingModuleId` is set in Settings, activates that module tab directly.
----   * If no default is set, activates the first enabled module (e.g. Dungeons).
----   * If all modules are disabled, deactivates all views.
+--- Opens the tab the player used last (saved across sessions) while it is still enabled and loaded;
+--- otherwise the first enabled module (e.g. Dungeons). With every module disabled, deactivates all views.
 function ModuleRegistry:ActivateDefaultModule()
-    local defaultId = ns.Settings:GetDefaultLandingModuleId()
-    local defaultModule = defaultId and self.modulesById[defaultId]
-    if defaultModule and not defaultModule.isUtility and not defaultModule.isUnloaded and not ns.Settings:IsModuleDisabled(defaultId) then
-        self:ActivateModule(defaultId)
+    local lastId = ns.Settings:GetLastModuleId()
+    local lastModule = lastId and self.modulesById[lastId]
+    if lastModule and not lastModule.isUtility and not lastModule.isUnloaded and not ns.Settings:IsModuleDisabled(lastId) then
+        self:ActivateModule(lastId)
         return
     end
 
-    -- If no default landing module is set, activate the first enabled non-utility module (e.g. Dungeons)
+    -- The first enabled non-utility module (e.g. Dungeons)
     local ordered = self:GetOrderedModules()
     for _, module in ipairs(ordered) do
         if not module.isUtility then
@@ -414,7 +363,7 @@ end
 
 --- Activates the specified module tab, lazily initializing its canvas on first view.
 --- If the module was unloaded and re-enabled during the current session without a `/reload`,
---- displays the `"Required reload to enable this"` prompt on the module page.
+--- displays the `"Reload Required to Enable This"` prompt on the module page.
 --- @param moduleId string
 --- @return boolean
 function ModuleRegistry:ActivateModule(moduleId)

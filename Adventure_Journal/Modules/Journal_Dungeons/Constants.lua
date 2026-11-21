@@ -27,9 +27,15 @@ local Constants = {
 
     -- View 1: Scrollable Dungeon Tile Grid (782 x 424 canvas)
     GRID = {
-        COLUMNS = 3,
-        TILE_WIDTH = 234,
-        TILE_HEIGHT = 67,
+        -- Card layouts across the grid's 730 px (the "dungeonGridLayout" setting). centered: the name in
+        -- capitals and the levels centered on the card; otherwise the name on the left over "Lvl - zone".
+        LAYOUTS = {
+            two_compact = { columns = 2, width = 358, height = 67 },
+            two_large = { columns = 2, width = 358, height = 88 },
+            three = { columns = 3, width = 234, height = 67 },
+            four = { columns = 4, width = 172, height = 88, centered = true, noFade = true },
+        },
+        DEFAULT_LAYOUT = "four",
         GAP_X = 14,
         GAP_Y = 12,
         START_X = 6,

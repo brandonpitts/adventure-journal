@@ -176,13 +176,7 @@ function MapPinProvider:ShowTooltip(pin)
     if data.minLevel then
         local levels = (data.maxLevel and data.maxLevel ~= data.minLevel)
             and string.format("Level %d-%d", data.minLevel, data.maxLevel) or string.format("Level %d", data.minLevel)
-        local color = _G.GetQuestDifficultyColor and _G.GetQuestDifficultyColor(
-            math.floor((data.minLevel + (data.maxLevel or data.minLevel)) / 2 + 0.5))
-        if color then
-            GameTooltip:AddLine(levels, color.r, color.g, color.b)
-        else
-            GameTooltip:AddLine(levels, 1.0, 1.0, 1.0)
-        end
+        GameTooltip:AddLine(levels, ns.LevelColors:ForRange(data.minLevel, data.maxLevel))
     end
 
     -- Line 3: Action Prompt (Bright Green "<Click to open Adventure Journal>")

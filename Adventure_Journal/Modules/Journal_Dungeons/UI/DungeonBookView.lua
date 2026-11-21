@@ -5,19 +5,63 @@
 -- ============================================================================
 local addonName, parent = ...
 local ns = parent.Dungeons or {} ; parent.Dungeons = ns
+-- Init takes a `parent` frame that hides the addon namespace; this name reaches it there
+local addonNs = parent
 
 -- ----------------------------------------------------------------------------
 -- 1. Upvalued Globals & Constants
 -- ----------------------------------------------------------------------------
 local ipairs = ipairs
+local pairs = pairs
+local next = next
 local math = math
 local string = string
 local tostring = tostring
 local CreateFrame = CreateFrame
+local C_Timer = C_Timer
 local GameTooltip = GameTooltip
 local PlaySound = PlaySound
 local UnitLevel = UnitLevel
+local C_Texture = C_Texture
 local Constants = ns.Constants
+
+-- The Reputation and Skills tabs' collapsible header bar (Forever theme quest chain banners)
+local REPUTATION_HEADER = "common-button-list-collapseExpand"
+-- Width kept at its own size at each end of a stretched header; only the part between them stretches
+local STRIP_CAP = 12
+
+--- Draws `atlas` across `parent` in `layer` as three pieces: its two ends at their own width and the middle
+--- stretched between them, all at the parent's height. Returns the pieces (one missing-art texture when the
+--- client lacks the atlas).
+local function createAtlasStrip(parent, layer, atlas)
+    local info = C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas)
+    local file = info and (info.file or info.filename)
+    if not (file and info.width and info.width > 2 * STRIP_CAP) then
+        local tex = parent:CreateTexture(nil, layer)
+        tex:SetAllPoints()
+        tex:SetTexture(Constants.ASSETS.MISSING_ICON)
+        return { tex }
+    end
+    local u = (info.rightTexCoord - info.leftTexCoord) / info.width
+    local function piece(x0, x1)
+        local tex = parent:CreateTexture(nil, layer)
+        tex:SetTexture(file)
+        tex:SetTexCoord(info.leftTexCoord + x0 * u, info.leftTexCoord + x1 * u, info.topTexCoord, info.bottomTexCoord)
+        return tex
+    end
+    local left = piece(0, STRIP_CAP)
+    left:SetPoint("TOPLEFT")
+    left:SetPoint("BOTTOMLEFT")
+    left:SetWidth(STRIP_CAP)
+    local right = piece(info.width - STRIP_CAP, info.width)
+    right:SetPoint("TOPRIGHT")
+    right:SetPoint("BOTTOMRIGHT")
+    right:SetWidth(STRIP_CAP)
+    local middle = piece(STRIP_CAP, info.width - STRIP_CAP)
+    middle:SetPoint("TOPLEFT", left, "TOPRIGHT")
+    middle:SetPoint("BOTTOMRIGHT", right, "BOTTOMLEFT")
+    return { left, middle, right }
+end
 
 local function safeGetItemInfo(itemID)
     if not itemID then return nil end
@@ -289,8 +333,7 @@ function DungeonBookView:Init(parent, callbacks)
     leftDivider:SetPoint("TOPRIGHT", leftPage, "TOPRIGHT", -12, -52)
     self.leftDivider = leftDivider
 
-    local bossScroll = CreateFrame("ScrollFrame", "JournalDungeonsBossScrollFrame", leftPage, "UIPanelScrollFrameTemplate")
-    bossScroll.scrollBarHideable = true
+    local bossScroll = addonNs.UI.ScrollFrame:Create(leftPage)
     bossScroll:SetPoint("TOPLEFT", leftPage, "TOPLEFT", 2, -62)
     bossScroll:SetPoint("BOTTOMRIGHT", leftPage, "BOTTOMRIGHT", -22, 6)
     self.bossScroll = bossScroll
@@ -433,8 +476,7 @@ function DungeonBookView:Init(parent, callbacks)
     self:BuildInstanceOverviewPane(rightPage)
 
     -- Sub-Container 2: Scrollable item drop list under the divider
-    local detailScroll = CreateFrame("ScrollFrame", "JournalDungeonsDetailScrollFrame", rightPage, "UIPanelScrollFrameTemplate")
-    detailScroll.scrollBarHideable = true
+    local detailScroll = addonNs.UI.ScrollFrame:Create(rightPage)
     self.detailScroll = detailScroll
 
     local detailScrollChild = CreateFrame("Frame", nil, detailScroll)
@@ -503,10 +545,9 @@ function DungeonBookView:Init(parent, callbacks)
     self.questHeaderLevel = questHeaderMeta
 
     -- Scrollable Quest Body Frame spanning from below questDivider to bottom margin
-    local questBodyScroll = CreateFrame("ScrollFrame", "JournalDungeonsQuestBodyScrollFrame", questDetailContainer, "UIPanelScrollFrameTemplate")
+    local questBodyScroll = addonNs.UI.ScrollFrame:Create(questDetailContainer)
     questBodyScroll:SetPoint("TOPLEFT", questDivider, "BOTTOMLEFT", 0, -8)
     questBodyScroll:SetPoint("BOTTOMRIGHT", questDetailContainer, "BOTTOMRIGHT", -22, 10)
-    questBodyScroll.scrollBarHideable = true
     self.questBodyScroll = questBodyScroll
 
     local questBodyChild = CreateFrame("Frame", nil, questBodyScroll)
@@ -527,35 +568,50 @@ function DungeonBookView:Init(parent, callbacks)
         end
     end)
 
-    local dropUpdateTimer = nil
-    local liveData = parent.DataStore and parent.DataStore.Live
-    if liveData then
-        liveData:AddListener(function()
-            if self.frame and self.frame:IsShown() and self.currentDungeon and (self.selectedBoss or self.activeRightTab == "loot" or self.activeRightTab == "quests") then
-                if dropUpdateTimer and dropUpdateTimer.Cancel then
-                    dropUpdateTimer:Cancel()
-                end
-                if C_Timer and C_Timer.NewTimer then
-                    dropUpdateTimer = C_Timer.NewTimer(0.08, function()
-                        if self.frame and self.frame:IsShown() and self.currentDungeon then
-                            if self.selectedBoss then
-                                self:RenderItemDrops(self.currentDungeon, self.selectedBoss)
-                            elseif self.activeRightTab == "loot" then
-                                self:RenderDungeonItemDrops(self.currentDungeon)
-                            elseif self.activeRightTab == "quests" then
-                                self:RefreshRightPage()
-                            end
-                        end
-                    end)
+    -- Loaded client data redraws only what it changes, batched over a short delay. It never
+    -- re-runs the search's auto-select, so the player's selection stays put.
+    local liveTimer, loadedItems, loadedQuests = nil, {}, false
+    local function applyLoadedData()
+        liveTimer = nil
+        local items, quests = loadedItems, loadedQuests
+        loadedItems, loadedQuests = {}, false
+        if not (self.frame and self.frame:IsShown() and self.currentDungeon) then
+            return
+        end
+        local itemsLoaded = next(items) ~= nil
+        if itemsLoaded and self.searchQuery and self.searchQuery:match("%S") then
+            self.skipSearchAutoSelect = true
+            self:RefreshLeftPage()
+            self.skipSearchAutoSelect = false
+        end
+        if self.activeRightTab == "quests" then
+            if quests or itemsLoaded then
+                self:RefreshRightPage()
+            end
+            return
+        end
+        local lootShown = self.selectedBoss or self.activeRightTab == "loot"
+        local listed = self.lootListItemIDs or {}
+        for itemID in pairs(items) do
+            if lootShown and listed[itemID] then
+                if self.selectedBoss then
+                    self:RenderItemDrops(self.currentDungeon, self.selectedBoss)
                 else
-                    if self.selectedBoss then
-                        self:RenderItemDrops(self.currentDungeon, self.selectedBoss)
-                    elseif self.activeRightTab == "loot" then
-                        self:RenderDungeonItemDrops(self.currentDungeon)
-                    elseif self.activeRightTab == "quests" then
-                        self:RefreshRightPage()
-                    end
+                    self:RenderDungeonItemDrops(self.currentDungeon)
                 end
+                return
+            end
+        end
+    end
+    local liveData = addonNs.DataStore and addonNs.DataStore.Live
+    if liveData then
+        liveData:AddListener(function(batch)
+            for itemID in pairs(batch and batch.item or {}) do
+                loadedItems[itemID] = true
+            end
+            loadedQuests = loadedQuests or (batch and batch.quest ~= nil) or false
+            if not liveTimer then
+                liveTimer = C_Timer.NewTimer(0.08, applyLoadedData)
             end
         end)
     end
@@ -625,6 +681,11 @@ function DungeonBookView:BuildRightSideTabs(bookFrame)
             PlaySound((SOUNDKIT and SOUNDKIT.IG_CHARACTER_INFO_TAB) or Constants.SOUNDS.PAGE_TURN)
         end
         self.activeRightTab = tab.tabKey
+        -- Quests belong to the dungeon, so opening them leaves the boss page
+        if tab.tabKey == "quests" and self.selectedBoss then
+            self.selectedBoss = nil
+            self.suppressSearchAutoBoss = true
+        end
         if self.detailScroll and self.detailScroll.SetVerticalScroll then
             self.detailScroll:SetVerticalScroll(0)
         end
@@ -655,11 +716,8 @@ function DungeonBookView:BuildRightSideTabs(bookFrame)
             GameTooltip:SetText("Dungeon Quests", 1.0, 0.82, 0.0)
             if tab.isEnabled then
                 GameTooltip:AddLine("View all quests, chains, and rewards for this dungeon.", 0.90, 0.90, 0.90, true)
-            elseif tab.disabledReason == "no_quests" then
-                GameTooltip:AddLine("No quests available for your faction or class in this dungeon.", 0.75, 0.75, 0.75, true)
             else
-                GameTooltip:AddLine("Quests are only available on the main dungeon page.", 0.75, 0.75, 0.75, true)
-                GameTooltip:AddLine("Click the dungeon portrait in the upper-left to enable.", 0.35, 0.95, 0.45, true)
+                GameTooltip:AddLine("No quests available for your faction or class in this dungeon.", 0.75, 0.75, 0.75, true)
             end
         elseif self.selectedBoss then
             GameTooltip:SetText((self.selectedBoss.name or "Boss") .. " — Loot", 1.0, 0.82, 0.0)
@@ -740,8 +798,7 @@ function DungeonBookView:UpdateSideTabs()
     if self.wingPage then
         self.activeRightTab = "overview"
     end
-    local questsEnabled = hasQuestsModule and not hasBoss and hasQuests
-    self.questsTabBtn.disabledReason = (hasBoss and "boss_selected") or (not hasQuests and "no_quests") or nil
+    local questsEnabled = hasQuestsModule and hasQuests
 
     -- Auto-fallback if active tab is disabled:
     if hasBoss and (self.activeRightTab == "overview" or self.activeRightTab == "quests") then
@@ -923,23 +980,6 @@ function DungeonBookView:BuildInstanceOverviewPane(rightPage)
     end)
     self.showOnMapBtn = showOnMapBtn
 
-    local liveData = parent.DataStore and parent.DataStore.Live
-    if liveData then
-        liveData:AddListener(function()
-            if self.frame and self.frame:IsShown() then
-                if self.searchQuery and self.searchQuery ~= "" then
-                    local prevBoss = self.selectedBoss
-                    self:RefreshLeftPage()
-                    self:RefreshRightPage()
-                    if self.selectedBoss ~= prevBoss and self.selectedBoss and self.onSelectBoss then
-                        self.onSelectBoss(self.selectedBoss)
-                    end
-                elseif self.selectedBoss or self.activeRightTab == "loot" or self.activeRightTab == "quests" then
-                    self:RefreshRightPage()
-                end
-            end
-        end)
-    end
 end
 
 --- Acquires or creates a clickable Boss Portrait Button on the Left Page (`index`).
@@ -1041,8 +1081,10 @@ end
 --- Shows a dungeon's wing selection page: its wings on the left, its overview on the right.
 --- @param dungeon table a dungeon view with wings (DungeonAccess)
 --- @param onSelectWing function `function(wing)`
-function DungeonBookView:SetWingContext(dungeon, onSelectWing)
+--- @param searchQuery string|nil the live search; filters the wing list
+function DungeonBookView:SetWingContext(dungeon, onSelectWing, searchQuery)
     self.wingPage = true
+    self.searchQuery = searchQuery or ""
     self.onSelectWing = onSelectWing
     self.currentDungeon = dungeon
     self.selectedBoss = nil
@@ -1082,8 +1124,24 @@ function DungeonBookView:RenderWingList(d)
         showColor = _G.JournalBase:GetDungeonSetting("showBossDifficultyColor", true) == true
     end
 
+    -- While searching, list only the wings holding a match; fall back to every wing when the
+    -- query matched the parent alone (e.g. a parent-only alias)
+    local wings = Access:GetWings(d)
+    local query = self.searchQuery
+    if query and query:match("%S") then
+        local matching = {}
+        for _, wing in ipairs(wings) do
+            if Access:DungeonMatches(wing, query) then
+                matching[#matching + 1] = wing
+            end
+        end
+        if #matching > 0 then
+            wings = matching
+        end
+    end
+
     local currentY = -16
-    for i, wing in ipairs(Access:GetWings(d)) do
+    for i, wing in ipairs(wings) do
         local btn = self:AcquireWingButton(i)
         btn.wing = wing
         btn:ClearAllPoints()
@@ -1674,7 +1732,7 @@ function DungeonBookView:RefreshLeftPage()
     -- Auto-select behavior when search query is active:
     --   * Multiple item/encounter matches in the dungeon -> bring up Full Dungeon Loot (`selectedBoss = nil`, `activeRightTab = "loot"`)
     --   * Single match -> auto-select that single encounter
-    if q ~= "" and not self.suppressSearchAutoBoss then
+    if q ~= "" and not self.suppressSearchAutoBoss and not self.skipSearchAutoSelect then
         local matchingEncounterCount = #eventBosses + #mainBosses + #rareBosses + #minorBosses + #challengeBosses + (hasZoneDrops and 1 or 0)
         local matchingItemCount = 0
         local parsedQuery = Search:Parse(q)
@@ -1984,6 +2042,11 @@ local ITEM_CATEGORIES = {
 --- @param q string
 --- @param emptyText string
 function DungeonBookView:RenderCategorizedDropEntries(entries, filterByItem, parsedQuery, q, emptyText)
+    -- Every item this list covers, shown or filtered out; a load of any of them redraws the list
+    self.lootListItemIDs = {}
+    for _, entry in ipairs(entries or {}) do
+        self.lootListItemIDs[entry.itemID] = true
+    end
     for _, hdr in ipairs(self.categoryHeaderPool) do hdr:Hide() end
     for _, row in ipairs(self.itemRowPool) do row:Hide() end
     for _, btn in ipairs(self.questButtonPool) do btn:Hide() end
@@ -2649,7 +2712,52 @@ function DungeonBookView:CreateAccordionBanner(parent)
     titleText:SetShadowOffset(1, -1)
     banner.titleText = titleText
 
+    -- Our own banner art; the Forever theme swaps it for the Reputation header's
+    banner.classicParts = { shadow, baseRim, fill, topHi, leftHi, botSh, rightSh, hl }
+
+    -- Forever theme: the Reputation and Skills tabs' collapsible header (Camelot ReputationHeaderTemplate),
+    -- stretched to the banner's width from its ends, with its plus / minus state icon
+    banner.foreverParts = {}
+    for _, part in ipairs(createAtlasStrip(banner, "BACKGROUND", REPUTATION_HEADER)) do
+        banner.foreverParts[#banner.foreverParts + 1] = part
+    end
+    for _, part in ipairs(createAtlasStrip(banner, "HIGHLIGHT", REPUTATION_HEADER)) do
+        part:SetBlendMode("ADD")
+        part:SetAlpha(0.3)
+        banner.foreverParts[#banner.foreverParts + 1] = part
+    end
+    local stateIcon = banner:CreateTexture(nil, "BORDER")
+    stateIcon:SetPoint("RIGHT", banner, "RIGHT", -8, -1)
+    banner.stateIcon = stateIcon
+    banner.foreverParts[#banner.foreverParts + 1] = stateIcon
+
     return banner
+end
+
+--- Styles a quest chain banner for the window theme and whether its step is open: the Forever theme uses
+--- the Reputation header with its plus / minus icon; the others use our banner, lit gold while open.
+--- @param banner Button a banner from CreateAccordionBanner
+--- @param isOpen boolean
+function DungeonBookView:SetAccordionBannerState(banner, isOpen)
+    local forever = WindowBackground:IsForever()
+    for _, part in ipairs(banner.classicParts) do part:SetShown(not forever) end
+    for _, part in ipairs(banner.foreverParts) do part:SetShown(forever) end
+    banner.arrowText:SetShown(not forever)
+    banner.levelText:ClearAllPoints()
+    if forever then
+        banner.stateIcon:SetAtlas(isOpen and "common-button-list-minus" or "common-button-list-plus", true)
+        banner.levelText:SetPoint("RIGHT", banner.stateIcon, "LEFT", -10, 1)
+        return
+    end
+    banner.arrowText:SetText(isOpen and "[-]" or "[+]")
+    banner.levelText:SetPoint("RIGHT", banner.arrowText, "LEFT", -10, 0)
+    if isOpen then
+        banner._baseRim:SetVertexColor(0.85, 0.65, 0.20, 1.0)
+        banner._fill:SetVertexColor(1.0, 0.96, 0.85, 1.0)
+    else
+        banner._baseRim:SetVertexColor(0.12, 0.09, 0.06, 0.95)
+        banner._fill:SetVertexColor(0.88, 0.86, 0.82, 0.95)
+    end
 end
 
 function DungeonBookView:CreateQuestItemRewardButton(parent)
@@ -2877,7 +2985,7 @@ function DungeonBookView:CreateQuestMapPinButton(parent)
         if not GameTooltip then return end
         GameTooltip:SetOwner(b, "ANCHOR_RIGHT")
         if b.isAvailable then
-            GameTooltip:AddLine("Pin to map", 1.0, 0.82, 0.0)
+            GameTooltip:AddLine("Pin to Map", 1.0, 0.82, 0.0)
             if b.targetLabel and b.targetLabel ~= "" then
                 GameTooltip:AddLine(b.targetLabel, 1.0, 1.0, 1.0, true)
             end
@@ -2886,7 +2994,7 @@ function DungeonBookView:CreateQuestMapPinButton(parent)
             end
             GameTooltip:AddLine("Click to set waypoint and open the World Map.", 0.2, 0.8, 1.0, true)
         else
-            GameTooltip:AddLine("Pin unavailable", 0.75, 0.75, 0.75)
+            GameTooltip:AddLine("Pin Unavailable", 0.75, 0.75, 0.75)
             if b.unavailableReason and b.unavailableReason ~= "" then
                 GameTooltip:AddLine(b.unavailableReason, 0.6, 0.6, 0.6, true)
             end
@@ -3180,7 +3288,7 @@ function DungeonBookView:RenderQuestBodyDetails(q, giverInfo, dungeon)
             banner:SetPoint("TOPRIGHT", child, "TOPRIGHT", -4, curY)
 
             local isOpen = (self.accordionOpenState[step.id] == true)
-            banner.arrowText:SetText(isOpen and "[-]" or "[+]")
+            self:SetAccordionBannerState(banner, isOpen)
 
             local sLevel = (step.reqLevel and step.reqLevel > 0 and step.reqLevel) or step.level or 0
             local r, g, b = GetDifficultyColor(sLevel)
@@ -3188,21 +3296,6 @@ function DungeonBookView:RenderQuestBodyDetails(q, giverInfo, dungeon)
             banner.levelText:SetText(string.format("|cff%sLv %d|r", hex, sLevel))
 
             banner.titleText:SetText(string.format("Step %d: %s", step.stepIndex, step.name))
-
-            if banner._baseRim then
-                if isOpen then
-                    banner._baseRim:SetVertexColor(0.85, 0.65, 0.20, 1.0)
-                else
-                    banner._baseRim:SetVertexColor(0.12, 0.09, 0.06, 0.95)
-                end
-            end
-            if banner._fill then
-                if isOpen then
-                    banner._fill:SetVertexColor(1.0, 0.96, 0.85, 1.0)
-                else
-                    banner._fill:SetVertexColor(0.88, 0.86, 0.82, 0.95)
-                end
-            end
 
             local stepActive = step.isActive or (questDb and questDb:IsQuestActive(step.id))
             if step.isCompleted then

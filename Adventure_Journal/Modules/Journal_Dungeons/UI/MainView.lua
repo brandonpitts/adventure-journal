@@ -57,6 +57,7 @@ function MainView:Init(parentCanvas, headerBar)
             self:ReturnToDungeonOverview()
         end,
         onTabChanged = function()
+            self.selectedBoss = ns.UI.DungeonBookView.selectedBoss
             self:UpdateBreadcrumbs()
         end,
     })
@@ -203,7 +204,7 @@ function MainView:ShowWingPage(dungeon)
     ns.UI.DungeonGridView:Hide()
     ns.UI.DungeonBookView:SetWingContext(dungeon, function(wing)
         self:OpenBook(wing)
-    end)
+    end, self.searchQuery or "")
     ns.UI.DungeonBookView:Show()
 end
 
@@ -282,7 +283,9 @@ function MainView:OnSearch(queryText)
             self.selectedBoss = nil
             self:UpdateBreadcrumbs()
         end
-    elseif not self.wingParent then
+    elseif self.wingParent then
+        ns.UI.DungeonBookView:SetSearchQuery(queryText or "")
+    else
         ns.UI.DungeonGridView:SetSearchQuery(queryText or "")
     end
 end

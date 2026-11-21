@@ -100,7 +100,7 @@ function JournalBase:GetModule(moduleId)
     return ns.ModuleRegistry:GetModule(moduleId)
 end
 
---- Activates the default opening tab (e.g. Dungeons).
+--- Activates the tab used last, or the first enabled tab (e.g. Dungeons).
 function JournalBase:ActivateDefaultModule()
     ns.ModuleRegistry:ActivateDefaultModule()
 end

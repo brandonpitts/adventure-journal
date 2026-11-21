@@ -15,7 +15,6 @@ local addonName, ns = ...
 -- 1. Upvalued Globals
 -- ----------------------------------------------------------------------------
 local _G = _G
-local UnitLevel = _G.UnitLevel
 local C_Map = _G.C_Map
 local string = string
 local math = math
@@ -32,45 +31,7 @@ local AreaLabelProvider = {
 }
 
 -- ----------------------------------------------------------------------------
--- 2. Zone Difficulty Coloring System
--- ----------------------------------------------------------------------------
---- Evaluates difficulty color considering both the top end and bottom end of the zone.
---- - If player is 5+ levels above maxLevel: Grey (Trivial)
---- - If player is 3-4 levels above maxLevel: Green
---- - If player is within or close to range (minLevel - 2 <= player <= maxLevel + 2): Yellow
---- - If player is 3-4 levels below minLevel: Orange
---- - If player is 5+ levels below minLevel: Red
---- @param playerLevel number
---- @param minLevel number
---- @param maxLevel number
---- @return number r, number g, number b, string hex
-local function GetZoneDifficultyColor(playerLevel, minLevel, maxLevel)
-    playerLevel = playerLevel or 1
-    minLevel = minLevel or 1
-    maxLevel = maxLevel or 60
-
-    -- 5+ levels above maxLevel -> Grey (Trivial)
-    if playerLevel - maxLevel >= 5 then
-        return 0.60, 0.60, 0.60, "999999"
-    -- 3-4 levels above maxLevel -> Green (Low Challenge)
-    elseif playerLevel - maxLevel >= 3 then
-        return 0.25, 0.90, 0.25, "40e640"
-    -- Active bracket & buffer zone (within 2 levels of either bound) -> Yellow / Gold
-    elseif playerLevel >= (minLevel - 2) and playerLevel <= (maxLevel + 2) then
-        return 1.00, 0.82, 0.00, "ffd100"
-    -- 3-4 levels below minLevel -> Orange (Challenging)
-    elseif (minLevel - playerLevel) <= 4 then
-        return 1.00, 0.50, 0.25, "ff8040"
-    -- 5+ levels below minLevel -> Red (Very Difficult)
-    else
-        return 1.00, 0.20, 0.20, "ff3333"
-    end
-end
-
-ns.GetZoneDifficultyColor = GetZoneDifficultyColor
-
--- ----------------------------------------------------------------------------
--- 3. Label Frame Setup & Stacked FontStrings
+-- 2. Label Frame Setup & Stacked FontStrings
 -- ----------------------------------------------------------------------------
 local function EnsureCustomFontStrings(labelFrame)
     if AreaLabelProvider.levelText and AreaLabelProvider.fishingText then
@@ -127,7 +88,7 @@ local function EnsureCustomFontStrings(labelFrame)
 end
 
 -- ----------------------------------------------------------------------------
--- 4. Zone Data Resolution (MapID & Name Matching)
+-- 3. Zone Data Resolution (MapID & Name Matching)
 -- ----------------------------------------------------------------------------
 local function BuildZoneNameLookup()
     if AreaLabelProvider.zoneLevelsByName then
@@ -175,7 +136,7 @@ local function GetZoneData(map, zoneName)
 end
 
 -- ----------------------------------------------------------------------------
--- 5. Secure Post-Hook Label Evaluation
+-- 4. Secure Post-Hook Label Evaluation
 -- ----------------------------------------------------------------------------
 local function OnEvaluateLabels(provider, labelFrame)
     local levelText = AreaLabelProvider.levelText
@@ -216,8 +177,8 @@ local function OnEvaluateLabels(provider, labelFrame)
     if zData then
         local hasLevels = zData.minLevel and zData.maxLevel and zData.minLevel > 0 and zData.maxLevel > 0
         if showLevels and hasLevels then
-            local pLevel = UnitLevel("player") or 1
-            local r, g, b, hex = GetZoneDifficultyColor(pLevel, zData.minLevel, zData.maxLevel)
+            local r, g, b = ns.LevelColors:ForRange(zData.minLevel, zData.maxLevel)
+            local hex = ns.LevelColors:ToHex(r, g, b)
             local levelStr
             if zData.minLevel == zData.maxLevel then
                 levelStr = string.format("%d", zData.maxLevel)
@@ -255,7 +216,7 @@ local function OnEvaluateLabels(provider, labelFrame)
 end
 
 -- ----------------------------------------------------------------------------
--- 6. Hook Provider Registration (Secure & Non-Tainting)
+-- 5. Hook Provider Registration (Secure & Non-Tainting)
 -- ----------------------------------------------------------------------------
 function AreaLabelProvider:Init()
     if self.isInitialized then return end

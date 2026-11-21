@@ -7,9 +7,7 @@ local addonName, ns = ...
 -- ----------------------------------------------------------------------------
 -- 1. Upvalued Globals & Constants
 -- ----------------------------------------------------------------------------
-local _G = _G
 local ipairs = ipairs
-local math = math
 local CreateFrame = CreateFrame
 local PlaySound = PlaySound
 local PanelTemplates_SetNumTabs = PanelTemplates_SetNumTabs
@@ -22,50 +20,14 @@ local Constants = ns.Constants
 -- 2. Private Helper Functions
 -- ----------------------------------------------------------------------------
 
---- Applies native Blizzard tab sizing strictly fitted to the tab's text string width
---- so tabs never stretch across empty space.
+-- Gap between neighboring tabs, as on the game's Character window (CharacterFrame.xml)
+local TAB_GAP = 1
+
+--- Fits a tab to its label the way the game's own tabs are sized: the text plus the template's side padding.
+--- The template stretches its middle art between the edge pieces, so only the button width is set.
 local function resizeTabButton(tabButton)
-    local tabName = tabButton:GetName()
-    local fs = tabButton:GetFontString()
-        or tabButton.Text
-        or (tabName and _G[tabName .. "Text"])
-
-    local textWidth = nil
-    if fs then
-        fs:SetWidth(0)
-        if fs.GetStringWidth then
-            local w = fs:GetStringWidth()
-            if w and w > 0 then
-                textWidth = math.ceil(w)
-            end
-        end
-    end
-
     if PanelTemplates_TabResize then
-        PanelTemplates_TabResize(tabButton, 0, nil, nil, nil, textWidth)
-    end
-
-    -- Enforce compact width based on actual string measurement
-    if textWidth and textWidth > 0 then
-        local leftTex = tabButton.Left or (tabName and _G[tabName .. "Left"])
-        local sideWidths = (leftTex and leftTex.GetWidth and leftTex:GetWidth() and (2 * leftTex:GetWidth())) or 40
-        local middleWidth = textWidth + 24
-        local totalWidth = middleWidth + sideWidths
-
-        local middleTex = tabButton.Middle or (tabName and _G[tabName .. "Middle"])
-        local middleDisabledTex = tabButton.MiddleDisabled or (tabName and _G[tabName .. "MiddleDisabled"])
-        local highlightTex = tabButton.HighlightTexture or (tabName and _G[tabName .. "HighlightTexture"])
-
-        if middleTex and middleTex.SetWidth then
-            middleTex:SetWidth(middleWidth)
-        end
-        if middleDisabledTex and middleDisabledTex.SetWidth then
-            middleDisabledTex:SetWidth(middleWidth)
-        end
-        if highlightTex and highlightTex.SetWidth then
-            highlightTex:SetWidth(totalWidth)
-        end
-        tabButton:SetWidth(totalWidth)
+        PanelTemplates_TabResize(tabButton, 0)
     end
 end
 
@@ -106,7 +68,7 @@ function TabBar:PositionTabs()
             if not prevTab then
                 tab:SetPoint("TOPLEFT", self.parentFrame, "BOTTOMLEFT", 11, 2)
             else
-                tab:SetPoint("LEFT", prevTab, "RIGHT", -14, 0)
+                tab:SetPoint("TOPLEFT", prevTab, "TOPRIGHT", TAB_GAP, 0)
             end
             prevTab = tab
         end

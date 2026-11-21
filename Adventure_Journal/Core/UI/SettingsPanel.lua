@@ -23,10 +23,50 @@ local Constants = ns.Constants
 
 local MODULE_ROW_HEIGHT = 38
 local MODULE_ROW_GAP = 6
+-- Distance between the tops of consecutive General rows
+local GENERAL_ROW_SPACING = 28
+
+-- Dungeon setting dropdowns: the setting, its choices, the default, and old saved values that map to a choice
+local DUNGEON_DROPDOWNS = {
+    sort = {
+        key = "dungeonGridSort", default = "level", aliases = { name = "alphabetical" },
+        options = {
+            { text = "Level Ascending (Default)", value = "level" },
+            { text = "Level Descending", value = "levelDesc" },
+            { text = "Alphabetical (A-Z)", value = "alphabetical" },
+        },
+    },
+    layout = {
+        key = "dungeonGridLayout", default = "four",
+        options = {
+            { text = "4 per Row (Default)", value = "four" },
+            { text = "3 per Row", value = "three" },
+            { text = "2 per Row (Large)", value = "two_large" },
+            { text = "2 per Row (Compact)", value = "two_compact" },
+        },
+    },
+}
 
 -- ----------------------------------------------------------------------------
 -- 2. Private Helper Functions
 -- ----------------------------------------------------------------------------
+
+--- A dungeon dropdown's saved value as one of its choices, and that choice's label.
+--- @param def table a DUNGEON_DROPDOWNS entry
+local function currentChoice(def)
+    local raw = ns.Settings and ns.Settings.GetDungeonSetting and ns.Settings:GetDungeonSetting(def.key, def.default)
+    raw = def.aliases and def.aliases[raw] or raw
+    local fallback
+    for _, opt in ipairs(def.options) do
+        if opt.value == raw then
+            return opt.value, opt.text
+        end
+        if opt.value == def.default then
+            fallback = opt
+        end
+    end
+    return fallback.value, fallback.text
+end
 
 --- Applies background and border textures to a module row frame.
 local function styleModuleRow(row)
@@ -70,75 +110,6 @@ local function styleModuleRow(row)
     bRight:SetVertexColor(0.36, 0.29, 0.17, 0.78)
 end
 
---- Builds a native WoW Radio Button (`22x22`) to the left of the module icon.
---- Enforces exclusive "there always must be one" selection for the Default Landing Tab
---- (with Dungeons selected by default).
-local function createDefaultLandingButton(parentRow)
-    local btn = CreateFrame("CheckButton", nil, parentRow)
-    btn:SetSize(22, 22)
-
-    local normalTex = btn:CreateTexture(nil, "BACKGROUND")
-    normalTex:SetSize(20, 20)
-    normalTex:SetPoint("CENTER", btn, "CENTER", 0, 0)
-    normalTex:SetTexture("Interface\\Buttons\\UI-RadioButton")
-    normalTex:SetTexCoord(0, 0.25, 0, 1)
-    btn:SetNormalTexture(normalTex)
-    btn.normalTex = normalTex
-
-    local checkedTex = btn:CreateTexture(nil, "ARTWORK")
-    checkedTex:SetSize(20, 20)
-    checkedTex:SetPoint("CENTER", btn, "CENTER", 0, 0)
-    checkedTex:SetTexture("Interface\\Buttons\\UI-RadioButton")
-    checkedTex:SetTexCoord(0.25, 0.5, 0, 1)
-    btn:SetCheckedTexture(checkedTex)
-    btn.checkedTex = checkedTex
-
-    local highlightTex = btn:CreateTexture(nil, "HIGHLIGHT")
-    highlightTex:SetSize(20, 20)
-    highlightTex:SetPoint("CENTER", btn, "CENTER", 0, 0)
-    highlightTex:SetTexture("Interface\\Buttons\\UI-RadioButton")
-    highlightTex:SetTexCoord(0.5, 0.75, 0, 1)
-    highlightTex:SetBlendMode("ADD")
-    btn:SetHighlightTexture(highlightTex)
-    btn.highlightTex = highlightTex
-
-    return btn
-end
-
---- Updates the checked and enabled visual state of the Default Landing Tab radio button.
-local function setDefaultLandingButtonState(btn, isDefault, isEnabled)
-    btn:SetChecked(isDefault and true or false)
-    if isDefault then
-        btn:Enable()
-        btn:SetAlpha(1.0)
-        if btn.normalTex and btn.normalTex.SetDesaturated then
-            btn.normalTex:SetDesaturated(false)
-        end
-        if btn.checkedTex then
-            btn.checkedTex:Show()
-        end
-    elseif isEnabled then
-        btn:Enable()
-        btn:SetAlpha(0.95)
-        if btn.normalTex and btn.normalTex.SetDesaturated then
-            btn.normalTex:SetDesaturated(false)
-        end
-        if btn.checkedTex then
-            btn.checkedTex:Hide()
-        end
-    else
-        btn:SetChecked(false)
-        btn:Disable()
-        btn:SetAlpha(0.40)
-        if btn.normalTex and btn.normalTex.SetDesaturated then
-            btn.normalTex:SetDesaturated(true)
-        end
-        if btn.checkedTex then
-            btn.checkedTex:Hide()
-        end
-    end
-end
-
 -- ----------------------------------------------------------------------------
 -- 3. Module / Mixin Definition
 -- ----------------------------------------------------------------------------
@@ -162,23 +133,9 @@ function SettingsPanel:Init()
     self:CreateHeader(panel)
 
     -- Scrollable body container for settings content
-    local scrollFrame = CreateFrame("ScrollFrame", "AdventureJournalSettingsScrollFrame", panel, "UIPanelScrollFrameTemplate")
+    local scrollFrame = ns.UI.ScrollFrame:Create(panel)
     scrollFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, -66)
     scrollFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -26, 4)
-    scrollFrame.scrollBarHideable = true
-    scrollFrame:EnableMouseWheel(true)
-    scrollFrame:SetScript("OnMouseWheel", function(sf, delta)
-        local cur = sf:GetVerticalScroll()
-        local maxScroll = sf:GetVerticalScrollRange()
-        local step = 30
-        local newScroll = cur - (delta * step)
-        if newScroll < 0 then
-            newScroll = 0
-        elseif newScroll > maxScroll then
-            newScroll = maxScroll
-        end
-        sf:SetVerticalScroll(newScroll)
-    end)
     self.scrollFrame = scrollFrame
 
     local scrollChild = CreateFrame("Frame", nil, scrollFrame)
@@ -187,10 +144,10 @@ function SettingsPanel:Init()
     self.scrollChild = scrollChild
 
     self:CreateCatalogDisclaimerBanner(scrollChild)
+    self:CreateGeneralHeader(scrollChild)
     self:CreateKeybindRow(scrollChild)
     self:CreateMinimapToggleRow(scrollChild)
     self:CreateAddonCompartmentToggleRow(scrollChild)
-    self:CreateCompareItemsToggleRow(scrollChild)
     self:CreateLockWindowToggleRow(scrollChild)
     self:CreateWindowBackgroundRow(scrollChild)
     self:CreateFiligreeToggleRow(scrollChild)
@@ -314,11 +271,44 @@ function SettingsPanel:CreateCatalogDisclaimerBanner(panel)
     self.CatalogDisclaimerBanner = banner
 end
 
+--- Builds the "General" section header above the journal-wide rows.
+--- @param panel Frame
+function SettingsPanel:CreateGeneralHeader(panel)
+    local sectionHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    sectionHeader:SetPoint("TOPLEFT", self.CatalogDisclaimerBanner, "BOTTOMLEFT", 0, -18)
+    sectionHeader:SetText("General")
+    self.GeneralHeader = sectionHeader
+
+    local subNote = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    subNote:SetPoint("LEFT", sectionHeader, "RIGHT", 12, 0)
+    subNote:SetText("Keybind, launcher buttons, and the journal window.")
+    subNote:SetTextColor(0.68, 0.64, 0.56)
+
+    local divider = panel:CreateTexture(nil, "ARTWORK")
+    divider:SetHeight(1)
+    divider:SetPoint("TOPLEFT", sectionHeader, "BOTTOMLEFT", 0, -6)
+    divider:SetPoint("RIGHT", panel, "RIGHT", -18, 0)
+    divider:SetTexture(Constants.ASSETS.WHITE_8X8)
+    divider:SetVertexColor(0.68, 0.52, 0.20, 0.35)
+    self.GeneralDivider = divider
+end
+
+--- Places a General row's label: the first just below the General divider, each next one a row below the last.
+--- @param label FontString
+function SettingsPanel:PlaceGeneralRow(label)
+    if self.lastGeneralRow then
+        label:SetPoint("TOPLEFT", self.lastGeneralRow, "TOPLEFT", 0, -GENERAL_ROW_SPACING)
+    else
+        label:SetPoint("TOPLEFT", self.GeneralDivider, "BOTTOMLEFT", 6, -16)
+    end
+    self.lastGeneralRow = label
+end
+
 --- Builds the interactive "Toggle Journal Keybind" row using `ns.UI.KeybindButton`.
 --- @param panel Frame
 function SettingsPanel:CreateKeybindRow(panel)
     local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -56)
+    self:PlaceGeneralRow(label)
     label:SetText("Toggle Journal Keybind")
     self.KeybindLabel = label
 
@@ -332,7 +322,7 @@ end
 --- @param panel Frame
 function SettingsPanel:CreateMinimapToggleRow(panel)
     local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -84)
+    self:PlaceGeneralRow(label)
     label:SetText("Show Minimap Icon")
     self.MinimapLabel = label
 
@@ -373,7 +363,7 @@ end
 --- @param panel Frame
 function SettingsPanel:CreateAddonCompartmentToggleRow(panel)
     local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -112)
+    self:PlaceGeneralRow(label)
     label:SetText("Show in Blizzard Addon Compartment")
     self.AddonCompartmentLabel = label
 
@@ -407,52 +397,12 @@ function SettingsPanel:CreateAddonCompartmentToggleRow(panel)
     self.AddonCompartmentCheckbox = checkbox
 end
 
---- Builds the "Automatically compare items on mouseover" checkbox row.
---- @param panel Frame
-function SettingsPanel:CreateCompareItemsToggleRow(panel)
-    local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -140)
-    label:SetText("Automatically Compare Items on Mouseover")
-    self.CompareItemsLabel = label
-
-    local checkbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
-    checkbox:SetSize(28, 28)
-    checkbox:SetPoint("RIGHT", panel, "RIGHT", -24, 0)
-    checkbox:SetPoint("CENTER", label, "CENTER", 0, 0)
-
-    checkbox:SetScript("OnEnter", function(cb)
-        if GameTooltip then
-            GameTooltip:SetOwner(cb, "ANCHOR_RIGHT")
-            GameTooltip:AddLine("Automatically Compare Items", 1.0, 0.82, 0.0)
-            GameTooltip:AddLine("When enabled, comparison tooltips for your equipped gear are displayed automatically whenever you hover an equippable item.\n\nWhen disabled, comparison tooltips only appear while holding Shift.", 1.0, 1.0, 1.0, true)
-            GameTooltip:Show()
-        end
-    end)
-    checkbox:SetScript("OnLeave", function()
-        if GameTooltip then
-            GameTooltip:Hide()
-        end
-    end)
-
-    checkbox:SetScript("OnClick", function(cb)
-        local isChecked = cb:GetChecked() and true or false
-        if PlaySound then
-            PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
-        end
-        if SetCVar then
-            SetCVar("alwaysCompareItems", isChecked and "1" or "0")
-        end
-    end)
-
-    self.CompareItemsCheckbox = checkbox
-end
-
---- Builds the "Lock Adventure Journal Window (shift + click and drag to move)" checkbox row.
+--- Builds the "Lock Adventure Journal Window (Shift + Click and Drag to Move)" checkbox row.
 --- @param panel Frame
 function SettingsPanel:CreateLockWindowToggleRow(panel)
     local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -168)
-    label:SetText("Lock Adventure Journal Window (shift + click and drag to move)")
+    self:PlaceGeneralRow(label)
+    label:SetText("Lock Adventure Journal Window (Shift + Click and Drag to Move)")
     self.LockWindowLabel = label
 
     local checkbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
@@ -485,12 +435,12 @@ function SettingsPanel:CreateLockWindowToggleRow(panel)
     self.LockWindowCheckbox = checkbox
 end
 
---- Builds the "Window Background" dropdown row (choices from Core/UI/WindowBackground.lua).
+--- Builds the "Window Theme" dropdown row (choices from Core/UI/WindowBackground.lua).
 --- @param panel Frame
 function SettingsPanel:CreateWindowBackgroundRow(panel)
     local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -196)
-    label:SetText("Window Background")
+    self:PlaceGeneralRow(label)
+    label:SetText("Window Theme")
 
     local dropdown = CreateFrame("Frame", "AdventureJournalWindowBackgroundDropdown", panel, "UIDropDownMenuTemplate")
     dropdown:SetPoint("RIGHT", panel, "RIGHT", -16, 0)
@@ -517,8 +467,8 @@ function SettingsPanel:CreateWindowBackgroundRow(panel)
     dropdown:SetScript("OnEnter", function(dd)
         if GameTooltip then
             GameTooltip:SetOwner(dd, "ANCHOR_RIGHT")
-            GameTooltip:AddLine("Window Background", 1.0, 0.82, 0.0)
-            GameTooltip:AddLine("The background behind every page of the journal:\n\n• Stone: the Collections window's stone (Default).\n• Parchment: the spellbook's parchment page.\n• Legacy: the Legacy window's background.", 1.0, 1.0, 1.0, true)
+            GameTooltip:AddLine("Window Theme", 1.0, 0.82, 0.0)
+            GameTooltip:AddLine("The look of every page of the journal:\n\n• Stone: the Collections window's stone (Default).\n• Parchment: the spellbook's parchment page.\n• Forever: the Legacy window's background, with headers styled like the Reputation and Skills tabs.", 1.0, 1.0, 1.0, true)
             GameTooltip:Show()
         end
     end)
@@ -535,7 +485,7 @@ end
 --- @param panel Frame
 function SettingsPanel:CreateFiligreeToggleRow(panel)
     local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -224)
+    self:PlaceGeneralRow(label)
     label:SetText("Show Corner Filigree")
 
     local checkbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
@@ -573,7 +523,7 @@ end
 --- @param panel Frame
 function SettingsPanel:CreateAdvancedSearchSection(panel)
     local sectionHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    sectionHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 18, -268)
+    sectionHeader:SetPoint("TOPLEFT", self.lastGeneralRow, "BOTTOMLEFT", -6, -32)
     sectionHeader:SetText("Advanced Searching")
     self.AdvancedSearchHeader = sectionHeader
 
@@ -702,7 +652,7 @@ function SettingsPanel:CreateInstalledModulesSection(panel)
 
     local subNote = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     subNote:SetPoint("LEFT", sectionHeader, "RIGHT", 12, 0)
-    subNote:SetText("Select a default opening tab, or disable modules to unload them (/reload to re-enable).")
+    subNote:SetText("Disable modules to unload them (/reload to re-enable).")
     subNote:SetTextColor(0.68, 0.64, 0.56)
 
     local divider = panel:CreateTexture(nil, "ARTWORK")
@@ -724,13 +674,78 @@ function SettingsPanel:CreateInstalledModulesSection(panel)
     self.NoModulesText = emptyText
 end
 
---- Builds the "Dungeon Module" section with a clean section header, divider,
---- and module-specific settings (such as toggling boss levels on list buttons).
+--- Builds a labeled dropdown row for a dungeon setting (`def`, a DUNGEON_DROPDOWNS entry), its label placed
+--- with the given anchor. Choosing an option saves it and tells the Dungeons module. Returns the label.
+--- @return FontString
+function SettingsPanel:CreateDungeonDropdownRow(panel, def, labelText, frameName, point, relativeTo, relativePoint,
+        x, y, tooltipText)
+    local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetPoint(point, relativeTo, relativePoint, x, y)
+    label:SetText(labelText)
+
+    -- The dropdown template needs a global name
+    local dropdown = CreateFrame("Frame", frameName, panel, "UIDropDownMenuTemplate")
+    dropdown:SetPoint("RIGHT", panel, "RIGHT", -16, 0)
+    dropdown:SetPoint("CENTER", label, "CENTER", 0, -2)
+    if UIDropDownMenu_SetWidth then
+        UIDropDownMenu_SetWidth(dropdown, 140)
+    end
+
+    if UIDropDownMenu_Initialize then
+        UIDropDownMenu_Initialize(dropdown, function(_, level)
+            local selectedValue = currentChoice(def)
+            for _, opt in ipairs(def.options) do
+                local info = UIDropDownMenu_CreateInfo and UIDropDownMenu_CreateInfo() or {}
+                info.text = opt.text
+                info.value = opt.value
+                info.func = function(btn)
+                    if UIDropDownMenu_SetSelectedValue then
+                        UIDropDownMenu_SetSelectedValue(dropdown, btn.value)
+                    end
+                    if UIDropDownMenu_SetText then
+                        UIDropDownMenu_SetText(dropdown, btn:GetText())
+                    end
+                    if ns.Settings and ns.Settings.SetDungeonSetting then
+                        ns.Settings:SetDungeonSetting(def.key, btn.value)
+                    end
+                    if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
+                        _G.JournalBase:OnDungeonSettingChanged(def.key, btn.value)
+                    end
+                end
+                info.checked = (opt.value == selectedValue)
+                if UIDropDownMenu_AddButton then
+                    UIDropDownMenu_AddButton(info, level)
+                end
+            end
+        end)
+    end
+
+    dropdown:SetScript("OnEnter", function(dd)
+        if GameTooltip then
+            GameTooltip:SetOwner(dd, "ANCHOR_RIGHT")
+            GameTooltip:AddLine(labelText, 1.0, 0.82, 0.0)
+            GameTooltip:AddLine(tooltipText, 1.0, 1.0, 1.0, true)
+            GameTooltip:Show()
+        end
+    end)
+    dropdown:SetScript("OnLeave", function()
+        if GameTooltip then
+            GameTooltip:Hide()
+        end
+    end)
+
+    self.dungeonDropdowns = self.dungeonDropdowns or {}
+    self.dungeonDropdowns[#self.dungeonDropdowns + 1] = { dropdown = dropdown, def = def }
+    return label
+end
+
+--- Builds the "Dungeon Module" section: its header and every Dungeons option row.
 --- @param panel Frame
 function SettingsPanel:CreateDungeonModuleSection(panel)
     local sectionHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     sectionHeader:SetPoint("TOPLEFT", self.ModuleListContainer, "BOTTOMLEFT", 0, -20)
     sectionHeader:SetText("Dungeon Module")
+    self.DungeonModuleHeader = sectionHeader
 
     local subNote = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     subNote:SetPoint("LEFT", sectionHeader, "RIGHT", 12, 0)
@@ -744,76 +759,20 @@ function SettingsPanel:CreateDungeonModuleSection(panel)
     divider:SetTexture(Constants.ASSETS.WHITE_8X8)
     divider:SetVertexColor(0.68, 0.52, 0.20, 0.35)
 
-    -- Row 1: "Sort Dungeon Grid By" (dropdown: "Level Bracket (Default)", "Alphabetical (A-Z)")
-    local sortLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    sortLabel:SetPoint("TOPLEFT", divider, "BOTTOMLEFT", 6, -16)
-    sortLabel:SetText("Sort Dungeon Grid by")
+    -- Row 1: "Sort Dungeon Grid by"
+    local sortLabel = self:CreateDungeonDropdownRow(panel, DUNGEON_DROPDOWNS.sort, "Sort Dungeon Grid by",
+        "AdventureJournalDungeonSortDropdown", "TOPLEFT", divider, "BOTTOMLEFT", 6, -16,
+        "Controls how dungeon cards are ordered on the Dungeons tab grid:\n\n• Level Ascending: Lowest level range first, matching official Blizzard Looking For Group brackets (Default).\n• Level Descending: Highest level range first.\n• Alphabetical (A-Z): Sorted alphabetically by dungeon name.")
     self.DungeonSortLabel = sortLabel
 
-    local sortDropdown = CreateFrame("Frame", "AdventureJournalDungeonSortDropdown", panel, "UIDropDownMenuTemplate")
-    sortDropdown:SetPoint("RIGHT", panel, "RIGHT", -16, 0)
-    sortDropdown:SetPoint("CENTER", sortLabel, "CENTER", 0, -2)
-    if UIDropDownMenu_SetWidth then
-        UIDropDownMenu_SetWidth(sortDropdown, 140)
-    end
+    -- Row 2: "Dungeon Grid Layout"
+    local layoutLabel = self:CreateDungeonDropdownRow(panel, DUNGEON_DROPDOWNS.layout, "Dungeon Grid Layout",
+        "AdventureJournalDungeonLayoutDropdown", "TOPLEFT", sortLabel, "BOTTOMLEFT", 0, -22,
+        "How many dungeon cards sit in each row of the Dungeons tab grid:\n\n• 2 per Row (Compact) and (Large): wide cards with the name, levels, and zone.\n• 3 per Row: the name, levels, and zone.\n• 4 per Row: small cards with the name and levels centered (Default).")
 
-    local DUNGEON_SORT_OPTIONS = {
-        { text = "Level Bracket (Default)", value = "level" },
-        { text = "Alphabetical (A-Z)", value = "alphabetical" },
-    }
-
-    local function initializeSortDropdown(selfDD, level)
-        local rawVal = ns.Settings and ns.Settings.GetDungeonSetting and ns.Settings:GetDungeonSetting("dungeonGridSort", "level")
-        local selectedValue = (rawVal == "alphabetical" or rawVal == "name") and "alphabetical" or "level"
-
-        for _, opt in ipairs(DUNGEON_SORT_OPTIONS) do
-            local info = UIDropDownMenu_CreateInfo and UIDropDownMenu_CreateInfo() or {}
-            info.text = opt.text
-            info.value = opt.value
-            info.func = function(btn)
-                if UIDropDownMenu_SetSelectedValue then
-                    UIDropDownMenu_SetSelectedValue(sortDropdown, btn.value)
-                end
-                if UIDropDownMenu_SetText then
-                    UIDropDownMenu_SetText(sortDropdown, btn:GetText())
-                end
-                if ns.Settings and ns.Settings.SetDungeonSetting then
-                    ns.Settings:SetDungeonSetting("dungeonGridSort", btn.value)
-                end
-                if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
-                    _G.JournalBase:OnDungeonSettingChanged("dungeonGridSort", btn.value)
-                end
-            end
-            info.checked = (opt.value == selectedValue)
-            if UIDropDownMenu_AddButton then
-                UIDropDownMenu_AddButton(info, level)
-            end
-        end
-    end
-
-    if UIDropDownMenu_Initialize then
-        UIDropDownMenu_Initialize(sortDropdown, initializeSortDropdown)
-    end
-
-    sortDropdown:SetScript("OnEnter", function(dd)
-        if GameTooltip then
-            GameTooltip:SetOwner(dd, "ANCHOR_RIGHT")
-            GameTooltip:AddLine("Sort Dungeon Grid By", 1.0, 0.82, 0.0)
-            GameTooltip:AddLine("Controls how dungeon cards are ordered on the Dungeons tab grid:\n\n• Level Bracket: Sorted by recommended level range matching official Blizzard Looking For Group brackets (Default).\n• Alphabetical (A-Z): Sorted alphabetically by dungeon name.", 1.0, 1.0, 1.0, true)
-            GameTooltip:Show()
-        end
-    end)
-    sortDropdown:SetScript("OnLeave", function()
-        if GameTooltip then
-            GameTooltip:Hide()
-        end
-    end)
-
-    self.DungeonSortDropdown = sortDropdown
-
-    -- Row 2: "Show Levels on Dungeon Grid and Boss List Buttons"
+    -- Row 3: "Show Levels on Dungeon Grid and Boss List Buttons"
     local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("TOPLEFT", sortLabel, "BOTTOMLEFT", 0, -22)
+    label:SetPoint("TOPLEFT", layoutLabel, "BOTTOMLEFT", 0, -22)
     label:SetText("Show Levels on Dungeon Grid and Boss List Buttons")
 
     local checkbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
@@ -947,7 +906,7 @@ function SettingsPanel:CreateDungeonModuleSection(panel)
 
     self.MinorMonstersCheckbox = minorCheckbox
 
-    -- Row: "Show Event Bosses and Encounters" (dropdown: "Always", "Only during the Holidays", "Never")
+    -- Row: "Show Event Bosses and Encounters" (dropdown: "Always", "Only During the Holidays", "Never")
     local eventLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     eventLabel:SetPoint("TOPLEFT", minorLabel, "BOTTOMLEFT", 0, -18)
     eventLabel:SetText("Show Event Bosses and Encounters")
@@ -961,7 +920,7 @@ function SettingsPanel:CreateDungeonModuleSection(panel)
     end
 
     local EVENT_BOSS_OPTIONS = {
-        { text = "Only during the Holidays", value = "holiday" },
+        { text = "Only During the Holidays", value = "holiday" },
         { text = "Always", value = "always" },
         { text = "Never", value = "never" },
     }
@@ -1010,7 +969,7 @@ function SettingsPanel:CreateDungeonModuleSection(panel)
         if GameTooltip then
             GameTooltip:SetOwner(dd, "ANCHOR_RIGHT")
             GameTooltip:AddLine("Show Event Bosses and Encounters", 1.0, 0.82, 0.0)
-            GameTooltip:AddLine("Controls how seasonal holiday encounters (such as Crown Chemical Co., Headless Horseman, and Coren Direbrew) appear in dungeon boss lists.\n\n• Only during the Holidays: Dynamically shows bosses only while their seasonal holiday is active (Recommended).\n• Always: Always shows event bosses regardless of calendar season.\n• Never: Completely hides event bosses.", 1.0, 1.0, 1.0, true)
+            GameTooltip:AddLine("Controls how seasonal holiday encounters (such as Crown Chemical Co., Headless Horseman, and Coren Direbrew) appear in dungeon boss lists.\n\n• Only During the Holidays: Dynamically shows bosses only while their seasonal holiday is active (Recommended).\n• Always: Always shows event bosses regardless of calendar season.\n• Never: Completely hides event bosses.", 1.0, 1.0, 1.0, true)
             GameTooltip:Show()
         end
     end)
@@ -1062,12 +1021,12 @@ function SettingsPanel:CreateDungeonModuleSection(panel)
     self.ChallengeBossesLabel = challengeLabel
 end
 
---- Adds the Dungeons section's last row: "Show Both Faction's Instance Quests".
+--- Adds the Dungeons section's last row: "Show Both Factions' Instance Quests".
 --- @param panel Frame
 function SettingsPanel:CreateBothFactionQuestsRow(panel)
     local bothFactionLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     bothFactionLabel:SetPoint("TOPLEFT", self.ChallengeBossesLabel, "BOTTOMLEFT", 0, -22)
-    bothFactionLabel:SetText("Show Both Faction's Instance Quests")
+    bothFactionLabel:SetText("Show Both Factions' Instance Quests")
     self.BothFactionQuestsLabel = bothFactionLabel
 
     local bothFactionCheckbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
@@ -1078,7 +1037,7 @@ function SettingsPanel:CreateBothFactionQuestsRow(panel)
     bothFactionCheckbox:SetScript("OnEnter", function(cb)
         if GameTooltip then
             GameTooltip:SetOwner(cb, "ANCHOR_RIGHT")
-            GameTooltip:AddLine("Show Both Faction's Instance Quests", 1.0, 0.82, 0.0)
+            GameTooltip:AddLine("Show Both Factions' Instance Quests", 1.0, 0.82, 0.0)
             GameTooltip:AddLine("When enabled, quests for both Alliance and Horde will appear in instance quest tabs (with opposing faction quests grouped below a divider). When disabled, only your faction's and neutral quests are shown.", 1.0, 1.0, 1.0, true)
             GameTooltip:Show()
         end
@@ -1109,6 +1068,7 @@ function SettingsPanel:CreateMapIconsModuleSection(panel)
     local sectionHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     sectionHeader:SetPoint("TOPLEFT", self.BothFactionQuestsLabel, "BOTTOMLEFT", -6, -26)
     sectionHeader:SetText("Map Icons Module")
+    self.MapIconsModuleHeader = sectionHeader
 
     local subNote = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     subNote:SetPoint("LEFT", sectionHeader, "RIGHT", 12, 0)
@@ -1230,10 +1190,10 @@ function SettingsPanel:CreateMapIconsModuleSection(panel)
     end)
     self.FlightPathsCheckbox = flightPathsCheckbox
 
-    -- Row 4a: Sub-option "Use Faction Colors for Faction Specific Flight Paths" (Indented)
+    -- Row 4a: Sub-option "Use Faction Colors for Faction-Specific Flight Paths" (Indented)
     local factionColorsLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     factionColorsLabel:SetPoint("TOPLEFT", flightPathsLabel, "BOTTOMLEFT", 18, -16)
-    factionColorsLabel:SetText("Use Faction Colors for Faction Specific Flight Paths")
+    factionColorsLabel:SetText("Use Faction Colors for Faction-Specific Flight Paths")
     self.FactionColorsLabel = factionColorsLabel
 
     local factionColorsCheckbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
@@ -1244,7 +1204,7 @@ function SettingsPanel:CreateMapIconsModuleSection(panel)
     factionColorsCheckbox:SetScript("OnEnter", function(cb)
         if GameTooltip then
             GameTooltip:SetOwner(cb, "ANCHOR_RIGHT")
-            GameTooltip:AddLine("Use Faction Colors for Faction Specific Flight Paths", 1.0, 0.82, 0.0)
+            GameTooltip:AddLine("Use Faction Colors for Faction-Specific Flight Paths", 1.0, 0.82, 0.0)
             GameTooltip:AddLine("When enabled, Alliance flight masters appear in blue and Horde in red (neutral in gold). When disabled, all flight paths appear in uniform gold.", 1.0, 1.0, 1.0, true)
             GameTooltip:Show()
         end
@@ -1348,9 +1308,9 @@ function SettingsPanel:CreateMapIconsModuleSection(panel)
     end
 
     local MAP_ICON_OPTIONS = {
-        { text = "After minimum level", value = "min_level" },
-        { text = "Only during level bracket", value = "bracket" },
-        { text = "Always show", value = "always" },
+        { text = "After Minimum Level", value = "min_level" },
+        { text = "Only During Level Bracket", value = "bracket" },
+        { text = "Always Show", value = "always" },
         { text = "Disabled", value = "disabled" },
     }
 
@@ -1396,7 +1356,7 @@ function SettingsPanel:CreateMapIconsModuleSection(panel)
         if GameTooltip then
             GameTooltip:SetOwner(dd, "ANCHOR_RIGHT")
             GameTooltip:AddLine("Dungeon Icons on World Map", 1.0, 0.82, 0.0)
-            GameTooltip:AddLine("Controls when dungeon entrance icons (blue swirl portals) appear on the World Map.\n\n• After minimum level: Visible once your character reaches the dungeon's minimum level (Default).\n• Only during level bracket: Only visible while within the recommended level range.\n• Always show: Always visible regardless of your character's level.\n• Disabled: Hides all dungeon entrance markers.", 1.0, 1.0, 1.0, true)
+            GameTooltip:AddLine("Controls when dungeon entrance icons (blue swirl portals) appear on the World Map.\n\n• After Minimum Level: Visible once your character reaches the dungeon's minimum level (Default).\n• Only During Level Bracket: Only visible while within the recommended level range.\n• Always Show: Always visible regardless of your character's level.\n• Disabled: Hides all dungeon entrance markers.", 1.0, 1.0, 1.0, true)
             GameTooltip:Show()
         end
     end)
@@ -1479,9 +1439,8 @@ local function anchorRowAtSlot(container, row, index)
     row:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, yOffset)
 end
 
---- Acquires or creates a pooled row widget for a module in Settings, supporting:
----   * Left radio button (`Set as Default Landing Tab`)
----   * Version & status inspection + Enable/Disable button
+--- Acquires or creates a pooled row widget for a module in Settings: its icon, name, status, and an
+--- Enable/Disable button.
 --- @param index number
 --- @return Frame
 function SettingsPanel:AcquireModuleRow(index)
@@ -1496,58 +1455,14 @@ function SettingsPanel:AcquireModuleRow(index)
     row:EnableMouse(true)
     styleModuleRow(row)
 
-    -- 1. Default Landing Tab Radio Button (to the left of the module icon)
-    local defaultBtn = createDefaultLandingButton(row)
-    defaultBtn:SetPoint("LEFT", row, "LEFT", 10, 0)
-    row.defaultBtn = defaultBtn
-
-    defaultBtn:SetScript("OnEnter", function(btn)
-        if not GameTooltip then
-            return
-        end
-        GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
-        local effectiveDefault = (ns.ModuleRegistry and ns.ModuleRegistry.GetEffectiveDefaultLandingModuleId and ns.ModuleRegistry:GetEffectiveDefaultLandingModuleId())
-            or ns.Settings:GetDefaultLandingModuleId()
-        local isCurrentDefault = (effectiveDefault == row.moduleId)
-        if isCurrentDefault then
-            GameTooltip:AddLine("Default Landing Tab (Selected)", 1.0, 0.82, 0.0)
-            GameTooltip:AddLine("The Journal opens directly to this tab whenever the window is opened.", 0.9, 0.9, 0.9, true)
-            GameTooltip:AddLine("Select another enabled module's radio button to change the default landing tab.", 0.65, 0.65, 0.65, true)
-        elseif row.isInstalled and not row.isDisabled then
-            GameTooltip:AddLine("Set as Default Landing Tab", 1.0, 0.82, 0.0)
-            GameTooltip:AddLine("Select to make the Journal open directly to " .. tostring(row.moduleTitle or "this tab") .. " whenever the window is opened.", 0.9, 0.9, 0.9, true)
-        else
-            GameTooltip:AddLine("Default Landing Tab (Unavailable)", 0.65, 0.65, 0.65)
-            GameTooltip:AddLine("This module must be installed and enabled to be selected as the default landing tab.", 0.8, 0.8, 0.8, true)
-        end
-        GameTooltip:Show()
-    end)
-
-    defaultBtn:SetScript("OnLeave", function()
-        if GameTooltip then
-            GameTooltip:Hide()
-        end
-    end)
-
-    defaultBtn:SetScript("OnClick", function(btn)
-        if not row.moduleId or not row.isInstalled or row.isDisabled then
-            btn:SetChecked(false)
-            return
-        end
-        if PlaySound then
-            PlaySound(Constants.SOUNDS.CHECKBOX_ON)
-        end
-        ns.ModuleRegistry:SetDefaultLandingModule(row.moduleId)
-    end)
-
-    -- 3. Module Icon (`24x24`, to the right of the Default Landing button)
+    -- Module Icon (`24x24`)
     local icon = row:CreateTexture(nil, "ARTWORK")
     icon:SetSize(24, 24)
-    icon:SetPoint("LEFT", defaultBtn, "RIGHT", 8, 0)
+    icon:SetPoint("LEFT", row, "LEFT", 12, 0)
     icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     row.icon = icon
 
-    -- 4. Module Title, Status, and Enable/Disable Button
+    -- Module Title, Status, and Enable/Disable Button
     local nameText = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     nameText:SetPoint("LEFT", icon, "RIGHT", 10, 0)
     row.nameText = nameText
@@ -1621,7 +1536,7 @@ function SettingsPanel:AcquireModuleRow(index)
     return row
 end
 
---- Refreshes the list of modules and their Default Landing Tab state.
+--- Refreshes the list of modules and their enabled state.
 function SettingsPanel:RefreshModuleRows()
     if not self.ModuleListContainer then
         return
@@ -1647,16 +1562,12 @@ function SettingsPanel:RefreshModuleRows()
     local containerHeight = math.max(60, totalRows * (MODULE_ROW_HEIGHT + MODULE_ROW_GAP) - MODULE_ROW_GAP)
     self.ModuleListContainer:SetHeight(containerHeight)
 
-    local defaultLandingId = (ns.ModuleRegistry and ns.ModuleRegistry.GetEffectiveDefaultLandingModuleId and ns.ModuleRegistry:GetEffectiveDefaultLandingModuleId())
-        or ns.Settings:GetDefaultLandingModuleId()
-
     for index, entry in ipairs(catalog) do
         local row = self:AcquireModuleRow(index)
         anchorRowAtSlot(self.ModuleListContainer, row, index)
 
         local isInstalled = entry.isInstalled
         local isDisabled = not entry.isEnabled
-        local isDefault = (defaultLandingId == entry.id and entry.isEnabled)
 
         row.moduleId = entry.id
         row.moduleTitle = entry.title
@@ -1671,14 +1582,6 @@ function SettingsPanel:RefreshModuleRows()
         row.bg:SetVertexColor(0.12, 0.11, 0.09, 0.88)
         row.bTop:SetVertexColor(0.45, 0.36, 0.21, 0.78)
         row.bBottom:SetVertexColor(0.26, 0.21, 0.13, 0.78)
-
-        -- Utility modules are pinned to the bottom and cannot be selected as default landing tabs.
-        if entry.isUtility then
-            row.defaultBtn:Hide()
-        else
-            row.defaultBtn:Show()
-            setDefaultLandingButtonState(row.defaultBtn, isDefault, entry.isEnabled)
-        end
 
         row.icon:SetTexture(entry.icon or Constants.ASSETS.FALLBACK_ICON)
         row.icon:SetDesaturated(not entry.isEnabled)
@@ -1696,10 +1599,6 @@ function SettingsPanel:RefreshModuleRows()
             row.statusText:SetText("|cff808080Unloaded|r")
             row.toggleBtn:Enable()
             row.toggleBtn:SetText("Enable")
-        elseif isDefault then
-            row.statusText:SetText("|cffffd100Default|r |cff40ff40(Enabled)|r")
-            row.toggleBtn:Enable()
-            row.toggleBtn:SetText("Disable")
         else
             row.statusText:SetText("|cff40ff40Enabled|r")
             row.toggleBtn:Enable()
@@ -1710,13 +1609,6 @@ end
 
 --- Refreshes all controls on the Settings panel.
 function SettingsPanel:Refresh()
-    if self.KeybindLabel then self.KeybindLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -56) end
-    if self.MinimapLabel then self.MinimapLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -84) end
-    if self.AddonCompartmentLabel then self.AddonCompartmentLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -112) end
-    if self.CompareItemsLabel then self.CompareItemsLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -140) end
-    if self.LockWindowLabel then self.LockWindowLabel:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 24, -168) end
-    if self.AdvancedSearchHeader then self.AdvancedSearchHeader:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 18, -268) end
-
     if self.KeybindButton then
         self.KeybindButton:Refresh()
     end
@@ -1724,15 +1616,6 @@ function SettingsPanel:Refresh()
         self.ShowMinimapCheckbox:SetChecked(ns.Settings:IsMinimapShown())
     elseif self.HideMinimapCheckbox then
         self.HideMinimapCheckbox:SetChecked(ns.Settings:IsMinimapShown())
-    end
-    if self.CompareItemsCheckbox then
-        local isAutoCompare = false
-        if GetCVarBool then
-            isAutoCompare = GetCVarBool("alwaysCompareItems")
-        elseif GetCVar then
-            isAutoCompare = (GetCVar("alwaysCompareItems") == "1")
-        end
-        self.CompareItemsCheckbox:SetChecked(isAutoCompare == true)
     end
     if self.AddonCompartmentCheckbox then
         self.AddonCompartmentCheckbox:SetChecked(ns.Settings:IsAddonCompartmentShown())
@@ -1773,10 +1656,10 @@ function SettingsPanel:Refresh()
     if self.EventBossesDropdown then
         local rawVal = ns.Settings and ns.Settings.GetDungeonSetting and ns.Settings:GetDungeonSetting("showEventBosses", "holiday")
         local selectedValue = "holiday"
-        local labelText = "Only during the Holidays"
+        local labelText = "Only During the Holidays"
         if rawVal == "always" or rawVal == true then
             selectedValue = (rawVal == true and "holiday" or "always")
-            labelText = (rawVal == true and "Only during the Holidays" or "Always")
+            labelText = (rawVal == true and "Only During the Holidays" or "Always")
         elseif rawVal == "never" or rawVal == false then
             selectedValue = "never"
             labelText = "Never"
@@ -1791,15 +1674,13 @@ function SettingsPanel:Refresh()
     if self.ChallengeBossesCheckbox then
         self.ChallengeBossesCheckbox:SetChecked(ns.Settings:GetDungeonSetting("showDungeonSetChallenges", false) == true)
     end
-    if self.DungeonSortDropdown then
-        local rawVal = ns.Settings and ns.Settings.GetDungeonSetting and ns.Settings:GetDungeonSetting("dungeonGridSort", "level")
-        local selectedValue = (rawVal == "alphabetical" or rawVal == "name") and "alphabetical" or "level"
-        local labelText = (selectedValue == "alphabetical") and "Alphabetical (A-Z)" or "Level Bracket (Default)"
+    for _, entry in ipairs(self.dungeonDropdowns or {}) do
+        local selectedValue, labelText = currentChoice(entry.def)
         if UIDropDownMenu_SetSelectedValue then
-            UIDropDownMenu_SetSelectedValue(self.DungeonSortDropdown, selectedValue)
+            UIDropDownMenu_SetSelectedValue(entry.dropdown, selectedValue)
         end
         if UIDropDownMenu_SetText then
-            UIDropDownMenu_SetText(self.DungeonSortDropdown, labelText)
+            UIDropDownMenu_SetText(entry.dropdown, labelText)
         end
     end
     if self.BothFactionQuestsCheckbox then
@@ -1830,11 +1711,11 @@ function SettingsPanel:Refresh()
         if UIDropDownMenu_SetSelectedValue then
             UIDropDownMenu_SetSelectedValue(self.WorldMapIconsDropdown, val)
         end
-        local labelText = "After minimum level"
+        local labelText = "After Minimum Level"
         if val == "always" then
-            labelText = "Always show"
+            labelText = "Always Show"
         elseif val == "bracket" then
-            labelText = "Only during level bracket"
+            labelText = "Only During Level Bracket"
         elseif val == "disabled" then
             labelText = "Disabled"
         end
@@ -1847,9 +1728,9 @@ function SettingsPanel:Refresh()
     end
     self:RefreshModuleRows()
 
-    local totalH = 1300
+    local totalH = 1360
     if status and status.isMismatch then
-        totalH = 1340
+        totalH = 1400
     end
     if self.scrollChild and self.scrollFrame then
         local w = self.scrollFrame:GetWidth()
@@ -1867,6 +1748,13 @@ function SettingsPanel:RegisterWithBlizzardSettings(panel)
         local category = Settings.RegisterCanvasLayoutCategory(panel, Constants.SETTINGS.CATEGORY_NAME)
         Settings.RegisterAddOnCategory(category)
         self.category = category
+        -- A "General" entry (the top of the page) comes first on its own; list the other sections here, in page order
+        ns.UI.SettingsSections:Register(category, panel, self.scrollFrame, self.scrollChild, {
+            { name = "Advanced Searching", header = self.AdvancedSearchHeader },
+            { name = "Installed Modules", header = self.ModuleSectionHeader },
+            { name = "Dungeon Module", header = self.DungeonModuleHeader },
+            { name = "Map Icons Module", header = self.MapIconsModuleHeader },
+        })
         return
     end
 
@@ -1890,6 +1778,11 @@ function SettingsPanel:Open()
     self:Refresh()
 
     if Settings and Settings.OpenToCategory and self.category then
+        -- Opened from the journal: selected with its section list open (opening to the category rebuilds the list
+        -- when the category is expanded, even if it was already the selected page)
+        if self.category.SetExpanded then
+            self.category:SetExpanded(true)
+        end
         local numericCategoryId = self.category.GetID and self.category:GetID() or self.category.ID
         if numericCategoryId then
             Settings.OpenToCategory(numericCategoryId)

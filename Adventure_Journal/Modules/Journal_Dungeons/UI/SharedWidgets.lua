@@ -170,9 +170,7 @@ function SharedWidgets:UpdateScrollFrameVisibility(scrollFrame, contentHeight)
         return
     end
 
-    scrollFrame.scrollBarHideable = true
-
-    local scrollBar = (scrollFrame.GetName and _G[scrollFrame:GetName() .. "ScrollBar"]) or scrollFrame.ScrollBar
+    local scrollBar = scrollFrame.ScrollBar
     if not scrollBar then
         return
     end
@@ -783,137 +781,21 @@ function SharedWidgets:ApplyDungeonArtwork(artTexture, dungeon)
     return true
 end
 
---- Parses a level number or range string (e.g. 45, "45", "18-20") into (minLvl, maxLvl).
---- @param levelVal string|number
---- @return number|nil minLvl, number|nil maxLvl
-function SharedWidgets:ParseLevelRange(levelVal)
-    if type(levelVal) == "number" then
-        return levelVal, levelVal
-    end
-    if type(levelVal) ~= "string" or levelVal == "" then
-        return nil, nil
-    end
-    if levelVal == "??" or string.find(levelVal, "%?%?") then
-        return nil, nil
-    end
-    local minStr, maxStr = string.match(levelVal, "(%d+)%s*-%s*(%d+)")
-    if minStr and maxStr then
-        return tonumber(minStr), tonumber(maxStr)
-    end
-    local singleStr = string.match(levelVal, "(%d+)")
-    if singleStr then
-        local n = tonumber(singleStr)
-        return n, n
-    end
-    return nil, nil
-end
-
---- Calculates the gray level threshold for a given player level according to standard WoW mechanics:
----   Level 1-5: 0 (no gray mobs)
----   Level 6-39: playerLevel - floor(playerLevel / 10) - 5
----   Level 40-59: playerLevel - floor(playerLevel / 5) - 1
----   Level 60+: playerLevel - 9
---- (e.g. at Level 30, gray threshold is 22; levels 23-27 are green, 28-32 are yellow, 33-34 orange, 35+ red).
-local function GetGrayThreshold(playerLevel)
-    if playerLevel <= 5 then
-        return 0
-    elseif playerLevel <= 39 then
-        return playerLevel - math.floor(playerLevel / 10) - 5
-    elseif playerLevel <= 59 then
-        return playerLevel - math.floor(playerLevel / 5) - 1
-    else
-        return playerLevel - 9
-    end
-end
-
---- Returns dynamic RGB difficulty color based on mean level vs player level:
----   red: 5 or more levels above player
----   orange: 3 - 4 above player level
----   yellow: + or - 2 levels inclusive around player level
----   green: between yellow bracket down to gray threshold
----   grey: at or below gray threshold
---- @param minLvl number
---- @param maxLvl number|nil
+--- A level written as text ("30", "30-38", "??") colored for the player (Core/LevelColors.lua).
+--- @param levelText string|number|nil
 --- @return number r, number g, number b
-function SharedWidgets:GetDifficultyColorFromLevel(minLvl, maxLvl)
-    if not minLvl then
-        return 0.80, 0.72, 0.55
-    end
-    maxLvl = maxLvl or minLvl
-    local targetLevel = (minLvl + maxLvl) * 0.5
-    local roundedLevel = math.floor(targetLevel + 0.5)
-
-    -- 1. Check native WoW GetQuestDifficultyColor API
-    if _G.GetQuestDifficultyColor then
-        local col = _G.GetQuestDifficultyColor(roundedLevel)
-        if col and col.r and col.g and col.b then
-            return col.r, col.g, col.b
-        end
-    end
-
-    -- 2. Authentic WoW relative level difficulty formula
-    local playerLevel = (UnitLevel and UnitLevel("player")) or 60
-    if playerLevel <= 0 then playerLevel = 60 end
-
-    local grayThreshold = GetGrayThreshold(playerLevel)
-    local diff = targetLevel - playerLevel
-
-    if diff >= 5 then
-        return 1.00, 0.10, 0.10 -- Red (5 or more levels above player)
-    elseif diff >= 3 then
-        return 1.00, 0.50, 0.25 -- Orange (3 - 4 above player level)
-    elseif diff >= -2 then
-        return 1.00, 1.00, 0.00 -- Yellow (+ or - 2 levels inclusive around player level)
-    elseif targetLevel > grayThreshold then
-        return 0.25, 0.75, 0.25 -- Green (below yellow bracket down to gray threshold)
-    else
-        return 0.50, 0.50, 0.50 -- Grey (at or below gray threshold)
-    end
+function SharedWidgets:GetCreatureDifficultyColor(levelText)
+    return parent.LevelColors:ForText(levelText)
 end
 
---- Returns dynamic RGB difficulty color based on monster level vs player level:
----   red: 5 or more levels above player
----   orange: 3 - 4 above player level
----   yellow: + or - 2 levels inclusive around player level
----   green: between 2 - 4 below player level
----   grey: 5 or more levels below player level
----   ?? / skull: red
---- Evaluates ranges based on the mean of the range.
---- @param bossLevel string|number
---- @return number r, number g, number b
-function SharedWidgets:GetCreatureDifficultyColor(bossLevel)
-    if not bossLevel then
-        return 0.80, 0.72, 0.55
-    end
-    if bossLevel == "??" or tostring(bossLevel) == "??" or string.find(tostring(bossLevel), "%?%?") then
-        return 1.00, 0.10, 0.10 -- Red for ?? / skull level
-    end
-    local minLvl, maxLvl = self:ParseLevelRange(bossLevel)
-    if not minLvl then
-        return 1.00, 0.10, 0.10
-    end
-    return self:GetDifficultyColorFromLevel(minLvl, maxLvl)
-end
-
---- Returns dynamic RGB difficulty color for a dungeon's level bracket vs player level,
---- evaluated strictly based on the mean of the dungeon's level range.
---- @param dungeon table
+--- A dungeon's (or wing's) level range colored for the player (Core/LevelColors.lua).
+--- @param dungeon table|nil a dungeon or wing view
 --- @return number r, number g, number b
 function SharedWidgets:GetDungeonDifficultyColor(dungeon)
-    if not dungeon then
-        return 0.92, 0.86, 0.70
+    if dungeon and dungeon.minLevel then
+        return parent.LevelColors:ForRange(dungeon.minLevel, dungeon.maxLevel)
     end
-
-    local minLvl = dungeon.minLevel
-    local maxLvl = dungeon.maxLevel
-    if not minLvl or not maxLvl then
-        minLvl, maxLvl = self:ParseLevelRange(dungeon.level)
-    end
-    if not minLvl then
-        return 0.92, 0.86, 0.70
-    end
-
-    return self:GetDifficultyColorFromLevel(minLvl, maxLvl)
+    return parent.LevelColors:ForText(dungeon and dungeon.level)
 end
 
 -- ----------------------------------------------------------------------------

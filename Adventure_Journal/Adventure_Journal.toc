@@ -2,7 +2,7 @@
 ## Title: Adventure Journal
 ## Notes: Complete in-game adventure guide, dungeon and raid reference for WoW Forever.
 ## Author: Brand
-## Version: 0.9.0
+## Version: 0.10.0
 ## IconTexture: Interface\Icons\INV_Misc_Book_09
 ## SavedVariables: JournalBaseDB
 ## AddonCompartmentFunc: AdventureJournal_OnAddonCompartmentClick
@@ -13,9 +13,12 @@
 Core\Constants.lua
 Core\Settings.lua
 Core\Search.lua
+Core\LevelColors.lua
 Core\KeybindManager.lua
 Core\ModuleRegistry.lua
 Core\HolidayManager.lua
+Core\UI\ScrollFrame.lua
+Core\UI\SettingsSections.lua
 Core\UI\HeaderBar.lua
 Core\UI\TabBar.lua
 Core\UI\WindowBackground.lua
@@ -104,6 +107,14 @@ Modules\Journal_Dungeons\UI\DungeonGridView.lua
 Modules\Journal_Dungeons\UI\DungeonBookView.lua
 Modules\Journal_Dungeons\UI\MainView.lua
 Modules\Journal_Dungeons\Core.lua
+
+Modules\Journal_Raids\Constants.lua
+Modules\Journal_Raids\UI\MainView.lua
+Modules\Journal_Raids\Core.lua
+
+Modules\Journal_Quests\Constants.lua
+Modules\Journal_Quests\UI\MainView.lua
+Modules\Journal_Quests\Core.lua
 
 # Modules: Utility - Map Icons
 Modules\Utility_MapIcons\Constants.lua

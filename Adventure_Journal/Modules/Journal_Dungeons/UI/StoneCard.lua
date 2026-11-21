@@ -143,8 +143,9 @@ local StoneCard = {}
 
 --- Creates a card button of width x height on `parentFrame`. Hover lights the rim; pressing sinks the socket.
 --- `options`: `noFade` (narrow cards), `picture` (the window is left for `SetPicture` instead of the stone),
---- `noText` (the caller lays out its own text). Unless `noText`, `button.nameText` (gold) and
---- `button.subText` (white) are there to fill. `button.window` is the texture in the frame's window.
+--- `noText` (the caller lays out its own text), `centered` (the text centered, see `AddCenteredText`).
+--- Unless `noText`, `button.nameText` (gold) and `button.subText` (white) are there to fill. `button.window` is
+--- the texture in the frame's window.
 --- @return Button
 function StoneCard:Create(parentFrame, width, height, options)
     options = options or {}
@@ -172,6 +173,9 @@ function StoneCard:Create(parentFrame, width, height, options)
     if options.noText then
         return button
     end
+    if options.centered then
+        return self:AddCenteredText(button)
+    end
 
     local nameText = shadowed(button:CreateFontString(nil, "OVERLAY",
         GameFontNormalMed3 and "GameFontNormalMed3" or "GameFontNormal"))
@@ -188,6 +192,32 @@ function StoneCard:Create(parentFrame, width, height, options)
     subText:SetTextColor(1, 1, 1)
     button.subText = subText
 
+    return button
+end
+
+--- The small cards' text: the name in capitals (Morpheus, gold) centered on the card, wrapping when it must,
+--- and `subText` (the levels) centered under it.
+--- @param button Button
+--- @return Button
+function StoneCard:AddCenteredText(button)
+    local nameText = shadowed(button:CreateFontString(nil, "OVERLAY"))
+    if not pcall(nameText.SetFont, nameText, "Fonts\\MORPHEUS.TTF", 14, "") or not nameText:GetFont() then
+        nameText:SetFontObject("QuestTitleFont")
+    end
+    -- Raised by half the levels line so the two read as one centered block
+    nameText:SetPoint("LEFT", button, "LEFT", 12, 6)
+    nameText:SetPoint("RIGHT", button, "RIGHT", -12, 6)
+    nameText:SetJustifyH("CENTER")
+    nameText:SetWordWrap(true)
+    nameText:SetTextColor(1.0, 0.82, 0.15)
+    button.nameText = nameText
+    button.upperName = true
+
+    local subText = shadowed(button:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"))
+    subText:SetPoint("TOP", nameText, "BOTTOM", 0, -3)
+    subText:SetJustifyH("CENTER")
+    subText:SetTextColor(0.92, 0.86, 0.70)
+    button.subText = subText
     return button
 end
 

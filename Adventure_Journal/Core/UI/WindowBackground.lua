@@ -1,10 +1,11 @@
 -- ============================================================================
 -- Adventure Journal - Core/UI/WindowBackground.lua
--- The journal window's background, chosen in Settings: the Collections
--- window's stone (default), the spellbook's parchment page, or the Legacy
--- window's dark background. The stone's corner filigree and edge shading stay
--- on every choice. Pictures cover the window at one scale and are cropped,
--- never stretched.
+-- The journal window's theme, chosen in Settings: the Collections window's
+-- stone (default), the spellbook's parchment page, or Forever (the Legacy
+-- window's dark background, with pages using the game's own Forever widgets,
+-- such as Reputation-style headers). The stone's corner filigree and edge
+-- shading stay on every choice. Pictures cover the window at one scale and are
+-- cropped, never stretched.
 -- ============================================================================
 local addonName, ns = ...
 
@@ -20,12 +21,13 @@ local C_Texture = C_Texture
 -- 2. Private File Helpers & Constants
 -- ----------------------------------------------------------------------------
 -- region: the part of the atlas to show, in atlas pixels (the paper without the book's cover); the whole
--- atlas when absent. Legacy is the Legacy window's Progress Track page background.
+-- atlas when absent. Forever uses the Legacy window's Progress Track page background; forever = true: pages
+-- use the game's Forever widgets.
 local OPTIONS = {
     { key = "stone", label = "Stone (Default)" },
     { key = "parchment", label = "Parchment", atlas = "spellbook-Page-Condensed-C60",
       region = { left = 17, right = 796, top = 65, bottom = 675 }, ink = true },
-    { key = "legacy", label = "Legacy", atlas = "Legacy-Rewards-Tracker-Background" },
+    { key = "forever", label = "Forever", atlas = "Legacy-Rewards-Tracker-Background", forever = true },
 }
 local DEFAULT_KEY = "stone"
 -- Body text on a light background (ink = true): near-black, with no shadow
@@ -69,6 +71,12 @@ local WindowBackground = {
     picture = nil,
     listeners = {},
 }
+
+--- Whether the Forever theme is chosen, so pages use the game's Forever widgets.
+--- @return boolean
+function WindowBackground:IsForever()
+    return optionFor(ns.Settings:GetWindowBackground()).forever == true
+end
 
 --- Whether the chosen background is light, so body text is drawn in ink.
 --- @return boolean

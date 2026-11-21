@@ -1,6 +1,7 @@
 -- ============================================================================
 -- Journal_Raids - Core.lua
--- Registers the Raids module with the Journal.
+-- Registers the Raids module with the Journal. Starts disabled while it is
+-- under construction.
 -- ============================================================================
 local addonName, parent = ...
 local ns = parent.Raids or {} ; parent.Raids = ns
@@ -11,12 +12,7 @@ local ns = parent.Raids or {} ; parent.Raids = ns
 local Constants = ns.Constants
 
 -- ----------------------------------------------------------------------------
--- 2. Private Helper Functions
--- ----------------------------------------------------------------------------
--- (None required)
-
--- ----------------------------------------------------------------------------
--- 3. Module / Mixin Definition
+-- 3. Module Definition
 -- ----------------------------------------------------------------------------
 local RaidsModule = {
     id = Constants.MODULE_ID,
@@ -24,7 +20,8 @@ local RaidsModule = {
     addonName = Constants.ADDON_NAME,
     description = Constants.DESCRIPTION,
     order = Constants.TAB_ORDER,
-    icon = Constants.ASSETS.ICON,
+    icon = Constants.ICON,
+    defaultDisabled = true,
 }
 
 --- Called once by the Journal when the Raids tab is first opened.
@@ -33,21 +30,14 @@ function RaidsModule:OnInitialize(canvas)
     ns.UI.MainView:Init(canvas)
 end
 
---- Called whenever the Raids bottom tab is selected or when `Raids` is
---- clicked in the breadcrumb navigation track (`Home > Raids`).
+--- Called whenever the Raids tab is selected.
 function RaidsModule:OnActivate()
-    ns.UI.MainView:ShowRoot()
+    ns.UI.MainView:Show()
 end
 
---- Called when the user switches away to Home or another module tab.
+--- Called when the user switches away to another module tab.
 function RaidsModule:OnDeactivate()
     ns.UI.MainView:Hide()
-end
-
---- Called when the user types in the Journal header search box while Raids is active.
---- @param queryText string
-function RaidsModule:OnSearch(queryText)
-    -- Phase 2: Filter raid cards by `queryText`.
 end
 
 if _G.JournalBase and _G.JournalBase.RegisterModule then
@@ -58,4 +48,3 @@ end
 -- 4. Namespace Attachment
 -- ----------------------------------------------------------------------------
 ns.Module = RaidsModule
-

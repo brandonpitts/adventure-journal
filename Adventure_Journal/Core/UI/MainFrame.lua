@@ -340,18 +340,14 @@ function MainFrame:SetupDragAndLifecycle(frame)
         end
 
         -- A module may take focus (the player is inside its content); otherwise the first open of the
-        -- session lands on the default tab and later opens keep the tab and page left open.
+        -- session lands on the tab used last (saved across sessions) and later opens keep the tab and page
+        -- left open.
         local isFirstOpen = not self.hasOpenedOnce
         self.hasOpenedOnce = true
         if ns.ModuleRegistry:FocusModuleForWindowShow() then
             return
         end
-        if isFirstOpen then
-            local defaultLandingId = ns.ModuleRegistry:GetEffectiveDefaultLandingModuleId()
-            if not ns.ModuleRegistry:ActivateModule(defaultLandingId) then
-                ns.ModuleRegistry:ActivateDefaultModule()
-            end
-        elseif not ns.ModuleRegistry:GetActiveModule() then
+        if isFirstOpen or not ns.ModuleRegistry:GetActiveModule() then
             ns.ModuleRegistry:ActivateDefaultModule()
         end
     end)
@@ -472,7 +468,7 @@ function MainFrame:SetupReloadPromptState(parentCanvas)
     local title = prompt:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     title:SetPoint("CENTER", prompt, "CENTER", 0, 22)
     title:SetTextColor(1.0, 0.82, 0.0)
-    title:SetText("Required reload to enable this")
+    title:SetText("Reload Required to Enable This")
     prompt.title = title
 
     local subText = prompt:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
@@ -511,7 +507,7 @@ function MainFrame:SetReloadPromptVisible(isVisible, moduleTitle)
     end
     local prompt = self.frame.ReloadPromptState
     if isVisible then
-        prompt.title:SetText("Required reload to enable this")
+        prompt.title:SetText("Reload Required to Enable This")
         if moduleTitle and moduleTitle ~= "" then
             prompt.subText:SetText(moduleTitle .. " is currently unloaded from memory.\nReload your UI (/rl) to load this module.")
         else
