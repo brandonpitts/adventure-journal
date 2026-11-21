@@ -336,9 +336,38 @@
 
     .features-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
       gap: 1.5rem;
-      margin-bottom: 3.5rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .features-row-label {
+      font-family: 'Cinzel', serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--gold-soft);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+    }
+
+    .features-row-label::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(198, 155, 58, 0.45), transparent);
+    }
+
+    .roadmap-post {
+      border-color: rgba(73, 196, 255, 0.4);
+      background: linear-gradient(180deg, rgba(73, 196, 255, 0.06) 0%, var(--bg-panel) 100%);
+    }
+
+    .roadmap-post .card-tag {
+      color: #9be0ff;
     }
 
     /* Info '?' Tooltip Badge Component */
@@ -855,6 +884,7 @@
       <div class="site-nav-links">
         <a href="index.html" class="site-nav-link active">Home</a>
         <a href="architecture.html" class="site-nav-link">Architecture &amp; Data Engine</a>
+        <a href="templating.html" class="site-nav-link">Page Templates</a>
         <a href="changelog.html" class="site-nav-link">Changelog</a>
       </div>
     </div>
@@ -890,9 +920,46 @@
     <h2 class="section-title">Feature <span>Highlights</span></h2>
     <div class="section-divider"></div>
 
+    <!-- Row 1: the modules behind the Journal's tabs -->
+    <div class="features-row-label">In the Journal</div>
     <div class="features-grid">
       <div class="card has-tip">
-        <div class="card-tag">New in v0.9 • DataStore</div>
+        <div class="card-tag">Dungeon Module</div>
+        <h3>Dungeons, Bosses &amp; Loot</h3>
+        <p>Every Classic and WoW Forever dungeon with its bosses, loot and lore. Open the Journal inside a dungeon and
+          it goes straight to that dungeon, even to the exact
+          <span style="white-space: nowrap;">wing&nbsp;<span class="info-tip" tabindex="0">?
+              <span class="info-tip-box">
+                <strong>Wings</strong>
+                Some dungeons, like Scarlet Monastery or Blackrock Spire, are split into separate sections called
+                wings. The Journal reads the room name under your minimap to tell which wing you're in.
+              </span>
+            </span></span> you're standing in. Dungeon entrances appear on the world map through Blizzard's own map
+          pin system, and any dungeon page can show its entrance on the map in one click.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-tag">Raid Module</div>
+        <h3>Raids &amp; Attunements</h3>
+        <p>WoW Forever's raids grouped by raid tier, with group sizes, bosses and attunement questlines: Onyxia's Lair
+          today, with Hyjal Summit and The Barrow Deeps ready for when they open. Built from the same template as the
+          dungeon pages, so new raids arrive as data.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-tag">Quest Module</div>
+        <h3>Quests &amp; Questlines</h3>
+        <p>Every dungeon's and raid's quests in one place: quest givers and turn-ins with one-click map pins,
+          questlines that open to your next step, live tracking of active and completed quests, and a quest-log
+          button that jumps straight to a quest you're on. An option shows both factions' quests.</p>
+      </div>
+    </div>
+
+    <!-- Row 2: the systems behind everything -->
+    <div class="features-row-label">Behind the Scenes</div>
+    <div class="features-grid">
+      <div class="card has-tip">
+        <div class="card-tag">System • DataStore</div>
         <h3>
           One DataStore Behind <span style="white-space: nowrap;">Everything&nbsp;<span class="info-tip"
               tabindex="0">?
@@ -904,62 +971,34 @@
               </span>
             </span></span>
         </h3>
-        <p>Version 0.9 rebuilt all of the Journal's information, not just items: 4,178 records across eleven stores,
-          each checked against the game, with the Journal and world map reading the same data. It lays the groundwork
-          for raids, a quest journal, and dungeon maps. <a href="architecture.html" style="color: var(--gold-bright);">See
-            how it works</a>.</p>
-      </div>
-
-      <div class="card">
-        <div class="card-tag">Architecture</div>
-        <h3>Modular Architecture & Cross-Module Synergy</h3>
-        <p>Engineered for deep cross-module integration—connecting map markers, encounter catalogs, global search, and
-          future questlines into a unified reference tool—while maintaining a lightweight, intentional footprint that
-          allows players to enable only the exact modules they need.</p>
+        <p>All of the Journal's information in eleven stores, every record checked against the game, with the Journal
+          and the world map reading the same data so they never disagree.
+          <a href="architecture.html" style="color: var(--gold-bright);">See how it works</a>.</p>
       </div>
 
       <div class="card has-tip">
-        <div class="card-tag">Dungeon Module</div>
-        <h3>Dungeon Item Lists & Encounters</h3>
-        <p>Every Classic and WoW Forever dungeon with its bosses, loot and lore. Open the Journal inside a dungeon and
-          it goes straight to that dungeon, even to the exact
-          <span style="white-space: nowrap;">wing&nbsp;<span class="info-tip" tabindex="0">?
+        <div class="card-tag">New in v0.11 • Page Templates</div>
+        <h3>
+          Pages Built From <span style="white-space: nowrap;">Templates&nbsp;<span class="info-tip"
+              tabindex="0">?
               <span class="info-tip-box">
-                <strong>Wings</strong>
-                Some dungeons, like Scarlet Monastery or Blackrock Spire, are split into separate sections called
-                wings. The Journal reads the room name under your minimap to tell which wing you're in.
+                <strong>What is a template?</strong>
+                A short description of what a page shows: its sections, tabs, labels and settings. Shared building
+                blocks draw it, so a raid page is the dungeon page with a few changes, not a copy.
               </span>
-            </span></span> you're standing in.</p>
+            </span></span>
+        </h3>
+        <p>Every page is drawn by 25 shared building blocks from a short template, so new content is data instead of
+          new screens. The Dungeons module went from 6,602 lines to 135, and the whole Raids tab is 129.
+          <a href="templating.html" style="color: var(--gold-bright);">See before and after</a>.</p>
       </div>
 
       <div class="card">
-        <div class="card-tag">Quest Module</div>
-        <h3>Dungeon Quests & Chains</h3>
-        <p>Every dungeon's quests in one place: quest givers and turn-ins with one-click map pins, multi-step chains
-          that open to your next step, live tracking of active and completed quests, and an option to show both
-          factions' quests.</p>
-      </div>
-
-      <div class="card">
-        <div class="card-tag">Enhancements</div>
-        <h3>Game Enhancements</h3>
-        <p>Adventure-focused game enhancements with cross-module integration: native Blizzard map pin system integration
-          for dungeon entrance portals and more.</p>
-      </div>
-
-      <div class="card">
-        <div class="card-tag">Search</div>
-        <h3>Real-Time Live Search</h3>
-        <p>Fast, responsive search filtering across dungeons, boss encounters, aliases, and specific item drops, with
-          automatic cross-module encounter discovery.</p>
-      </div>
-
-      <div class="card">
-        <div class="card-tag">Raid Module</div>
-        <h3>Raid Journal &amp; Attunements</h3>
-        <p>WoW Forever's raids grouped by raid tier, with group sizes, bosses and attunement questlines: Onyxia's Lair
-          today, with Hyjal Summit and The Barrow Deeps ready for when they open. Built on the same page design as the
-          dungeons, so new raids arrive as data.</p>
+        <div class="card-tag">System • Core</div>
+        <h3>Modular Core &amp; Live Search</h3>
+        <p>Turn on only the modules you want; each runs on its own, so one never breaks another. One live search
+          covers dungeons, raids, bosses, their other names and item drops, and shift-clicking an item drops it
+          straight into the search.</p>
       </div>
     </div>
 
@@ -984,6 +1023,13 @@
         <h3>Standalone Quests Tab</h3>
         <p>Dedicated Quests tab for class quests, collectible item quests, and elite quests like attunements. Quests are already available in the dungeon tab, but this tab will allow for quest searching and act as a place to view priority quests.</p>
       </div>
+
+      <div class="card roadmap-post">
+        <div class="card-tag">Post-Release • After v1.0</div>
+        <h3>Professions Module</h3>
+        <p>A Professions tab for primary and secondary professions: recipe catalogs, crafting reagents, gathering
+          nodes, and where to find each trainer. Built on the same page templates as the dungeon and raid pages.</p>
+      </div>
     </div>
 
     <!-- Future Roadmap Candidates (Unscheduled Backlog) -->
@@ -994,7 +1040,6 @@
       </div>
       <p class="future-intro">Candidate modules and feature ideas queued for future investigation without a fixed roadmap position:</p>
       <ul class="future-candidates-list">
-        <li><strong>Professions Module:</strong> Comprehensive recipe catalogs, crafting reagents, gathering nodes, and trainer reference directories.</li>
         <li><strong>Notes Module:</strong> In-game player notes, personal coordinate bookmarks, and custom adventure reminder checklists.</li>
         <li><strong>Compact Mode:</strong> Streamlined, low-profile interface option designed for active in-instance and quest tracking.</li>
         <li><strong>Gamepad &amp; Controller Support:</strong> Investigation and potential implementation of native controller navigation and gamepad bindings.</li>

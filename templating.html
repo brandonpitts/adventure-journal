@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Page Templates — Adventure Journal</title>
+  <meta name="description"
+    content="How Adventure Journal builds its pages: the v0.10 hand-built Dungeons screens compared with the v0.11 template system and its shared building blocks.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0c0d10;
+      --bg-panel: #13141a;
+      --bg-card: #181a24;
+      --border-gold: #c69b3a;
+      --border-dark: #2c2f3d;
+      --gold-bright: #ffd100;
+      --gold-soft: #d4af37;
+      --gold-dim: #9c834a;
+      --text-main: #e6e3da;
+      --text-muted: #9f9da6;
+      --accent-blue: #49c4ff;
+      --accent-green: #38ef7d;
+      --accent-red: #ff6b6b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6;
+      background-image:
+        radial-gradient(circle at 50% 0%, rgba(198, 155, 58, 0.15) 0%, transparent 60%),
+        linear-gradient(to bottom, rgba(12, 13, 16, 0.8), #0c0d10);
+      background-attachment: fixed;
+      min-height: 100vh;
+    }
+
+    code {
+      white-space: nowrap;
+      font-family: Consolas, "Courier New", monospace;
+    }
+
+    /* Top Early Development Notice Banner */
+    .early-dev-banner {
+      background: linear-gradient(90deg, #2a1b08 0%, #3d260c 50%, #2a1b08 100%);
+      border-bottom: 2px solid var(--border-gold);
+      padding: 0.9rem 1.5rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+      position: relative;
+      z-index: 100;
+    }
+
+    .banner-inner {
+      max-width: 1050px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.85rem;
+      text-align: center;
+      font-size: 0.94rem;
+      color: #f5edd8;
+      line-height: 1.5;
+    }
+
+    .banner-badge {
+      background: #c69b3a;
+      color: #0c0d10;
+      font-weight: 800;
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .banner-text strong {
+      color: var(--gold-bright);
+    }
+
+    /* Top Site Navigation Bar */
+    .site-nav {
+      background: rgba(14, 15, 20, 0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(198, 155, 58, 0.28);
+      position: sticky;
+      top: 0;
+      z-index: 95;
+    }
+
+    .site-nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .site-nav-brand {
+      font-family: 'Cinzel', serif;
+      font-weight: 800;
+      font-size: 1.05rem;
+      color: var(--gold-bright);
+      text-decoration: none;
+      letter-spacing: 0.05em;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .site-nav-logo {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      display: block;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    }
+
+    .site-nav-brand span {
+      color: #fff;
+    }
+
+    .site-nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .site-nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 0.45rem 0.9rem;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .site-nav-link:hover {
+      color: #fff;
+      background: rgba(198, 155, 58, 0.1);
+      border-color: rgba(198, 155, 58, 0.3);
+    }
+
+    .site-nav-link.active {
+      color: var(--gold-bright);
+      background: rgba(198, 155, 58, 0.14);
+      border-color: rgba(198, 155, 58, 0.55);
+    }
+
+    /* Info '?' Tooltip Badge Component */
+    .info-tip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      margin-left: 0.4rem;
+      border-radius: 50%;
+      background: rgba(198, 155, 58, 0.16);
+      border: 1px solid rgba(255, 209, 0, 0.55);
+      color: var(--gold-bright);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 800;
+      line-height: 1;
+      cursor: help;
+      vertical-align: middle;
+      user-select: none;
+      transition: all 0.18s ease;
+      flex-shrink: 0;
+    }
+
+    .info-tip:hover,
+    .info-tip:focus-visible {
+      background: var(--gold-bright);
+      color: #0c0d10;
+      box-shadow: 0 0 10px rgba(255, 209, 0, 0.5);
+      outline: none;
+    }
+
+    .info-tip-box {
+      visibility: hidden;
+      opacity: 0;
+      pointer-events: none;
+      position: absolute;
+      bottom: calc(100% + 10px);
+      left: 50%;
+      transform: translateX(-50%) translateY(4px);
+      width: 300px;
+      background: #0d0e14;
+      border: 1px solid var(--border-gold);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      color: var(--text-main);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 400;
+      line-height: 1.5;
+      text-align: left;
+      text-transform: none;
+      letter-spacing: normal;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.85);
+      z-index: 250;
+      transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+      white-space: normal;
+    }
+
+    .info-tip-box strong {
+      display: block;
+      color: var(--gold-bright);
+      font-size: 0.84rem;
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+    }
+
+    .info-tip-box::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 6px;
+      border-style: solid;
+      border-color: var(--border-gold) transparent transparent transparent;
+    }
+
+    .info-tip:hover .info-tip-box,
+    .info-tip:focus-visible .info-tip-box {
+      visibility: visible;
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    header {
+      padding: 3rem 1.5rem 1.5rem;
+      text-align: center;
+      max-width: 920px;
+      margin: 0 auto;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      background: rgba(198, 155, 58, 0.12);
+      border: 1px solid var(--border-gold);
+      color: var(--gold-bright);
+      padding: 0.3rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 1.2rem;
+    }
+
+    h1 {
+      font-family: 'Cinzel', serif;
+      font-size: 2.75rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: 0.03em;
+      text-shadow: 0 4px 18px rgba(0, 0, 0, 0.8), 0 0 30px rgba(198, 155, 58, 0.35);
+      margin-bottom: 1rem;
+    }
+
+    h1 span {
+      background: linear-gradient(135deg, #fff7d1 0%, #ffd100 50%, #b8860b 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      font-size: 1.12rem;
+      color: #bfbcc7;
+      max-width: 760px;
+      margin: 0 auto 1.75rem;
+      line-height: 1.65;
+    }
+
+    /* Transitional Architecture Era Switcher Tabs */
+    .arch-switcher-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.6rem;
+      margin: 0 auto 2.5rem;
+      padding: 0 1rem;
+      flex-wrap: wrap;
+    }
+
+    .arch-switcher {
+      display: inline-flex;
+      background: #101218;
+      border: 1px solid rgba(198, 155, 58, 0.45);
+      border-radius: 10px;
+      padding: 0.35rem;
+      gap: 0.35rem;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .arch-tab-btn {
+      appearance: none;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      font-family: 'Cinzel', serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 0.65rem 1.35rem;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.22s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .arch-tab-btn:hover {
+      color: #fff;
+      background: rgba(198, 155, 58, 0.08);
+    }
+
+    .arch-tab-btn.active {
+      background: linear-gradient(180deg, rgba(198, 155, 58, 0.24) 0%, rgba(198, 155, 58, 0.1) 100%);
+      border-color: var(--border-gold);
+      color: var(--gold-bright);
+      box-shadow: 0 2px 12px rgba(198, 155, 58, 0.25);
+    }
+
+    .tab-pill {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 0.12rem 0.45rem;
+      border-radius: 999px;
+      letter-spacing: 0.05em;
+    }
+
+    .tab-pill.new {
+      background: rgba(56, 239, 125, 0.16);
+      border: 1px solid rgba(56, 239, 125, 0.45);
+      color: var(--accent-green);
+    }
+
+    .tab-pill.legacy {
+      background: rgba(255, 107, 107, 0.14);
+      border: 1px solid rgba(255, 107, 107, 0.4);
+      color: var(--accent-red);
+    }
+
+    .arch-view-pane {
+      display: none;
+      animation: paneFadeIn 0.28s ease-out;
+    }
+
+    .arch-view-pane.active {
+      display: block;
+    }
+
+    @keyframes paneFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1.5rem 4rem;
+    }
+
+    .section-title {
+      font-family: 'Cinzel', serif;
+      font-size: 1.85rem;
+      text-align: center;
+      color: #fff;
+      margin: 3.2rem 0 0.5rem;
+    }
+
+    .section-title span {
+      color: var(--gold-bright);
+    }
+
+    .section-divider {
+      width: 140px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--border-gold), transparent);
+      margin: 0 auto 2.5rem;
+    }
+
+    /* Visual Architecture Map */
+    .arch-diagram {
+      margin-bottom: 3.5rem;
+    }
+
+    .arch-tiers {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .arch-tier {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      padding: 1.35rem 1.5rem;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+    }
+
+    .legacy-diagram .arch-tier {
+      border-color: rgba(255, 107, 107, 0.35);
+    }
+
+    .arch-tier-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 0.5rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .arch-tier-label {
+      font-family: 'Cinzel', serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--gold-bright);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .arch-tier-meta {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-family: Consolas, monospace;
+    }
+
+    .arch-nodes {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+
+    .arch-node {
+      background: var(--bg-card);
+      border: 1px solid rgba(198, 155, 58, 0.3);
+      border-radius: 6px;
+      padding: 1rem;
+    }
+
+    .arch-node-title {
+      font-weight: 700;
+      color: #fff;
+      font-size: 0.95rem;
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.4rem;
+      line-height: 1.35;
+      flex-wrap: nowrap;
+    }
+
+    .arch-node-title code {
+      color: var(--accent-blue);
+      font-size: 0.80rem;
+      white-space: nowrap;
+      letter-spacing: -0.015em;
+    }
+
+    .arch-node-sub {
+      margin-top: -0.15rem;
+      margin-bottom: 0.45rem;
+    }
+
+    .arch-node-sub code {
+      color: var(--accent-blue);
+      font-size: 0.84rem;
+    }
+
+    .arch-node p {
+      font-size: 0.86rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .arch-arrow {
+      text-align: center;
+      color: var(--gold-soft);
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.15rem 0;
+    }
+
+    /* Old vs New Comparison Table */
+    .compare-table-wrap {
+      background: var(--bg-panel);
+      border: 1px solid rgba(198, 155, 58, 0.45);
+      border-radius: 10px;
+      overflow-x: auto;
+      margin-bottom: 3rem;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+    }
+
+    table.compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+
+    table.compare-table th {
+      background: rgba(198, 155, 58, 0.12);
+      color: var(--gold-bright);
+      font-family: 'Cinzel', serif;
+      font-size: 0.83rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 1rem 1.2rem;
+      border-bottom: 1px solid rgba(198, 155, 58, 0.35);
+    }
+
+    table.compare-table td {
+      padding: 1rem 1.2rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+      vertical-align: top;
+      line-height: 1.55;
+    }
+
+    table.compare-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .col-dimension {
+      font-weight: 700;
+      color: #fff;
+      width: 22%;
+      white-space: nowrap;
+    }
+
+    .col-old {
+      color: #c8b8b8;
+      background: rgba(255, 107, 107, 0.03);
+      width: 39%;
+    }
+
+    .col-new {
+      color: #e2f5e9;
+      background: rgba(56, 239, 125, 0.04);
+      width: 39%;
+    }
+
+    .status-pill {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.12rem 0.48rem;
+      border-radius: 4px;
+      margin-bottom: 0.35rem;
+    }
+
+    .status-pill.old {
+      background: rgba(255, 107, 107, 0.15);
+      border: 1px solid rgba(255, 107, 107, 0.4);
+      color: var(--accent-red);
+    }
+
+    .status-pill.new {
+      background: rgba(56, 239, 125, 0.15);
+      border: 1px solid rgba(56, 239, 125, 0.45);
+      color: var(--accent-green);
+    }
+
+    /* Two-Column Deep Dive Cards */
+    .grid-2col {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    @media (max-width: 540px) {
+      .grid-2col {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      padding: 1.8rem;
+      position: relative;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--border-gold), transparent);
+      opacity: 0.5;
+    }
+
+    .card-tag {
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--gold-bright);
+      margin-bottom: 0.45rem;
+    }
+
+    .card h3 {
+      font-family: 'Cinzel', serif;
+      font-size: 1.25rem;
+      color: #fff;
+      margin-bottom: 0.75rem;
+      display: block;
+      line-height: 1.35;
+    }
+
+    .card h3 .info-tip {
+      vertical-align: 1px;
+    }
+
+    .card p {
+      color: var(--text-muted);
+      font-size: 0.94rem;
+      line-height: 1.65;
+      margin-bottom: 0.85rem;
+    }
+
+    .card p:last-child {
+      margin-bottom: 0;
+    }
+
+    .code-block {
+      background: #08090c;
+      border: 1px solid #232634;
+      border-left: 3px solid var(--border-gold);
+      border-radius: 6px;
+      padding: 1.1rem 1.25rem;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.84rem;
+      color: #d7dae0;
+      overflow-x: auto;
+      line-height: 1.55;
+      margin-top: 0.85rem;
+      white-space: pre;
+    }
+
+    .code-comment {
+      color: #676f7d;
+    }
+
+    .code-key {
+      color: #ffd100;
+    }
+
+    .code-str {
+      color: #98c379;
+    }
+
+    .code-num {
+      color: #d19a66;
+    }
+
+    .code-kw {
+      color: #c678dd;
+    }
+
+    /* Argon Model Spotlight Box */
+    .model-spotlight-box {
+      background: rgba(19, 20, 26, 0.85);
+      border: 1px solid rgba(198, 155, 58, 0.35);
+      border-left: 4px solid var(--border-gold);
+      border-radius: 8px;
+      padding: 1.6rem 2rem;
+      margin: 0 auto 3rem;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .model-spotlight-header {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .model-spotlight-badge {
+      background: rgba(198, 155, 58, 0.2);
+      border: 1px solid var(--border-gold);
+      color: var(--gold-bright);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+    }
+
+    .model-spotlight-header h3 {
+      font-family: 'Cinzel', serif;
+      font-size: 1.15rem;
+      color: #fff;
+    }
+
+    .model-spotlight-box p {
+      color: #b3b1ba;
+      font-size: 0.94rem;
+      line-height: 1.65;
+    }
+
+    .model-spotlight-box strong {
+      color: var(--gold-bright);
+      font-weight: 600;
+    }
+
+    .model-spotlight-box code {
+      background: #090a0d;
+      border: 1px solid #232634;
+      padding: 0.2rem 0.45rem;
+      border-radius: 4px;
+      color: #49c4ff;
+      font-size: 0.84rem;
+    }
+
+    /* 8-Dimension Taxonomy Grid */
+    .taxonomy-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
+      gap: 1.2rem;
+      margin-bottom: 3rem;
+    }
+
+    .dim-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      padding: 1.35rem;
+    }
+
+    .dim-num {
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: var(--gold-bright);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.3rem;
+    }
+
+    .dim-card h4 {
+      font-family: 'Cinzel', serif;
+      font-size: 1.05rem;
+      color: #fff;
+      margin-bottom: 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      line-height: 1.35;
+    }
+
+    .dim-title-text {
+      flex: 1;
+      padding-right: 0.35rem;
+    }
+
+    .dim-card h4 .info-tip {
+      margin-top: 2px;
+      margin-left: 0.4rem;
+      flex-shrink: 0;
+    }
+
+    .tag-pill-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .tag-pill {
+      background: rgba(73, 196, 255, 0.08);
+      border: 1px solid rgba(73, 196, 255, 0.28);
+      color: #9be0ff;
+      font-family: Consolas, monospace;
+      font-size: 0.76rem;
+      padding: 0.18rem 0.5rem;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    /* v0.9 DataStore pane */
+    .tab-pill.past {
+      background: rgba(255, 184, 77, 0.14);
+      border: 1px solid rgba(255, 184, 77, 0.4);
+      color: #ffb84d;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 1rem;
+      margin-bottom: 3rem;
+    }
+
+    .stat-tile {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      padding: 1.2rem 1rem;
+      text-align: center;
+    }
+
+    .stat-num {
+      font-family: 'Cinzel', serif;
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: var(--gold-bright);
+      line-height: 1.1;
+    }
+
+    .stat-label {
+      margin-top: 0.4rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+
+    .plain-list {
+      margin: 0.6rem 0 0 1.1rem;
+      color: #b3b1ba;
+      line-height: 1.7;
+    }
+
+    .plain-list li+li {
+      margin-top: 0.35rem;
+    }
+
+    .plain-list strong {
+      color: #fff;
+    }
+
+    .build-log {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      padding: 1rem 1.4rem;
+      margin-bottom: 3rem;
+    }
+
+    .build-log summary {
+      cursor: pointer;
+      font-family: 'Cinzel', serif;
+      color: var(--gold-bright);
+      font-weight: 700;
+    }
+
+    footer {
+      text-align: center;
+      padding: 3rem 1.5rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      color: #706e78;
+      font-size: 0.85rem;
+    }
+
+    footer p+p {
+      margin-top: 0.5rem;
+    }
+
+    /* Templating page */
+    .grid-3col {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .before-after {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    @media (max-width: 540px) {
+      .before-after {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card.before {
+      border-color: rgba(255, 107, 107, 0.35);
+      background: linear-gradient(180deg, rgba(255, 107, 107, 0.05) 0%, var(--bg-panel) 60%);
+    }
+
+    .card.after {
+      border-color: rgba(56, 239, 125, 0.35);
+      background: linear-gradient(180deg, rgba(56, 239, 125, 0.05) 0%, var(--bg-panel) 60%);
+    }
+
+    .card.before .card-tag {
+      color: var(--accent-red);
+    }
+
+    .card.after .card-tag {
+      color: var(--accent-green);
+    }
+
+    .layer-flow {
+      display: flex;
+      align-items: stretch;
+      gap: 0.75rem;
+      margin-bottom: 3rem;
+      flex-wrap: wrap;
+    }
+
+    .layer-flow .card {
+      flex: 1 1 240px;
+    }
+
+    .layer-arrow {
+      align-self: center;
+      color: var(--gold-soft);
+      font-size: 1.6rem;
+      flex: 0 0 auto;
+    }
+
+    @media (max-width: 820px) {
+      .layer-arrow {
+        display: none;
+      }
+    }
+
+    .intro-text {
+      color: #b3b1ba;
+      line-height: 1.7;
+      margin-bottom: 1.6rem;
+    }
+
+    .intro-text strong {
+      color: #fff;
+    }
+
+    .card code,
+    .intro-text code,
+    td code {
+      background: #090a0d;
+      border: 1px solid #232634;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      color: #49c4ff;
+      font-size: 0.84rem;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Top Early Development Notice Banner -->
+  <aside class="early-dev-banner" aria-label="Development Notice">
+    <div class="banner-inner">
+      <span class="banner-badge">Early Development</span>
+      <span class="banner-text">Adventure Journal is an independent project created for personal, close friend, and
+        friend-of-friend use. Anyone is welcome to use it with that understanding! Report any issues to <strong>Brandon
+          (Endoria)</strong>.</span>
+      <span class="banner-badge">Early Development</span>
+    </div>
+  </aside>
+
+  <!-- Primary Site Navigation -->
+  <nav class="site-nav" aria-label="Primary Navigation">
+    <div class="site-nav-inner">
+      <a href="index.html" class="site-nav-brand"><img src="favicon.svg" alt="" class="site-nav-logo"><span>Adventure
+          Journal</span></a>
+      <div class="site-nav-links">
+        <a href="index.html" class="site-nav-link">Home</a>
+        <a href="architecture.html" class="site-nav-link">Architecture &amp; Data Engine</a>
+        <a href="templating.html" class="site-nav-link active">Page Templates</a>
+        <a href="changelog.html" class="site-nav-link">Changelog</a>
+      </div>
+    </div>
+  </nav>
+
+  <header>
+    <div class="eyebrow">Page Templates &amp; Shared Building Blocks</div>
+    <h1>The Journal's <span>Page Templates</span></h1>
+    <p class="subtitle">How Adventure Journal draws its pages: from one giant screen that only knew dungeons, to shared
+      building blocks and short templates that turn the DataStore's records into dungeon pages, raid pages and quest
+      pages.</p>
+  </header>
+
+  <main>
+
+    <!-- Opus Engineering Spotlight -->
+    <div class="model-spotlight-box">
+      <div class="model-spotlight-header">
+        <span class="model-spotlight-badge">Engineered with Opus 5.5</span>
+        <h3>Architected with Claude Opus 5.5</h3>
+      </div>
+      <p>The <strong>v0.11 template system</strong> was designed and built through agentic workflows using Anthropic's
+        <strong>Claude Opus 5.5</strong> model. Opus 5.5 audited the old Dungeons screens line by line, split them into
+        shared building blocks without changing a single thing on screen, built the template engine and the quest
+        template on top of them, wrote the guide for adding new content, and then used that guide to build the Raids
+        tab from data alone.</p>
+    </div>
+
+    <h2 class="section-title" style="margin-top: 0.5rem;">
+      Same Pages, <span>New Foundation</span>
+      <span class="info-tip" tabindex="0">?
+        <span class="info-tip-box">
+          <strong>What changed in v0.11?</strong>
+          Almost nothing you can see, on purpose. The dungeon pages look the way they did in v0.10. What changed is
+          how they're built underneath, which is what made the Raids tab possible.
+        </span>
+      </span>
+    </h2>
+    <div class="section-divider"></div>
+
+    <p class="intro-text">Version 0.9 gave the Journal one shared home for its information, the
+      <a href="architecture.html" style="color: var(--gold-bright);">DataStore</a>. But the screens that showed that
+      information were still written for dungeons only. Version 0.11 rebuilds them as <strong>templates</strong>: a
+      short description of what a page shows, drawn by building blocks every page shares. A new kind of page is now a
+      template plus data, not a copy of an old screen.</p>
+
+    <div class="stat-grid">
+      <div class="stat-tile">
+        <div class="stat-num">6,602 → 135</div>
+        <div class="stat-label">lines of code in the Dungeons module</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-num">129</div>
+        <div class="stat-label">lines in the whole Raids module</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-num">25</div>
+        <div class="stat-label">shared building blocks every page uses</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-num">86 → 280</div>
+        <div class="stat-label">automatic checks run before every release</div>
+      </div>
+    </div>
+
+    <!-- Before and After -->
+    <h2 class="section-title">
+      Before &amp; <span>After</span>
+    </h2>
+    <div class="section-divider"></div>
+
+    <div class="before-after">
+      <div class="card before">
+        <div class="card-tag">Before • v0.10 and Earlier</div>
+        <h3>One Screen That Did Everything</h3>
+        <p>Every dungeon page was drawn by a single 4,019-line screen: the boss list, the loot, the side tabs, the wing
+          page, the quest list and the quest details, all in one file, switching between them with a tangle of
+          <em>if this, then that</em>.</p>
+        <ul class="plain-list">
+          <li><strong>The page's shape was written in code.</strong> Which sections the boss list has, their order,
+            the tabs and every label were typed into the screen. The word "Dungeon" appeared 134 times.</li>
+          <li><strong>The same pieces were built over and over.</strong> The boss button, the level tag, the faction
+            crest and the quest details were each written two to five times.</li>
+          <li><strong>Special cases lived in code.</strong> Which capital-city dungeons show a faction crest was a
+            list of IDs inside the screen.</li>
+          <li><strong>Raids had to copy it.</strong> The first Raids attempt was a 1,200-line copy of the Dungeons
+            screens that broke whenever the Dungeons tab was turned off.</li>
+        </ul>
+      </div>
+      <div class="card after">
+        <div class="card-tag">After • v0.11+</div>
+        <h3>Templates on Shared Blocks</h3>
+        <p>The giant screen is gone. Its pieces became 25 shared building blocks, and each kind of page is described by
+          a short template that says what the page shows and in what order.</p>
+        <ul class="plain-list">
+          <li><strong>The page's shape is data.</strong> Boss list sections, tabs, loot categories and every word on
+            the page come from the template, so a raid page says "Raid" without a second screen.</li>
+          <li><strong>Every piece is built once.</strong> One boss button, one level tag, one crest, one quest page,
+            shared by Dungeons and Raids alike.</li>
+          <li><strong>Special cases are data too.</strong> The crests, a boss shown on a specific wing, or where a
+            card's picture is cropped are small entries next to the data, not code.</li>
+          <li><strong>Raids are three short files.</strong> The Raids tab extends the dungeon page's template and
+            changes only what's different: its name, its settings, and the group size in the header.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- The three layers -->
+    <h2 class="section-title">
+      Three Layers, <span>One Job Each</span>
+      <span class="info-tip" tabindex="0">?
+        <span class="info-tip-box">
+          <strong>Why layers?</strong>
+          When each layer has one job, a change lands in one place. A new word goes in a template, a new look goes in a
+          block, and a fix to the data shows up on every page that uses it.
+        </span>
+      </span>
+    </h2>
+    <div class="section-divider"></div>
+
+    <div class="layer-flow">
+      <div class="card">
+        <div class="card-tag">1 • The Data</div>
+        <h3>Data Feeds</h3>
+        <p>Read the DataStore and hand back a plain description of a dungeon, a raid or a quest. Nothing else in the
+          Journal reads the stores. Anything unknown is simply left empty.</p>
+      </div>
+      <div class="layer-arrow" aria-hidden="true">→</div>
+      <div class="card">
+        <div class="card-tag">2 • The Decisions</div>
+        <h3>Templates</h3>
+        <p>Say what a page shows: its sections in order, its tabs, its settings, every label, and what to show in each
+          spot when the information is missing.</p>
+      </div>
+      <div class="layer-arrow" aria-hidden="true">→</div>
+      <div class="card">
+        <div class="card-tag">3 • The Drawing</div>
+        <h3>Building Blocks</h3>
+        <p>Draw what they're given: a boss list, a loot list, a page header, a quest page. A block never reads the data
+          on its own and never holds any text of its own.</p>
+      </div>
+    </div>
+
+    <!-- What a template looks like -->
+    <h2 class="section-title">
+      What a Template <span>Looks Like</span>
+    </h2>
+    <div class="section-divider"></div>
+
+    <div class="grid-2col">
+      <div class="card">
+        <div class="card-tag">The Raid Template</div>
+        <h3>A Dungeon Page, With a Few Changes</h3>
+        <p>This is the heart of the Raids tab (shortened). It starts from the shared instance page and lists only
+          what's different about raids.</p>
+        <div class="code-block"><span class="code-kw">Templates</span>:Extend(<span class="code-str">"instance"</span>, <span class="code-str">"raid"</span>, {
+    <span class="code-key">noun</span> = <span class="code-str">"Raid"</span>,
+    <span class="code-key">settings</span> = <span class="code-str">"raids"</span>,
+    <span class="code-comment">-- "Lv 60 • 40 Players • Dustwallow Marsh"</span>
+    <span class="code-key">headerMeta</span> = { <span class="code-str">"level"</span>, <span class="code-str">"size"</span>, <span class="code-str">"location"</span> },
+    <span class="code-comment">-- Raid cards show the group size, grouped by tier</span>
+    <span class="code-key">listInfo</span> = <span class="code-str">"size"</span>,
+    <span class="code-key">listGroups</span> = { <span class="code-key">field</span> = <span class="code-str">"tier"</span> },
+    <span class="code-comment">-- The boss list's sections, in order</span>
+    <span class="code-key">encounterSections</span> = {
+        { <span class="code-key">kind</span> = <span class="code-str">"boss"</span> },
+        { <span class="code-key">kind</span> = <span class="code-str">"rare"</span>,  <span class="code-key">label</span> = <span class="code-str">"Rare Encounters"</span> },
+        { <span class="code-key">kind</span> = <span class="code-str">"minor"</span>, <span class="code-key">label</span> = <span class="code-str">"Minor &amp; Quest Encounters"</span> },
+    },
+})</div>
+      </div>
+      <div class="card">
+        <div class="card-tag">Display Choices</div>
+        <h3>
+          One Page, Adjusted by <span style="white-space: nowrap;">Data&nbsp;<span class="info-tip" tabindex="0">?
+              <span class="info-tip-box">
+                <strong>Data or display?</strong>
+                If the information is wrong, the information is fixed, and every page sees it. If it's right but should
+                look different on one page, a display choice is added instead, and the information stays true.
+              </span>
+            </span></span>
+        </h3>
+        <p>When one page needs to look a little different, a small entry next to the data says so. Each one names
+          exactly what it changes, so there's never a hidden special case in the code.</p>
+        <div class="code-block"><span class="code-comment">-- Onyxia's Lair: center the list card's picture
+-- higher, on the adventurers and the dragon's head</span>
+{ <span class="code-key">key</span> = <span class="code-num">249</span>, <span class="code-key">kind</span> = <span class="code-str">"replace"</span>,
+  <span class="code-key">target</span> = <span class="code-str">"card.crop"</span>, <span class="code-key">value</span> = { <span class="code-key">centerV</span> = <span class="code-num">0.40</span> } }
+
+<span class="code-comment">-- Stormwind's dungeon shows the Alliance crest</span>
+{ <span class="code-key">key</span> = <span class="code-num">34</span>, <span class="code-key">kind</span> = <span class="code-str">"replace"</span>,
+  <span class="code-key">target</span> = <span class="code-str">"header.crest"</span>, <span class="code-key">value</span> = <span class="code-str">"Alliance"</span> }</div>
+        <p style="margin-top: 0.85rem;">Six kinds cover it: <strong>replace</strong>, <strong>hide</strong>,
+          <strong>note</strong>, <strong>banner</strong>, <strong>place</strong> (show a boss on a particular wing) and
+          <strong>layout</strong> (draw a page with a different template).</p>
+      </div>
+    </div>
+
+    <!-- Comparison Table -->
+    <h2 class="section-title">
+      v0.10 Screens vs. <span>v0.11 Templates</span>
+      <span class="info-tip" tabindex="0">?
+        <span class="info-tip-box">
+          <strong>Side by Side</strong>
+          The same jobs, done by the v0.10 Dungeons screens and by the v0.11 template system. Numbers were measured
+          on the code at each version.
+        </span>
+      </span>
+    </h2>
+    <div class="section-divider"></div>
+
+    <div class="compare-table-wrap">
+      <table class="compare-table" aria-label="v0.10 Screens vs v0.11 Templates Comparison">
+        <thead>
+          <tr>
+            <th>What We Compared</th>
+            <th>Hand-Built Screens (v0.10)</th>
+            <th>Templates (v0.11+)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="col-dimension">Code Per Kind of Page</td>
+            <td class="col-old"><span class="status-pill old">6,602 Lines</span><br>The Dungeons module drew its own
+              pages: 9 files, one of them 4,019 lines long.</td>
+            <td class="col-new"><span class="status-pill new">135 Lines</span><br>The Dungeons module is 4 short files;
+              Raids is 129 lines. The drawing is shared.</td>
+          </tr>
+          <tr>
+            <td class="col-dimension">
+              Largest File
+              <span class="info-tip" tabindex="0">?
+                <span class="info-tip-box">
+                  <strong>Why small files?</strong>
+                  A short file does one thing and can be read in one sitting. Our rule is to keep every file under about
+                  300 lines.
+                </span>
+              </span>
+            </td>
+            <td class="col-old"><span class="status-pill old">4,019 Lines</span><br>6 of the module's 9 files were over
+              the 300-line limit.</td>
+            <td class="col-new"><span class="status-pill new">299 Lines</span><br>No file in the template system is
+              over the limit.</td>
+          </tr>
+          <tr>
+            <td class="col-dimension">Where Labels Live</td>
+            <td class="col-old"><span class="status-pill old">Inside the Screen</span><br>"Dungeon" written 134 times
+              in the screen's code; a raid page would have said "Dungeon" too.</td>
+            <td class="col-new"><span class="status-pill new">In the Template</span><br>Every word on a page comes from
+              its template, with the right name filled in: "Dungeon Overview", "Raid Overview".</td>
+          </tr>
+          <tr>
+            <td class="col-dimension">Shared Pieces</td>
+            <td class="col-old"><span class="status-pill old">Built 2–5 Times</span><br>Boss buttons, level tags,
+              crests and quest details each had several copies that could drift apart.</td>
+            <td class="col-new"><span class="status-pill new">Built Once</span><br>25 building blocks, each in its own
+              file, shared by every page.</td>
+          </tr>
+          <tr>
+            <td class="col-dimension">Special Cases</td>
+            <td class="col-old"><span class="status-pill old">Lists in Code</span><br>Crests by dungeon ID inside the
+              screen, plus a list of "valid" loading screens that turned out to do nothing.</td>
+            <td class="col-new"><span class="status-pill new">Display Choices</span><br>Small entries next to the data,
+              each naming exactly what it changes.</td>
+          </tr>
+          <tr>
+            <td class="col-dimension">
+              Quest Map Pins
+              <span class="info-tip" tabindex="0">?
+                <span class="info-tip-box">
+                  <strong>Reading sentences</strong>
+                  The old screen decided whether a quest giver got a map pin by looking for words like "inside" or
+                  "corpse" in the giver's description. Change the sentence and the pin vanished.
+                </span>
+              </span>
+            </td>
+            <td class="col-old"><span class="status-pill old">Guessed From Text</span><br>16 checks for English words
+              in a sentence, and turn-ins found by name.</td>
+            <td class="col-new"><span class="status-pill new">From the Data</span><br>Pins come from what the giver
+              is (a creature, an object, an item) and where it stands.</td>
+          </tr>
+          <tr>
+            <td class="col-dimension">Missing Information</td>
+            <td class="col-old"><span class="status-pill old">Covered Up</span><br>A boss with no portrait borrowed the
+              dungeon's icon; a missing description got stand-in text.</td>
+            <td class="col-new"><span class="status-pill new">Visible</span><br>Every spot on a page has a
+              placeholder that looks like a gap, such as the question-mark icon, so it gets noticed and filled.</td>
+          </tr>
+          <tr>
+            <td class="col-dimension">Game Calls</td>
+            <td class="col-old"><span class="status-pill old">50 Fallbacks</span><br>Many features tried two to four
+              ways of asking the game, in case one didn't work.</td>
+            <td class="col-new"><span class="status-pill new">One Call Each</span><br>One checked call per game
+              function, kept in one place.</td>
+          </tr>
+          <tr>
+            <td class="col-dimension">Settings</td>
+            <td class="col-old"><span class="status-pill old">A Chain of Hooks</span><br>Each screen wrapped the one
+              before it to hear about a changed setting, and 85 lookups reached into shared space.</td>
+            <td class="col-new"><span class="status-pill new">One Path</span><br>Pages read settings one way and hear
+              about changes from one listener; 2 shared lookups remain.</td>
+          </tr>
+          <tr>
+            <td class="col-dimension">Adding a Dungeon</td>
+            <td class="col-old"><span class="status-pill old">Data, Plus Code</span><br>The data, plus edits to the
+              screen for anything special about it.</td>
+            <td class="col-new"><span class="status-pill new">Data Only</span><br>Its record and its data; anything
+              special is a display choice.</td>
+          </tr>
+          <tr>
+            <td class="col-dimension">Adding a New Kind of Page</td>
+            <td class="col-old"><span class="status-pill old">Copy a Screen</span><br>Copy thousands of lines of the
+              Dungeons screens and change what's different.</td>
+            <td class="col-new"><span class="status-pill new">Write a Template</span><br>Extend a template, or build
+              one from the shared blocks, following a written guide.</td>
+          </tr>
+          <tr>
+            <td class="col-dimension">Automatic Checks</td>
+            <td class="col-old"><span class="status-pill old">86 Checks</span><br>The dungeon data was tested; the
+              screens weren't.</td>
+            <td class="col-new"><span class="status-pill new">280 Checks</span><br>Data, every template, the quest
+              pages for every dungeon, and the order files load in.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- How we got there -->
+    <h2 class="section-title">
+      How We <span>Got There</span>
+    </h2>
+    <div class="section-divider"></div>
+
+    <div class="grid-3col">
+      <div class="card">
+        <div class="card-tag">Step 1 • No Visible Change</div>
+        <h3>Split the Screen</h3>
+        <p>The 4,019-line screen was taken apart into building blocks one piece at a time. Before and after, a tool
+          recorded every text, picture and position on 13 pages, and showed no visible change.</p>
+      </div>
+      <div class="card">
+        <div class="card-tag">Step 2 • The Engine</div>
+        <h3>Templates for Dungeons &amp; Quests</h3>
+        <p>The template engine came next, then the dungeon template and a quest template used by every dungeon's
+          Quests tab. The words, sections and special cases moved out of the code and into templates and data.</p>
+      </div>
+      <div class="card">
+        <div class="card-tag">Step 3 • The Real Test</div>
+        <h3>Raids From Data</h3>
+        <p>Raids were built by following the new content guide: Onyxia's Lair with its attunement questlines, plus
+          Hyjal Summit and The Barrow Deeps waiting with placeholder bosses until the game adds them.</p>
+      </div>
+    </div>
+
+    <!-- What's next -->
+    <h2 class="section-title">
+      Built for <span>What's Next</span>
+    </h2>
+    <div class="section-divider"></div>
+
+    <div class="grid-2col">
+      <div class="card">
+        <div class="card-tag">Made Possible</div>
+        <h3>New Tabs From Templates</h3>
+        <ul class="plain-list">
+          <li><strong>A Quests tab</strong> can reuse the quest template every dungeon and raid already uses.</li>
+          <li><strong>Professions</strong> is a list with details, the same shape as the dungeon book, so it starts
+            from the shared blocks.</li>
+          <li><strong>Special quest pages</strong>, like a legendary weapon's questline, can get a page of their own
+            as a second quest template.</li>
+          <li><strong>New raids</strong> appear as soon as their data arrives: no new code.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-tag">Lessons Learned</div>
+        <h3>What This Taught Us</h3>
+        <ul class="plain-list">
+          <li><strong>Move first, change later.</strong> Splitting the screen with no visible change made every later
+            step safe to check.</li>
+          <li><strong>Words belong to the page, not the code.</strong> Once the labels moved into templates, Raids
+            needed almost nothing new.</li>
+          <li><strong>A failed attempt is useful.</strong> The first Raids copy showed exactly which pieces had to be
+            shared.</li>
+          <li><strong>A guide beats a script.</strong> Every new piece of content is a little different, so we wrote
+            instructions and a catalog of parts instead of a fixed recipe.</li>
+        </ul>
+      </div>
+    </div>
+
+  </main>
+
+  <footer>
+    <p>Adventure Journal is an open-source community project developed for the World of Warcraft Forever client.</p>
+    <p>World of Warcraft and Blizzard Entertainment are registered trademarks of Blizzard Entertainment, Inc.</p>
+  </footer>
+
+</body>
+
+</html>
