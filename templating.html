@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Page Templates — Adventure Journal</title>
   <meta name="description"
-    content="How Adventure Journal builds its pages: the v0.10 hand-built Dungeons screens compared with the v0.11 template system and its shared building blocks.">
+    content="How Adventure Journal builds its pages: the v0.10 hand-built Dungeons pages compared with the v0.11 template system and its shared building blocks.">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -534,7 +534,7 @@
       background: var(--bg-panel);
       border: 1px solid rgba(198, 155, 58, 0.45);
       border-radius: 10px;
-      overflow-x: auto;
+      overflow: visible;
       margin-bottom: 3rem;
       box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
     }
@@ -544,6 +544,22 @@
       border-collapse: collapse;
       text-align: left;
       font-size: 0.9rem;
+    }
+
+    table.compare-table thead tr:first-child th:first-child {
+      border-top-left-radius: 9px;
+    }
+
+    table.compare-table thead tr:first-child th:last-child {
+      border-top-right-radius: 9px;
+    }
+
+    table.compare-table tbody tr:last-child td:first-child {
+      border-bottom-left-radius: 9px;
+    }
+
+    table.compare-table tbody tr:last-child td:last-child {
+      border-bottom-right-radius: 9px;
     }
 
     table.compare-table th {
@@ -1018,7 +1034,7 @@
       <div class="site-nav-links">
         <a href="index.html" class="site-nav-link">Home</a>
         <a href="architecture.html" class="site-nav-link">Architecture &amp; Data Engine</a>
-        <a href="templating.html" class="site-nav-link active">Page Templates</a>
+        <a href="templating.html" class="site-nav-link active">Template System</a>
         <a href="changelog.html" class="site-nav-link">Changelog</a>
       </div>
     </div>
@@ -1027,7 +1043,7 @@
   <header>
     <div class="eyebrow">Page Templates &amp; Shared Building Blocks</div>
     <h1>The Journal's <span>Page Templates</span></h1>
-    <p class="subtitle">How Adventure Journal draws its pages: from one giant screen that only knew dungeons, to shared
+    <p class="subtitle">How Adventure Journal draws its pages: from one giant file hard-coded for dungeons, to shared
       building blocks and short templates that turn the DataStore's records into dungeon pages, raid pages and quest
       pages.</p>
   </header>
@@ -1041,8 +1057,8 @@
         <h3>Architected with Claude Opus 5.5</h3>
       </div>
       <p>The <strong>v0.11 template system</strong> was designed and built through agentic workflows using Anthropic's
-        <strong>Claude Opus 5.5</strong> model. Opus 5.5 audited the old Dungeons screens line by line, split them into
-        shared building blocks without changing a single thing on screen, built the template engine and the quest
+        <strong>Claude Opus 5.5</strong> model. Opus 5.5 audited the old Dungeons files line by line, split them into
+        shared building blocks without changing a single thing players see, built the template engine and the quest
         template on top of them, wrote the guide for adding new content, and then used that guide to build the Raids
         tab from data alone.</p>
     </div>
@@ -1059,11 +1075,12 @@
     </h2>
     <div class="section-divider"></div>
 
-    <p class="intro-text">Version 0.9 gave the Journal one shared home for its information, the
-      <a href="architecture.html" style="color: var(--gold-bright);">DataStore</a>. But the screens that showed that
-      information were still written for dungeons only. Version 0.11 rebuilds them as <strong>templates</strong>: a
-      short description of what a page shows, drawn by building blocks every page shares. A new kind of page is now a
-      template plus data, not a copy of an old screen.</p>
+    <p class="intro-text">In v0.9, we moved all of the Journal's data into one shared
+      <a href="architecture.html" style="color: var(--gold-bright);">DataStore</a>, but the pages that displayed that
+      data were still custom-built just for dungeons. Version 0.11 replaces those one-off pages with a
+      <strong>template system</strong> made of reusable building blocks. Instead of building a brand-new page from
+      scratch for every tab, we now use a short template that tells those building blocks what data to show and how to
+      arrange it.</p>
 
     <div class="stat-grid">
       <div class="stat-tile">
@@ -1093,29 +1110,31 @@
     <div class="before-after">
       <div class="card before">
         <div class="card-tag">Before • v0.10 and Earlier</div>
-        <h3>One Screen That Did Everything</h3>
-        <p>Every dungeon page was drawn by a single 4,019-line screen: the boss list, the loot, the side tabs, the wing
-          page, the quest list and the quest details, all in one file, switching between them with a tangle of
-          <em>if this, then that</em>.</p>
+        <h3>One Giant File That Did Everything</h3>
+        <p>Every dungeon page was drawn by a single 4,019-line file: the boss list, the loot, the side tabs, the wing
+          page, the quest list, and the quest details were all packed together, switching between views with a tangle
+          of <em>if this, then that</em>.</p>
         <ul class="plain-list">
           <li><strong>The page's shape was written in code.</strong> Which sections the boss list has, their order,
-            the tabs and every label were typed into the screen. The word "Dungeon" appeared 134 times.</li>
+            the tabs, and every label were hard-coded into the file. The word "Dungeon" appeared 134 times.</li>
           <li><strong>The same pieces were built over and over.</strong> The boss button, the level tag, the faction
             crest and the quest details were each written two to five times.</li>
-          <li><strong>Special cases lived in code.</strong> Which capital-city dungeons show a faction crest was a
-            list of IDs inside the screen.</li>
+          <li><strong>Special cases lived in code.</strong> Which capital-city dungeons show a faction crest, which
+            bosses appear under a specific dungeon wing, how card artwork is cropped, and which quest givers get a map
+            pin were all hard-coded into the file, etc.</li>
           <li><strong>Raids had to copy it.</strong> The first Raids attempt was a 1,200-line copy of the Dungeons
-            screens that broke whenever the Dungeons tab was turned off.</li>
+            page code that broke whenever the Dungeons tab was turned off.</li>
         </ul>
       </div>
       <div class="card after">
         <div class="card-tag">After • v0.11+</div>
         <h3>Templates on Shared Blocks</h3>
-        <p>The giant screen is gone. Its pieces became 25 shared building blocks, and each kind of page is described by
+        <p>The giant file is gone. Its pieces became 25 shared building blocks, and each kind of page is described by
           a short template that says what the page shows and in what order.</p>
         <ul class="plain-list">
-          <li><strong>The page's shape is data.</strong> Boss list sections, tabs, loot categories and every word on
-            the page come from the template, so a raid page says "Raid" without a second screen.</li>
+          <li><strong>The page's shape is data.</strong> Boss list sections, tabs, loot categories, and every label on
+            the page come from the template—so the same shared page layout automatically says "Raid Overview" instead of
+            "Dungeon Overview" without needing a separate copy of the page code.</li>
           <li><strong>Every piece is built once.</strong> One boss button, one level tag, one crest, one quest page,
             shared by Dungeons and Raids alike.</li>
           <li><strong>Special cases are data too.</strong> The crests, a boss shown on a specific wing, or where a
@@ -1219,23 +1238,23 @@
 
     <!-- Comparison Table -->
     <h2 class="section-title">
-      v0.10 Screens vs. <span>v0.11 Templates</span>
+      v0.10 Hand-Built Pages vs. <span>v0.11 Templates</span>
       <span class="info-tip" tabindex="0">?
         <span class="info-tip-box">
           <strong>Side by Side</strong>
-          The same jobs, done by the v0.10 Dungeons screens and by the v0.11 template system. Numbers were measured
-          on the code at each version.
+          The same jobs, done by the v0.10 hand-built Dungeons pages and by the v0.11 template system. Numbers were
+          measured on the code at each version.
         </span>
       </span>
     </h2>
     <div class="section-divider"></div>
 
     <div class="compare-table-wrap">
-      <table class="compare-table" aria-label="v0.10 Screens vs v0.11 Templates Comparison">
+      <table class="compare-table" aria-label="v0.10 Hand-Built Pages vs v0.11 Templates Comparison">
         <thead>
           <tr>
             <th>What We Compared</th>
-            <th>Hand-Built Screens (v0.10)</th>
+            <th>Hand-Built Pages (v0.10)</th>
             <th>Templates (v0.11+)</th>
           </tr>
         </thead>
@@ -1265,8 +1284,8 @@
           </tr>
           <tr>
             <td class="col-dimension">Where Labels Live</td>
-            <td class="col-old"><span class="status-pill old">Inside the Screen</span><br>"Dungeon" written 134 times
-              in the screen's code; a raid page would have said "Dungeon" too.</td>
+            <td class="col-old"><span class="status-pill old">Hard-Coded in the File</span><br>"Dungeon" was written
+              134 times in the page's code; a raid page using it would have said "Dungeon" too.</td>
             <td class="col-new"><span class="status-pill new">In the Template</span><br>Every word on a page comes from
               its template, with the right name filled in: "Dungeon Overview", "Raid Overview".</td>
           </tr>
@@ -1279,8 +1298,8 @@
           </tr>
           <tr>
             <td class="col-dimension">Special Cases</td>
-            <td class="col-old"><span class="status-pill old">Lists in Code</span><br>Crests by dungeon ID inside the
-              screen, plus a list of "valid" loading screens that turned out to do nothing.</td>
+            <td class="col-old"><span class="status-pill old">Lists in Code</span><br>Crests listed by dungeon ID
+              inside the page code, plus a list of "valid" loading images that turned out to do nothing.</td>
             <td class="col-new"><span class="status-pill new">Display Choices</span><br>Small entries next to the data,
               each naming exactly what it changes.</td>
           </tr>
@@ -1290,7 +1309,7 @@
               <span class="info-tip" tabindex="0">?
                 <span class="info-tip-box">
                   <strong>Reading sentences</strong>
-                  The old screen decided whether a quest giver got a map pin by looking for words like "inside" or
+                  The old code decided whether a quest giver got a map pin by looking for words like "inside" or
                   "corpse" in the giver's description. Change the sentence and the pin vanished.
                 </span>
               </span>
@@ -1316,7 +1335,7 @@
           </tr>
           <tr>
             <td class="col-dimension">Settings</td>
-            <td class="col-old"><span class="status-pill old">A Chain of Hooks</span><br>Each screen wrapped the one
+            <td class="col-old"><span class="status-pill old">A Chain of Hooks</span><br>Each file wrapped the one
               before it to hear about a changed setting, and 85 lookups reached into shared space.</td>
             <td class="col-new"><span class="status-pill new">One Path</span><br>Pages read settings one way and hear
               about changes from one listener; 2 shared lookups remain.</td>
@@ -1324,21 +1343,21 @@
           <tr>
             <td class="col-dimension">Adding a Dungeon</td>
             <td class="col-old"><span class="status-pill old">Data, Plus Code</span><br>The data, plus edits to the
-              screen for anything special about it.</td>
+              page code for anything special about it.</td>
             <td class="col-new"><span class="status-pill new">Data Only</span><br>Its record and its data; anything
               special is a display choice.</td>
           </tr>
           <tr>
             <td class="col-dimension">Adding a New Kind of Page</td>
-            <td class="col-old"><span class="status-pill old">Copy a Screen</span><br>Copy thousands of lines of the
-              Dungeons screens and change what's different.</td>
+            <td class="col-old"><span class="status-pill old">Copy the Page Code</span><br>Copy thousands of lines
+              from the Dungeons files and change what's different.</td>
             <td class="col-new"><span class="status-pill new">Write a Template</span><br>Extend a template, or build
               one from the shared blocks, following a written guide.</td>
           </tr>
           <tr>
             <td class="col-dimension">Automatic Checks</td>
             <td class="col-old"><span class="status-pill old">86 Checks</span><br>The dungeon data was tested; the
-              screens weren't.</td>
+              pages weren't.</td>
             <td class="col-new"><span class="status-pill new">280 Checks</span><br>Data, every template, the quest
               pages for every dungeon, and the order files load in.</td>
           </tr>
@@ -1355,8 +1374,8 @@
     <div class="grid-3col">
       <div class="card">
         <div class="card-tag">Step 1 • No Visible Change</div>
-        <h3>Split the Screen</h3>
-        <p>The 4,019-line screen was taken apart into building blocks one piece at a time. Before and after, a tool
+        <h3>Split the Giant File</h3>
+        <p>The 4,019-line file was taken apart into building blocks one piece at a time. Before and after, a tool
           recorded every text, picture and position on 13 pages, and showed no visible change.</p>
       </div>
       <div class="card">
@@ -1396,8 +1415,8 @@
         <div class="card-tag">Lessons Learned</div>
         <h3>What This Taught Us</h3>
         <ul class="plain-list">
-          <li><strong>Move first, change later.</strong> Splitting the screen with no visible change made every later
-            step safe to check.</li>
+          <li><strong>Move first, change later.</strong> Splitting the giant file with no visible change made every
+            later step safe to check.</li>
           <li><strong>Words belong to the page, not the code.</strong> Once the labels moved into templates, Raids
             needed almost nothing new.</li>
           <li><strong>A failed attempt is useful.</strong> The first Raids copy showed exactly which pieces had to be

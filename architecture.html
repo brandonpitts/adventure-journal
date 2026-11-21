@@ -534,7 +534,7 @@
       background: var(--bg-panel);
       border: 1px solid rgba(198, 155, 58, 0.45);
       border-radius: 10px;
-      overflow-x: auto;
+      overflow: visible;
       margin-bottom: 3rem;
       box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
     }
@@ -544,6 +544,22 @@
       border-collapse: collapse;
       text-align: left;
       font-size: 0.9rem;
+    }
+
+    table.compare-table thead tr:first-child th:first-child {
+      border-top-left-radius: 9px;
+    }
+
+    table.compare-table thead tr:first-child th:last-child {
+      border-top-right-radius: 9px;
+    }
+
+    table.compare-table tbody tr:last-child td:first-child {
+      border-bottom-left-radius: 9px;
+    }
+
+    table.compare-table tbody tr:last-child td:last-child {
+      border-bottom-right-radius: 9px;
     }
 
     table.compare-table th {
@@ -933,7 +949,7 @@
       <div class="site-nav-links">
         <a href="index.html" class="site-nav-link">Home</a>
         <a href="architecture.html" class="site-nav-link active">Architecture &amp; Data Engine</a>
-        <a href="templating.html" class="site-nav-link">Page Templates</a>
+        <a href="templating.html" class="site-nav-link">Template System</a>
         <a href="changelog.html" class="site-nav-link">Changelog</a>
       </div>
     </div>
