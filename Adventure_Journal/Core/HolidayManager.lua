@@ -146,8 +146,7 @@ eventFrame:SetScript("OnEvent", function(self, event)
             pcall(_G.OpenCalendar)
         end
     elseif event == "CALENDAR_UPDATE_EVENT_LIST" then
-        if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
-            _G.JournalBase:OnDungeonSettingChanged("showEventBosses")
-        end
+        -- Which event bosses show depends on active holidays
+        ns.Settings:NotifyChange("dungeons", "showEventBosses")
     end
 end)

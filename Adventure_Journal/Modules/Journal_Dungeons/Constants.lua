@@ -1,6 +1,7 @@
 -- ============================================================================
 -- Journal_Dungeons - Constants.lua
--- Single source of truth for Dungeons module metadata, assets, and dimensions.
+-- Dungeons module metadata. The page's sizes, text and sections are in the
+-- dungeon template (Template.lua, extending Core/Templates/Instance.lua).
 -- ============================================================================
 local addonName, parent = ...
 local ns = parent.Dungeons or {} ; parent.Dungeons = ns
@@ -8,15 +9,15 @@ local ns = parent.Dungeons or {} ; parent.Dungeons = ns
 -- ----------------------------------------------------------------------------
 -- 1. Upvalued Globals & Constants
 -- ----------------------------------------------------------------------------
-local SOUNDKIT = SOUNDKIT
+-- (None required)
 
 -- ----------------------------------------------------------------------------
 -- 2. Private Helper Functions
 -- ----------------------------------------------------------------------------
--- (None required for static constants)
+-- (None required)
 
 -- ----------------------------------------------------------------------------
--- 3. Module / Mixin Definition
+-- 3. Module Definition
 -- ----------------------------------------------------------------------------
 local Constants = {
     ADDON_NAME = addonName,
@@ -24,63 +25,11 @@ local Constants = {
     TITLE = "Dungeons",
     DESCRIPTION = "Explore 5-player dungeons across Classic and WoW Forever, including level brackets, boss encounters, and item drops.",
     TAB_ORDER = 10,
-
-    -- View 1: Scrollable Dungeon Tile Grid (782 x 424 canvas)
-    GRID = {
-        -- Card layouts across the grid's 730 px (the "dungeonGridLayout" setting). centered: the name in
-        -- capitals and the levels centered on the card; otherwise the name on the left over "Lvl - zone".
-        LAYOUTS = {
-            two_compact = { columns = 2, width = 358, height = 67 },
-            two_large = { columns = 2, width = 358, height = 88 },
-            three = { columns = 3, width = 234, height = 67 },
-            four = { columns = 4, width = 172, height = 88, centered = true, noFade = true },
-        },
-        DEFAULT_LAYOUT = "four",
-        GAP_X = 14,
-        GAP_Y = 12,
-        START_X = 6,
-        START_Y = -8,
-        SCROLL_TOP_Y = -8,
-        SCROLL_BOTTOM_Y = 8,
-        SCROLL_LEFT_X = 12,
-        SCROLL_RIGHT_X = -28,
-    },
-
-    -- View 2: Open-Book Split View (Left Boss List + Right Detail Page)
-    BOOK = {
-        LEFT_WIDTH = 330,
-        RIGHT_WIDTH = 426,
-        BOSS_BTN_WIDTH = 268,
-        BOSS_BTN_HEIGHT = 44,
-        BOSS_BTN_GAP = 30,
-        WING_BTN_HEIGHT = 67,
-        WING_BTN_GAP = 18,
-        BOSS_ICON_SIZE = 50,
-        BOSS_RING_SIZE = 68,
-        ART_FRAME_WIDTH = 376,
-        ART_FRAME_HEIGHT = 186,
-        RIGHT_CONTENT_WIDTH = 376,
-    },
-
-    ASSETS = {
-        ICON = "Interface\\Icons\\INV_Misc_Key_03",
-        WHITE_8X8 = "Interface\\Buttons\\WHITE8X8",
-        BUTTON_HIGHLIGHT = "Interface\\Buttons\\UI-Common-MouseHilight",
-        PARCHMENT_ATLAS = "Spellbook-Page-1",
-        PARCHMENT_FALLBACK = "Interface\\Spellbook\\Spellbook-Page-1",
-        WARNING_ICON = "Interface\\DialogFrame\\UI-Dialog-Icon-AlertNew",
-        MISSING_ICON = "Interface\\Icons\\INV_Misc_QuestionMark",
-    },
-
-    SOUNDS = {
-        CLICK = (SOUNDKIT and SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON) or 856,
-        PAGE_TURN = (SOUNDKIT and SOUNDKIT.IG_ABILITY_PAGE_TURN) or 836,
-    },
+    ICON = "Interface\\Icons\\INV_Misc_Key_03",
 }
 
 -- ----------------------------------------------------------------------------
 -- 4. Namespace Attachment
 -- ----------------------------------------------------------------------------
 ns.Constants = Constants
-ns.Data = ns.Data or {}
 ns.UI = ns.UI or {}

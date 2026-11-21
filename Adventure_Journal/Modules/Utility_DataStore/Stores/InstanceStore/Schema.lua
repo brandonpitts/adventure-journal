@@ -35,9 +35,10 @@ DataStore.StoreBase:New({
         order         = { type = "number",  comment = "A wing's position within its instance." },
         instanceID    = { type = "number",  links = "InstanceStore", comment = "A wing's instance." },
         itemIDs       = { type = "table",   list = true, links = "ItemStore", comment = "Instance-wide drops." },
-        -- Reserved for raids
-        lockoutDays   = { type = "number",  comment = "Reserved (raids): lockout period." },
-        attunement    = { type = "table",   comment = "Reserved (raids): { questID } or { itemID }." },
+        -- Raids
+        tier          = { type = "number",  comment = "Raids: the raid tier it belongs to (1 for Forever's first raids). Optional: a raid may belong to no tier. Our classification; the sync never writes it." },
+        lockoutDays   = { type = "number",  comment = "Raids: lockout period in days." },
+        attunement    = { type = "table",   comment = "Raids: what every member needs to enter: { itemID, questIDs } (the item, and the quests that award it, shown under Attunement on the Quests tab)." },
         itemSetIDs    = { type = "table",   list = true, comment = "Reserved (raids): tier sets." },
         -- Reserved for instance maps
         floorMaps     = { type = "table",   list = true, comment = "Reserved (instance maps): floor-plan art, in order." },

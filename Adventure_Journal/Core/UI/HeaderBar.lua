@@ -356,6 +356,14 @@ function HeaderBarMixin:CreateSearchBox(headerBand)
         editBox:ClearFocus()
     end)
 
+    -- A shift-clicked item becomes the search while the box has focus
+    ns.GameApi:OnItemLinkInserted(function(itemName)
+        if searchBox:IsVisible() and searchBox:HasFocus() then
+            searchBox:SetText(itemName)
+            searchBox:SetCursorPosition(#itemName)
+        end
+    end)
+
     self.SearchBox = searchBox
 end
 

@@ -205,7 +205,7 @@ end
 
 --- Empties the store (used when the DataStore unloads).
 function Store:Reset()
-    self.base, self.overrides, self.texts, self.textOverrides = {}, {}, {}, {}
+    self.base, self.overrides, self.texts, self.textOverrides, self.displayOverrides = {}, {}, {}, {}, {}
     wipe(self.composed)
     self.keyList = nil
 end

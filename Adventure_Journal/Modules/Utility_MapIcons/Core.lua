@@ -77,7 +77,7 @@ end
 --- @param dungeonKey number|string instance map ID or wing slug
 function ns.OpenDungeon(dungeonKey)
     local dungeons = ns.Dungeons
-    local target = dungeons and dungeons.Data.DungeonAccess:GetDungeon(dungeonKey)
+    local target = dungeons and ns.Data.InstanceAccess:GetInstance(dungeonKey)
     if not target then
         return
     end
@@ -98,15 +98,10 @@ function ns.OpenDungeon(dungeonKey)
         _G.JournalBase:ActivateModule("dungeons")
     end
 
-    -- 3. Navigate: a wing opens with its dungeon in the breadcrumb
-    local mainView = dungeons.UI and dungeons.UI.MainView
-    if not mainView then
-        return
-    end
-    if target.wingKey then
-        mainView:SelectWing(target)
-    else
-        mainView:SelectDungeon(target)
+    -- 3. Navigate through the Dungeons module (a wing opens with its dungeon in the breadcrumbs)
+    local module = ns.ModuleRegistry:GetModule("dungeons")
+    if module and module.definition.OpenInstance then
+        module.definition:OpenInstance(target)
     end
 end
 
@@ -124,17 +119,12 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         if ns.AreaLabelProvider then
             ns.AreaLabelProvider:Init()
         end
-        if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
-            local prevHook = _G.JournalBase.OnDungeonSettingChanged
-            _G.JournalBase.OnDungeonSettingChanged = function(jBase, key, val)
-                if prevHook then
-                    prevHook(jBase, key, val)
-                end
-                if (key == "worldMapDungeonIcons" or key == "showFlightPaths" or key == "useFactionColorsForFlightPaths" or key == "showEnemyFactionFlightPaths") and ns.MapPinProvider then
-                    ns.MapPinProvider:Refresh()
-                end
+        ns.Settings:AddChangeListener(function(_, key)
+            if (key == "worldMapDungeonIcons" or key == "showFlightPaths" or key == "useFactionColorsForFlightPaths"
+                or key == "showEnemyFactionFlightPaths") and ns.MapPinProvider then
+                ns.MapPinProvider:Refresh()
             end
-        end
+        end)
     elseif event == "PLAYER_LEVEL_UP" then
         if ns.MapPinProvider and _G.WorldMapFrame and _G.WorldMapFrame:IsShown() then
             ns.MapPinProvider:Refresh()

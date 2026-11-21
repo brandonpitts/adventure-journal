@@ -56,7 +56,8 @@ function MapAccess:GetEntrancePins(uiMapID)
     for _, key in ipairs(locations:FindBy("uiMapID", uiMapID)) do
         local entrance = locations:Get(key)
         local instance = entrance.kind == "entrance" and instances:Get(entrance.instanceID)
-        if instance then
+        -- An entrance known only by its zone has no point to pin
+        if instance and entrance.x and entrance.y then
             local dungeonKey = entrance.wingKey or entrance.instanceID
             local minLevel, maxLevel = levelRange(instances, dungeonKey)
             pins[#pins + 1] = {

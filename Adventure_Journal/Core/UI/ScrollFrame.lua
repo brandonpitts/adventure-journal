@@ -37,8 +37,37 @@ function ScrollFrame:Create(parent)
     scrollBar:SetHideIfUnscrollable(true)
     scrollFrame.ScrollBar = scrollBar
 
+    -- The bar is the parent's child (it sits outside the scroll area), so it follows the scroll frame by hand:
+    -- hidden with it, and checked again when it shows
+    scrollFrame:HookScript("OnHide", function()
+        scrollBar:Hide()
+    end)
+    scrollFrame:HookScript("OnShow", function(sf)
+        self:UpdateBar(sf)
+    end)
+
     ScrollUtil.InitScrollFrameWithScrollBar(scrollFrame, scrollBar)
     return scrollFrame
+end
+
+--- Shows the bar only while `contentHeight` (default: the scroll child's height) is taller than the frame;
+--- hiding it scrolls back to the top.
+--- @param scrollFrame ScrollFrame
+--- @param contentHeight number|nil
+function ScrollFrame:UpdateBar(scrollFrame, contentHeight)
+    local scrollBar = scrollFrame and scrollFrame.ScrollBar
+    if not scrollBar then
+        return
+    end
+    local child = scrollFrame:GetScrollChild()
+    local viewHeight = scrollFrame:GetHeight() or 0
+    local targetHeight = contentHeight or (child and child:GetHeight()) or 0
+    if viewHeight > 0 and targetHeight > viewHeight + 1 then
+        scrollBar:Show()
+    else
+        scrollBar:Hide()
+        scrollFrame:SetVerticalScroll(0)
+    end
 end
 
 -- ----------------------------------------------------------------------------

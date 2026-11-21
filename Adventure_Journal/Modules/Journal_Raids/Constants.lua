@@ -12,7 +12,7 @@ local Constants = {
     ADDON_NAME = addonName,
     MODULE_ID = "raids",
     TITLE = "Raids",
-    DESCRIPTION = "Raid encounters, abilities, and loot. Under construction.",
+    DESCRIPTION = "Explore raids on WoW Forever: raid sizes, boss encounters, and item drops.",
     TAB_ORDER = 20,
     ICON = "Interface\\Icons\\INV_Misc_Head_Dragon_01",
 }

@@ -10,4 +10,6 @@
 local addonName, ns = ...
 
 ns.DataStore.LocationStore:SetTextOverrides({
+    { key = "hyjal_summit_entrance", hint = "place", value = "near Nordrassil", type = "addition",
+      note = "Blizzard's raid overview: \"near the World Tree Nordrassil\"." },
 })

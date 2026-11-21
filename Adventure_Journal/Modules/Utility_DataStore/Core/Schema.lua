@@ -19,7 +19,8 @@ local Constants = DataStore.Constants
 -- 2. Private File Helpers & Constants
 -- ----------------------------------------------------------------------------
 -- Field spec keys:
---   type      "number" | "string" | "boolean" | "table"
+--   type      "number" | "string" | "boolean" | "table" | "key" (a number or a string: a key in a store whose
+--             keys are both, such as InstanceStore's map IDs and slugs)
 --   required  true when every record must have it
 --   live      true when the client answers it (never stored)
 --   links     store name this field points at (its value is a key there)
@@ -45,7 +46,9 @@ local function checkValue(problems, field, spec, value)
         problems[#problems + 1] = field .. ": live field stored in data"
         return
     end
-    if type(value) ~= spec.type then
+    local valueType = type(value)
+    local isKey = spec.type == "key" and (valueType == "number" or valueType == "string")
+    if not isKey and valueType ~= spec.type then
         problems[#problems + 1] = field .. ": expected " .. spec.type .. ", got " .. type(value)
         return
     end

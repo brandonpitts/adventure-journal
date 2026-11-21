@@ -10,10 +10,14 @@ local addonName, ns = ...
 local type = type
 local pairs = pairs
 local ipairs = ipairs
+local xpcall = xpcall
+local CallErrorHandler = CallErrorHandler
 local Constants = ns.Constants
 
 -- Modules that start disabled until the user enables them: moduleId -> true (filled as modules register)
 local defaultDisabledModules = {}
+-- Functions called after every module setting change: fn(moduleKey, settingKey, value)
+local changeListeners = {}
 
 -- ----------------------------------------------------------------------------
 -- 2. Private Helper Functions
@@ -123,6 +127,20 @@ function Settings:Init()
             window.background = "forever"
         end
         _G.JournalBaseDB.schemaVersion = 9
+    end
+
+    -- Schema migration: the dungeon "grid" is the dungeon "list"; its saved sort and layout keep their values
+    if _G.JournalBaseDB and (_G.JournalBaseDB.schemaVersion or 0) < 10 then
+        local dungeons = _G.JournalBaseDB.dungeons
+        if dungeons then
+            for old, new in pairs({ dungeonGridSort = "dungeonListSort", dungeonGridLayout = "dungeonListLayout" }) do
+                if dungeons[old] ~= nil then
+                    dungeons[new] = dungeons[old]
+                    dungeons[old] = nil
+                end
+            end
+        end
+        _G.JournalBaseDB.schemaVersion = 10
     end
 
     self.db = _G.JournalBaseDB
@@ -327,12 +345,40 @@ function Settings:SetModuleDisabled(moduleId, isDisabled)
     store.disabledModules[moduleId] = isDisabled and true or false
 end
 
---- Returns a module-specific setting (`store[moduleKey][settingKey]`).
+--- Calls `fn(moduleKey, settingKey, value)` after every module setting change. Returns `fn`.
+function Settings:AddChangeListener(fn)
+    changeListeners[#changeListeners + 1] = fn
+    return fn
+end
+
+--- Stops calling `fn` on setting changes.
+function Settings:RemoveChangeListener(fn)
+    for i = #changeListeners, 1, -1 do
+        if changeListeners[i] == fn then
+            table.remove(changeListeners, i)
+        end
+    end
+end
+
+--- Tells every listener a setting changed (or that something it depends on did, as when the holiday
+--- calendar loads). One failing listener doesn't stop the others.
+function Settings:NotifyChange(moduleKey, settingKey, value)
+    for _, fn in ipairs(changeListeners) do
+        xpcall(fn, CallErrorHandler, moduleKey, settingKey, value)
+    end
+end
+
+--- Returns a module-specific setting (`store[moduleKey][settingKey]`); without a `defaultVal`, the default
+--- from `Constants.DB_DEFAULTS`.
 --- @param moduleKey string
 --- @param settingKey string
 --- @param defaultVal any
 --- @return any
 function Settings:GetModuleSetting(moduleKey, settingKey, defaultVal)
+    if defaultVal == nil then
+        local defaults = Constants.DB_DEFAULTS[moduleKey]
+        defaultVal = type(defaults) == "table" and defaults[settingKey] or nil
+    end
     if type(moduleKey) ~= "string" or type(settingKey) ~= "string" then
         return defaultVal
     end
@@ -355,6 +401,7 @@ function Settings:SetModuleSetting(moduleKey, settingKey, val)
     local store = self:GetStore()
     store[moduleKey] = store[moduleKey] or {}
     store[moduleKey][settingKey] = val
+    self:NotifyChange(moduleKey, settingKey, val)
 end
 
 --- Convenience getter for Dungeons module settings.

@@ -12,7 +12,7 @@ local Constants = {
     ADDON_NAME = addonName,
     MODULE_ID = "quests",
     TITLE = "Quests",
-    DESCRIPTION = "Quest chains, attunements, and rewards. Under construction.",
+    DESCRIPTION = "Quest questlines, attunements, and rewards. Under construction.",
     TAB_ORDER = 30,
     ICON = "Interface\\Icons\\INV_Misc_Book_08",
 }

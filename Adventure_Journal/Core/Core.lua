@@ -167,9 +167,6 @@ end
 --- @param val any
 function JournalBase:SetModuleSetting(moduleKey, settingKey, val)
     ns.Settings:SetModuleSetting(moduleKey, settingKey, val)
-    if self.OnModuleSettingChanged then
-        self:OnModuleSettingChanged(moduleKey, settingKey, val)
-    end
 end
 
 --- Convenience getter for Dungeons module settings.
@@ -185,12 +182,6 @@ end
 --- @param val any
 function JournalBase:SetDungeonSetting(key, val)
     ns.Settings:SetDungeonSetting(key, val)
-    if self.OnDungeonSettingChanged then
-        self:OnDungeonSettingChanged(key, val)
-    end
-    if self.OnModuleSettingChanged then
-        self:OnModuleSettingChanged("dungeons", key, val)
-    end
 end
 
 -- ----------------------------------------------------------------------------

@@ -1,13 +1,12 @@
 -- ============================================================================
--- Journal_Dungeons - UI/StoneCard.lua
+-- Adventure Journal - Core/UI/Blocks/StoneCard.lua
 -- The card button: the Group Finder's category card frame (bevel, inner
 -- border and socket, with its pressed and hover states) around the journal
 -- window's own stone or a picture, with a gold name and a second line. The
 -- frame atlas is cut into pieces drawn at their own size; only its one middle
 -- row stretches when the card is taller than the art.
 -- ============================================================================
-local addonName, parent = ...
-local ns = parent.Dungeons or {} ; parent.Dungeons = ns
+local addonName, ns = ...
 
 -- ----------------------------------------------------------------------------
 -- 1. Upvalued Globals & Engine APIs
@@ -16,12 +15,13 @@ local ipairs = ipairs
 local pcall = pcall
 local math = math
 local CreateFrame = CreateFrame
-local C_Texture = C_Texture
-local Constants = ns.Constants
+local C_AddOns = C_AddOns
 
 -- ----------------------------------------------------------------------------
 -- 2. Private File Helpers & Constants
 -- ----------------------------------------------------------------------------
+local Styles = ns.UI.Styles
+local GameApi = ns.GameApi
 local FRAME = "groupfinder-button-cover"
 local PRESSED = "groupfinder-button-cover-down"
 local HOVER = "groupfinder-button-cover-hover"
@@ -33,15 +33,6 @@ local WINDOW = { 5, 7, 5, 5 }           -- the frame's window: left, top, right,
 local PICTURE = { w = 418, h = 418 * 3 / 4, centerV = 0.53 }
 
 local stoneTile -- { atlas } or { file }, read once from CollectionsBackgroundTemplate
-
---- The atlas's info and file, or nil when this client lacks it.
-local function atlasFile(name)
-    local info = C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(name)
-    local file = info and (info.file or info.filename)
-    if file and info.width and info.width > 0 then
-        return info, file
-    end
-end
 
 --- Columns { srcStart, srcSize, drawnSize, flip } across `width`. Normally the left end (with the dark fade
 --- behind the name) and the matching right end. Without the fade (narrow cards, where cutting into the fade
@@ -58,11 +49,11 @@ end
 --- Draws `atlas` at width x height on `button`: across, see `columns`; down, its top and bottom halves with
 --- the middle row stretched between them. Returns the pieces.
 local function drawFrame(button, sublevel, atlas, width, height, noFade)
-    local info, file = atlasFile(atlas)
+    local info, file = GameApi:GetAtlasInfo(atlas)
     if not info then
         local tex = button:CreateTexture(nil, "ARTWORK", nil, sublevel)
         tex:SetAllPoints()
-        tex:SetTexture(Constants.ASSETS.MISSING_ICON)
+        tex:SetTexture(Styles.ASSETS.MISSING_ICON)
         return { tex }
     end
     width = math.min(width, info.width)
@@ -106,10 +97,7 @@ end
 local function setStone(tex)
     if not stoneTile then
         stoneTile = {}
-        local loadAddOn = (C_AddOns and C_AddOns.LoadAddOn) or UIParentLoadAddOn
-        if loadAddOn then
-            pcall(loadAddOn, "Blizzard_Collections")
-        end
+        pcall(C_AddOns.LoadAddOn, "Blizzard_Collections")
         local ok, frame = pcall(CreateFrame, "Frame", nil, nil, "CollectionsBackgroundTemplate")
         local tile = ok and frame and frame.BackgroundTile
         if tile then
@@ -123,7 +111,7 @@ local function setStone(tex)
     elseif stoneTile.file then
         tex:SetTexture(stoneTile.file, "REPEAT", "REPEAT")
     else
-        tex:SetTexture(Constants.ASSETS.MISSING_ICON)
+        tex:SetTexture(Styles.ASSETS.MISSING_ICON)
         return
     end
     tex:SetHorizTile(true)
@@ -221,35 +209,42 @@ function StoneCard:AddCenteredText(button)
     return button
 end
 
---- Shows a dungeon's (or wing's) loading screen in a picture card, cropped to it. With no art the window is
---- black and the missing-art question mark sits small in the top-right corner, clear of the text.
+--- Shows an instance's (or wing's) loading screen in a picture card, cropped to it. With no art the window is
+--- black and the missing-art question mark sits small in the top-right corner, clear of the text; with
+--- `showMissingArt` false the black alone is the placeholder.
 --- @param button Button a card created with `picture = true`
---- @param dungeon table a dungeon or wing view (DungeonAccess)
-function StoneCard:SetDungeonPicture(button, dungeon)
-    ns.UI.SharedWidgets:ApplyDungeonArtwork(button.window, dungeon)
+--- @param instance table an instance or wing view (InstanceAccess)
+--- @param showMissingArt boolean|nil false hides the question mark
+--- @param centerV number|nil where the crop centers vertically on the picture, 0 (top) to 1 (bottom); nil for the
+--- standard crop
+function StoneCard:SetInstancePicture(button, instance, showMissingArt, centerV)
+    ns.UI.Blocks.InstanceArt:Apply(button.window, instance)
     local missingIcon = button.window.missingIcon
     if missingIcon and missingIcon:IsShown() then
         missingIcon:ClearAllPoints()
         missingIcon:SetPoint("TOPRIGHT", button, "TOPRIGHT", -10, -10)
         missingIcon:SetSize(18, 18)
+        missingIcon:SetShown(showMissingArt ~= false)
     else
-        self:CropPicture(button)
+        self:CropPicture(button, centerV)
     end
 end
 
---- Crops the picture already set on `button.window` to the card: drawn at one scale on every card, centered,
---- dimmed a little so the text reads.
-function StoneCard:CropPicture(button)
+--- Crops the picture already set on `button.window` to the card: drawn at one scale on every card, centered
+--- across and at `centerV` down (default the standard crop; kept inside the picture), dimmed a little so the
+--- text reads.
+function StoneCard:CropPicture(button, centerV)
     local windowW = button:GetWidth() - WINDOW[1] - WINDOW[3]
     local windowH = button:GetHeight() - WINDOW[2] - WINDOW[4]
     local halfU = math.min(windowW / PICTURE.w, 1) / 2
     local halfV = math.min(windowH / PICTURE.h, 1) / 2
-    button.window:SetTexCoord(0.5 - halfU, 0.5 + halfU, PICTURE.centerV - halfV, PICTURE.centerV + halfV)
+    local center = math.max(halfV, math.min(1 - halfV, centerV or PICTURE.centerV))
+    button.window:SetTexCoord(0.5 - halfU, 0.5 + halfU, center - halfV, center + halfV)
     button.window:SetVertexColor(0.6, 0.6, 0.6)
 end
 
 -- ----------------------------------------------------------------------------
 -- 4. Namespace Attachment / Registration
 -- ----------------------------------------------------------------------------
-ns.UI = ns.UI or {}
-ns.UI.StoneCard = StoneCard
+ns.UI.Blocks = ns.UI.Blocks or {}
+ns.UI.Blocks.StoneCard = StoneCard

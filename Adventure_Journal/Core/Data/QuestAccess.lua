@@ -1,45 +1,42 @@
 -- ============================================================================
--- Journal_Dungeons - Data/QuestAccess.lua
--- The dungeon quest questions the Dungeons screens ask, answered from the
--- DataStore (QuestStore, NpcStore, FixtureStore, ItemStore). Quest Source and
--- Turn In are built from links: the giver's name, its
--- hint or zone, and its map point. Player state (completed, in the log) is read
--- live from the client and never stored.
+-- Adventure Journal - Core/Data/QuestAccess.lua
+-- The data feed for quests, from the DataStore (QuestStore, NpcStore,
+-- FixtureStore, ItemStore). Source and Turn-In come from links: the giver's
+-- name, hint or zone, whether it is inside an instance, and its map point.
+-- Player state is read live. Missing values stay nil; templates show them.
 --   quest view: id, name, level, questLevel, reqLevel, faction, classOnly, baseXP, objective,
---               pickup, turnin, rewardItems, rewardChoice, isChain
+--               pickup, giver, turnin, turninGiver, rewardItems, rewardChoice, isQuestline
+--   giver:      kind ("npc" | "fixture" | "item"), key, name, where, inside, point
 -- ============================================================================
-local addonName, parent = ...
-local ns = parent.Dungeons or {} ; parent.Dungeons = ns
+local addonName, ns = ...
 
 -- ----------------------------------------------------------------------------
 -- 1. Upvalued Globals & Engine APIs
 -- ----------------------------------------------------------------------------
 local ipairs = ipairs
 local pairs = pairs
-local pcall = pcall
+local select = select
 local sort = table.sort
 local strupper = string.upper
 local C_Item = C_Item
-local C_QuestLog = C_QuestLog
 local UnitFactionGroup = UnitFactionGroup
 local UnitClass = UnitClass
 
 -- ----------------------------------------------------------------------------
 -- 2. Private File Helpers & Constants
 -- ----------------------------------------------------------------------------
--- Session caches: questID -> view; shown giver name -> { store, key } (for map lookups by name)
-local questCache, linkByName = {}, {}
+-- Session cache: questID -> view
+local questCache = {}
 
 -- A store, or nil when the DataStore is off; every public call checks first
 ---@return any
 local function store(name)
-    local DataStore = parent.DataStore
+    local DataStore = ns.DataStore
     return DataStore and DataStore:IsEnabled() and DataStore[name] or nil
 end
 
--- The first map point of an NPC or fixture: { mapID, x, y, label, targetName }
-local function spawnPoint(storeName, key, label)
-    local record = store(storeName):Get(key)
+-- The first map point of an NPC or fixture record: { mapID, x, y, label, targetName }
+local function spawnPoint(record, label)
     local spawn = record and record.spawns and record.spawns[1]
     if spawn then
         return { mapID = spawn.uiMapID, x = spawn.x, y = spawn.y, label = label, targetName = label }
@@ -58,26 +55,31 @@ local function whereText(storeName, key)
     return spawn and store("ZoneStore"):GetLabel(spawn.uiMapID)
 end
 
--- Describes one startedBy / endedBy entry: name, where, and what it is
+-- An NPC or fixture giver: inside an instance when its record names one
+local function standingGiver(kind, storeName, key)
+    local record = store(storeName):Get(key)
+    local name = store(storeName):GetLabel(key)
+    return { kind = kind, key = key, name = name, where = whereText(storeName, key),
+        inside = record ~= nil and record.instanceID ~= nil, point = spawnPoint(record, name) }
+end
+
+-- Describes one startedBy / endedBy entry (see the giver shape above)
 local function describe(entry)
     if entry.npcID then
-        local name = store("NpcStore"):GetLabel(entry.npcID)
-        linkByName[name] = { "NpcStore", entry.npcID }
-        return { kind = "npc", key = entry.npcID, name = name, where = whereText("NpcStore", entry.npcID) }
+        return standingGiver("npc", "NpcStore", entry.npcID)
     elseif entry.fixtureID then
-        local name = store("FixtureStore"):GetLabel(entry.fixtureID)
-        linkByName[name] = { "FixtureStore", entry.fixtureID }
-        return { kind = "fixture", key = entry.fixtureID, name = name, where = whereText("FixtureStore", entry.fixtureID) }
+        return standingGiver("fixture", "FixtureStore", entry.fixtureID)
     elseif entry.itemID then
         local items = store("ItemStore")
         local source = items:GetObtainedFrom(entry.itemID)[1]
         local where = source and source.kind == "encounter"
             and ("dropped by " .. store("EncounterStore"):GetLabel(source.key)) or nil
-        return { kind = "item", key = entry.itemID, name = items:GetLabel(entry.itemID), where = where }
+        return { kind = "item", key = entry.itemID, name = items:GetLabel(entry.itemID), where = where,
+            inside = true, icon = C_Item.GetItemIconByID(entry.itemID) }
     end
 end
 
--- "Name, where" for a quest field; the quest's own hint when nothing is linked
+-- "Name, where" for a quest field, and its giver; the quest's own hint when nothing is linked
 local function sentence(questID, field)
     local quests = store("QuestStore")
     local record = quests:Get(questID)
@@ -114,20 +116,40 @@ local function buildQuest(questID)
     if not record then
         return nil
     end
-    local isChain = false
+    local isQuestline = false
     for _, requirement in ipairs(record.requires or {}) do
-        isChain = isChain or requirement.questID ~= nil
+        isQuestline = isQuestline or requirement.questID ~= nil
     end
     local view = {
         id = questID, name = quests:GetLabel(questID),
         questLevel = record.questLevel, level = record.questLevel, reqLevel = record.requiredLevel,
         faction = record.faction or "Both", classOnly = record.classes and record.classes[1],
         baseXP = record.xp, objective = quests:GetText(questID, "objective"),
-        rewardItems = record.rewardItemIDs, rewardChoice = record.rewardChoice, isChain = isChain,
+        rewardItems = record.rewardItemIDs, rewardChoice = record.rewardChoice, isQuestline = isQuestline,
     }
     view.pickup, view.giver = sentence(questID, "startedBy")
     view.turnin, view.turninGiver = sentence(questID, "endedBy")
     return view
+end
+
+-- The quest IDs listed for an instance (or wing) view; a wing also takes its instance's quests that name no wing
+local function instanceQuestIDs(quests, view)
+    local ids, seen = {}, {}
+    local function add(list, onlyWithoutWing)
+        for _, questID in ipairs(list) do
+            if not seen[questID] and not (onlyWithoutWing and quests:Get(questID).wingKeys) then
+                seen[questID] = true
+                ids[#ids + 1] = questID
+            end
+        end
+    end
+    if view.wingKey then
+        add(quests:FindBy("wingKeys", view.wingKey))
+        add(quests:FindBy("instanceIDs", view.instanceID), true)
+    else
+        add(quests:FindBy("instanceIDs", view.instanceID))
+    end
+    return ids
 end
 
 -- ----------------------------------------------------------------------------
@@ -148,43 +170,31 @@ function QuestAccess:GetQuest(questID)
     return questCache[questID]
 end
 
---- A dungeon's (or wing's) quests, filtered by faction ("All" for both) and class ("All" for any),
---- sorted by required level, then name. A wing also shows its instance's quests that name no wing.
---- A chain with several steps here is listed once, as its last step.
-function QuestAccess:GetDungeonQuests(view, factionFilter, classFilter)
+--- Whether `quest` passes the faction ("All" for both) and class ("All" for any) filters.
+function QuestAccess:Passes(quest, factionFilter, classFilter)
+    local faction = factionFilter or UnitFactionGroup("player")
+    local class = classFilter or select(2, UnitClass("player"))
+    local factionOk = faction == "All" or quest.faction == "Both" or quest.faction == faction
+    local classOk = not quest.classOnly or class == "All" or strupper(quest.classOnly) == class
+    return factionOk and classOk
+end
+
+--- An instance's (or wing's) quests, filtered by faction and class (QuestAccess:Passes), sorted by required
+--- level, then name. A questline with several steps here is listed once, as its last step.
+function QuestAccess:GetInstanceQuests(view, factionFilter, classFilter)
     local quests = store("QuestStore")
     if not quests or not view then
         return {}
     end
-    local ids, seen = {}, {}
-    local function add(list, onlyWithoutWing)
-        for _, questID in ipairs(list) do
-            if not seen[questID] and not (onlyWithoutWing and quests:Get(questID).wingKeys) then
-                seen[questID] = true
-                ids[#ids + 1] = questID
-            end
-        end
-    end
-    if view.wingKey then
-        add(quests:FindBy("wingKeys", view.wingKey))
-        add(quests:FindBy("instanceIDs", view.instanceID), true)
-    else
-        add(quests:FindBy("instanceIDs", view.instanceID))
-    end
-    local faction = factionFilter or UnitFactionGroup("player")
-    local _, playerClass = UnitClass("player")
-    local class = classFilter or playerClass
     local shown = {}
-    for _, questID in ipairs(ids) do
+    for _, questID in ipairs(instanceQuestIDs(quests, view)) do
         local quest = self:GetQuest(questID)
-        local factionOk = faction == "All" or quest.faction == "Both" or quest.faction == faction
-        local classOk = not quest.classOnly or class == "All" or strupper(quest.classOnly) == class
-        if factionOk and classOk then
+        if self:Passes(quest, factionFilter, classFilter) then
             shown[#shown + 1] = quest
         end
     end
-    -- One entry per chain: a quest that is an earlier step of another listed quest's chain is
-    -- reached through that quest's chain view
+    -- One entry per questline: a quest that is an earlier step of another listed quest's questline is
+    -- reached through that quest's questline view
     local earlierStep = {}
     for _, quest in ipairs(shown) do
         for _, required in ipairs(prerequisites(quest.id)) do
@@ -206,8 +216,40 @@ function QuestAccess:GetDungeonQuests(view, factionFilter, classFilter)
     return results
 end
 
---- The whole chain ending in `questID`, prerequisites first (walking `requires`), or nil without one.
-function QuestAccess:GetFullChain(questID)
+--- The quests an instance's attunement lists (`view.attunement.questIDs`, the quests that award what lets you in),
+--- passing the faction and class filters, in the attunement's order.
+function QuestAccess:GetAttunementQuests(view, factionFilter, classFilter)
+    local results = {}
+    if not store("QuestStore") or not (view and view.attunement) then
+        return results
+    end
+    for _, questID in ipairs(view.attunement.questIDs or {}) do
+        local quest = self:GetQuest(questID)
+        if quest and self:Passes(quest, factionFilter, classFilter) then
+            results[#results + 1] = quest
+        end
+    end
+    return results
+end
+
+--- Whether an instance (or wing) has any quest, its own or its attunement's, passing the filters; cheaper than
+--- listing them.
+function QuestAccess:HasInstanceQuests(view, factionFilter, classFilter)
+    local quests = store("QuestStore")
+    if not quests or not view then
+        return false
+    end
+    for _, questID in ipairs(instanceQuestIDs(quests, view)) do
+        if self:Passes(self:GetQuest(questID), factionFilter, classFilter) then
+            return true
+        end
+    end
+    return #self:GetAttunementQuests(view, factionFilter, classFilter) > 0
+end
+
+--- The whole questline ending in `questID`, prerequisites first (walking `requires`), or nil without one.
+--- Each step: `{ id, quest (its view), stepIndex, totalSteps, isDungeonQuest, isCompleted, isActive }`.
+function QuestAccess:GetQuestline(questID)
     local quests = store("QuestStore")
     if not quests or not quests:Get(questID) then
         return nil
@@ -217,74 +259,24 @@ function QuestAccess:GetFullChain(questID)
         return nil
     end
     order[#order + 1] = questID
-    local chain = {}
+    local questline = {}
     for i, id in ipairs(order) do
-        local quest = self:GetQuest(id)
-        chain[i] = {
-            id = id, name = quest.name, stepIndex = i, totalSteps = #order,
-            level = quest.questLevel or 0, reqLevel = quest.reqLevel or 0,
-            objective = quest.objective or "No objective description available.",
-            pickup = quest.pickup or "Unknown", turnin = quest.turnin or quest.pickup or "Unknown",
-            map = self:GetQuestMap(id), rewardItems = quest.rewardItems, rewardChoice = quest.rewardChoice,
-            baseXP = quest.baseXP, isDungeonQuest = (id == questID),
+        questline[i] = {
+            id = id, quest = self:GetQuest(id), stepIndex = i, totalSteps = #order, isDungeonQuest = (id == questID),
             isCompleted = self:IsQuestCompleted(id), isActive = self:IsQuestActive(id),
         }
     end
-    return chain
-end
-
---- The quest giver's map point, or nil.
-function QuestAccess:GetQuestMap(questID)
-    local quest = self:GetQuest(questID)
-    local giver = quest and quest.giver
-    if giver and (giver.kind == "npc" or giver.kind == "fixture") then
-        return spawnPoint(giver.kind == "npc" and "NpcStore" or "FixtureStore", giver.key, giver.name)
-    end
-end
-
---- The map point of an NPC or object by the name shown in a Quest Source or Turn In line.
-function QuestAccess:FindMapForNpc(text)
-    local name = text and (text:match("^(.-),") or text):gsub("%s*%(.-%)", ""):match("^%s*(.-)%s*$")
-    local link = name and linkByName[name]
-    if link then
-        return spawnPoint(link[1], link[2], name)
-    end
-end
-
---- Who starts the quest: { isItem, giverName, location, npcID, displayID, itemIcon, isChain }.
---- Items and objects count as items (they show an icon, not a portrait).
-function QuestAccess:GetQuestGiverInfo(quest, dungeonName, dungeonLocation)
-    local info = { isItem = false, giverName = "", location = "", isChain = quest and quest.isChain or false }
-    local giver = quest and quest.giver
-    if not giver then
-        info.giverName = quest and quest.pickup or "Unknown"
-        return info
-    end
-    info.giverName = giver.name
-    if giver.kind == "npc" then
-        local npc = store("NpcStore"):Get(giver.key)
-        info.npcID, info.displayID, info.location = giver.key, npc and npc.displayID, giver.where or ""
-    elseif giver.kind == "fixture" then
-        local fixture = store("FixtureStore"):Get(giver.key)
-        info.isItem, info.itemIcon, info.location = true, fixture and fixture.icon, giver.where or ""
-    else
-        info.isItem = true
-        info.itemIcon = C_Item.GetItemIconByID(giver.key)
-        info.location = dungeonLocation or dungeonName or ""
-    end
-    return info
+    return questline
 end
 
 --- Whether the player has completed the quest.
 function QuestAccess:IsQuestCompleted(questID)
-    local ok, done = pcall(C_QuestLog.IsQuestFlaggedCompleted, questID)
-    return ok and done == true
+    return ns.GameApi:IsQuestCompleted(questID)
 end
 
 --- Whether the quest is in the player's quest log.
 function QuestAccess:IsQuestActive(questID)
-    local ok, onQuest = pcall(C_QuestLog.IsOnQuest, questID)
-    return ok and onQuest == true
+    return ns.GameApi:IsQuestActive(questID)
 end
 
 --- Forgets cached quest views (after a data change or a title load).
@@ -295,10 +287,11 @@ end
 -- ----------------------------------------------------------------------------
 -- 4. Namespace Attachment
 -- ----------------------------------------------------------------------------
+ns.Data = ns.Data or {}
 ns.Data.QuestAccess = QuestAccess
 
 -- Quest titles and NPC names arrive from the client later; cached views rebuild with them
-local liveData = parent.DataStore and parent.DataStore.Live
+local liveData = ns.DataStore and ns.DataStore.Live
 if liveData then
     liveData:AddListener(function()
         QuestAccess:ClearCache()

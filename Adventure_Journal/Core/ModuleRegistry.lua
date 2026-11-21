@@ -129,6 +129,8 @@ function ModuleRegistry:Register(moduleDef)
         OnWindowFocus = moduleDef.OnWindowFocus,
         isInitialized = false,
         canvas = nil,
+        -- The module's own definition, for its other public methods (e.g. Dungeons' OpenInstance)
+        definition = moduleDef,
     }
 
     if moduleDef.defaultDisabled == true then

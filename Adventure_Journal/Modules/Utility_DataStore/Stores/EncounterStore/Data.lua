@@ -99,6 +99,7 @@ ns.DataStore.EncounterStore:SetBase({
     [598] = { label = "Nekrum Gutchewer", verified = true, source = "client", instanceID = 209, itemIDs = { 9471, 274644, 274645, 274643, 252871, 252868, 251400 }, npcs = { { npcID = 7796, role = "boss" } }, order = 5 },
     [599] = { label = "Shadowpriest Sezz'ziz", verified = true, source = "client", instanceID = 209, itemIDs = { 9470, 9473, 9474, 9475, 254102, 251404, 254098, 252919, 252918, 251407, 251403 }, npcs = { { npcID = 7275, role = "boss" } }, order = 6 },
     [600] = { label = "Chief Ukorz Sandscalp", verified = true, source = "client", instanceID = 209, itemIDs = { 9479, 9476, 9478, 9477, 11086, 254100, 254096, 254102, 251407, 254098, 252871, 252867, 254106, 251404, 251405 }, npcs = { { npcID = 7267, role = "boss" } }, order = 12 },
+    [1084] = { label = "Onyxia", verified = true, source = "client", instanceID = 249, order = 1 },
     [1887] = { label = "Obsidian Sentinel", verified = true, source = "client", icon = "Interface\\Icons\\Spell_Shadow_SummonVoidWalker", instanceID = 70, itemIDs = { 8053, 274430, 274428, 274425, 274485, 251400 }, order = 6 },
     [2732] = { label = "Oggleflint", verified = true, source = "client", instanceID = 389, itemIDs = { 272996, 272998, 272999, 252781, 252782 }, npcs = { { npcID = 11517, role = "boss" } }, order = 3 },
     [2733] = { label = "Taragaman the Hungerer", verified = true, source = "client", instanceID = 389, itemIDs = { 14149, 14148, 14145, 251361, 251362, 251363, 252782 }, npcs = { { npcID = 11520, role = "boss" } }, order = 1 },

@@ -23,7 +23,7 @@ DataStore.StoreBase:New({
     name = "EncounterStore",
     kind = "Encounter",
     fields = {
-        instanceID  = { type = "number", links = "InstanceStore", comment = "The instance (client MapID)." },
+        instanceID  = { type = "key",    links = "InstanceStore", comment = "The instance: its client map ID, or its slug until the client ships the map." },
         wingKey     = { type = "string", links = "InstanceStore", comment = "The wing, for instances with wings." },
         order       = { type = "number", comment = "Position in the boss list." },
         kind        = { type = "string", comment = "boss (default), rare, minor, challenge or event." },

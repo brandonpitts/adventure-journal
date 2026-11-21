@@ -2,7 +2,7 @@
 ## Title: Adventure Journal
 ## Notes: Complete in-game adventure guide, dungeon and raid reference for WoW Forever.
 ## Author: Brand
-## Version: 0.10.0
+## Version: 0.11.0
 ## IconTexture: Interface\Icons\INV_Misc_Book_09
 ## SavedVariables: JournalBaseDB
 ## AddonCompartmentFunc: AdventureJournal_OnAddonCompartmentClick
@@ -14,10 +14,43 @@ Core\Constants.lua
 Core\Settings.lua
 Core\Search.lua
 Core\LevelColors.lua
+Core\GameApi.lua
+Core\Templates\Registry.lua
+Core\Templates\Resolver.lua
+Core\Templates\Base.lua
+Core\Templates\QuestGroup.lua
+Core\Templates\Instance.lua
 Core\KeybindManager.lua
 Core\ModuleRegistry.lua
 Core\HolidayManager.lua
 Core\UI\ScrollFrame.lua
+Core\UI\Styles.lua
+Core\UI\Blocks\Divider.lua
+Core\UI\Blocks\InstanceArt.lua
+Core\UI\Blocks\Medallion.lua
+Core\UI\Blocks\SlabButton.lua
+Core\UI\Blocks\LevelTag.lua
+Core\UI\Blocks\StoneCard.lua
+Core\UI\Blocks\ItemRow.lua
+Core\UI\Blocks\LootList.lua
+Core\UI\Blocks\QuestMarker.lua
+Core\UI\Blocks\MapPinButton.lua
+Core\UI\Blocks\QuestLogButton.lua
+Core\UI\Blocks\QuestlineBanner.lua
+Core\UI\Blocks\RewardGrid.lua
+Core\UI\Blocks\QuestSections.lua
+Core\UI\Blocks\QuestDetail.lua
+Core\UI\Blocks\Questline.lua
+Core\UI\Blocks\QuestList.lua
+Core\UI\Blocks\EncounterList.lua
+Core\UI\Blocks\EncounterDetail.lua
+Core\UI\Blocks\OverviewPane.lua
+Core\UI\Blocks\WingList.lua
+Core\UI\Blocks\SideTabs.lua
+Core\UI\Blocks\BookLayout.lua
+Core\UI\Blocks\PageHeader.lua
+Core\UI\Blocks\CardList.lua
+Core\UI\BookNavigator.lua
 Core\UI\SettingsSections.lua
 Core\UI\HeaderBar.lua
 Core\UI\TabBar.lua
@@ -26,6 +59,7 @@ Core\UI\MainFrame.lua
 Core\UI\MinimapButton.lua
 Core\UI\KeybindButton.lua
 Core\UI\SettingsPanel.lua
+Core\UI\SettingsRaids.lua
 Core\Core.lua
 
 # Modules: Utility - DataStore (loads before every journal module)
@@ -36,6 +70,7 @@ Modules\Utility_DataStore\Core\Live.lua
 Modules\Utility_DataStore\Core\Indexes.lua
 Modules\Utility_DataStore\Core\StoreBase.lua
 Modules\Utility_DataStore\Core\StoreTexts.lua
+Modules\Utility_DataStore\Core\StoreDisplay.lua
 Modules\Utility_DataStore\Tags\TagRegistry.lua
 Modules\Utility_DataStore\Stores\ItemStore\Schema.lua
 Modules\Utility_DataStore\Stores\ItemStore\Data.lua
@@ -49,11 +84,13 @@ Modules\Utility_DataStore\Stores\InstanceStore\Data.lua
 Modules\Utility_DataStore\Stores\InstanceStore\Overrides.lua
 Modules\Utility_DataStore\Stores\InstanceStore\Texts.lua
 Modules\Utility_DataStore\Stores\InstanceStore\TextOverrides.lua
+Modules\Utility_DataStore\Stores\InstanceStore\DisplayOverrides.lua
 Modules\Utility_DataStore\Stores\EncounterStore\Schema.lua
 Modules\Utility_DataStore\Stores\EncounterStore\Data.lua
 Modules\Utility_DataStore\Stores\EncounterStore\Overrides.lua
 Modules\Utility_DataStore\Stores\EncounterStore\Texts.lua
 Modules\Utility_DataStore\Stores\EncounterStore\TextOverrides.lua
+Modules\Utility_DataStore\Stores\EncounterStore\DisplayOverrides.lua
 Modules\Utility_DataStore\Stores\NpcStore\Schema.lua
 Modules\Utility_DataStore\Stores\NpcStore\Data.lua
 Modules\Utility_DataStore\Stores\NpcStore\Overrides.lua
@@ -64,6 +101,7 @@ Modules\Utility_DataStore\Stores\QuestStore\Data.lua
 Modules\Utility_DataStore\Stores\QuestStore\Overrides.lua
 Modules\Utility_DataStore\Stores\QuestStore\Texts.lua
 Modules\Utility_DataStore\Stores\QuestStore\TextOverrides.lua
+Modules\Utility_DataStore\Stores\QuestStore\DisplayOverrides.lua
 Modules\Utility_DataStore\Stores\FixtureStore\Schema.lua
 Modules\Utility_DataStore\Stores\FixtureStore\Data.lua
 Modules\Utility_DataStore\Stores\FixtureStore\Overrides.lua
@@ -97,18 +135,33 @@ Modules\Utility_DataStore\Stores\AbilityStore\TextOverrides.lua
 Modules\Utility_DataStore\Tags\TagDefinitions.lua
 Modules\Utility_DataStore\Core.lua
 
+# Core: data feeds (load after the DataStore, before every journal module)
+Core\Data\InstanceAccess.lua
+Core\Data\InstanceLocations.lua
+Core\Data\InstanceSearch.lua
+Core\Data\QuestAccess.lua
+Core\Data\ItemAccess.lua
+
+# Core: instance pages (use the data feeds as they load)
+Core\UI\InstanceListOrder.lua
+Core\UI\InstanceList.lua
+Core\UI\QuestGroup\QuestGroup.lua
+Core\UI\QuestGroup\QuestPage.lua
+Core\UI\InstanceBook\InstanceBook.lua
+Core\UI\InstanceBook\Tabs.lua
+Core\UI\InstanceBook\LeftPage.lua
+Core\UI\InstanceBook\RightPage.lua
+Core\UI\InstanceBook\Updates.lua
+Core\UI\InstanceModule.lua
+
 # Modules: Dungeons
 Modules\Journal_Dungeons\Constants.lua
-Modules\Journal_Dungeons\Data\DungeonAccess.lua
-Modules\Journal_Dungeons\Data\QuestAccess.lua
-Modules\Journal_Dungeons\UI\SharedWidgets.lua
-Modules\Journal_Dungeons\UI\StoneCard.lua
-Modules\Journal_Dungeons\UI\DungeonGridView.lua
-Modules\Journal_Dungeons\UI\DungeonBookView.lua
+Modules\Journal_Dungeons\Template.lua
 Modules\Journal_Dungeons\UI\MainView.lua
 Modules\Journal_Dungeons\Core.lua
 
 Modules\Journal_Raids\Constants.lua
+Modules\Journal_Raids\Template.lua
 Modules\Journal_Raids\UI\MainView.lua
 Modules\Journal_Raids\Core.lua
 

@@ -1,26 +1,26 @@
 -- ============================================================================
--- Journal_Dungeons - Data/DungeonAccess.lua
--- Every question the Dungeons screens ask about dungeons, wings, bosses and
--- loot, answered from the DataStore only. Answers are
--- plain view tables shaped for today's screens; the templating branch carries
--- this file over and rebuilds only the screens.
---   dungeon view: key, id, instanceID, wingKey, name, fullName, level, minLevel, maxLevel,
---                 location, description, icon, art, aliases, comingSoon, wingCount, crest
---   boss view:    key, name, level, minLevel, maxLevel, classification, rare, isMinor, isChallenge,
---                 isEvent, holidayID, displayID, icon, description, npcID, itemIDs
+-- Adventure Journal - Core/Data/InstanceAccess.lua
+-- The data feed for instance pages (dungeons and raids): instances, wings,
+-- encounters and loot, answered from the DataStore only, as plain view tables.
+--   instance view:  key, id, instanceID, wingKey, instanceType, maxPlayers, tier, attunement, name, fullName, level,
+--                   minLevel, maxLevel, location, description, icon, art, aliases, comingSoon, wingCount,
+--                   zoneItemIDs
+--   encounter view: key, name, level, minLevel, maxLevel, classification, rare, isMinor, isChallenge,
+--                   isEvent, holidayID, displayID, icon, description, npcID, itemIDs (everything it drops),
+--                   baseItemIDs (its own loot), lootSets ({ label, itemIDs }: loot that depends on circumstances)
+-- Entrances and the instance the player is in: InstanceLocations.lua. Search and the boss list's groups:
+-- InstanceSearch.lua.
 -- ============================================================================
-local addonName, parent = ...
-local ns = parent.Dungeons or {} ; parent.Dungeons = ns
+local addonName, ns = ...
 
 -- ----------------------------------------------------------------------------
 -- 1. Upvalued Globals & Engine APIs
 -- ----------------------------------------------------------------------------
-local GetInstanceInfo = GetInstanceInfo
-local GetSubZoneText = GetSubZoneText
 local ipairs = ipairs
 local pairs = pairs
 local tostring = tostring
 local sort = table.sort
+local concat = table.concat
 local format = string.format
 local strfind = string.find
 local strlower = string.lower
@@ -30,17 +30,13 @@ local strlower = string.lower
 -- ----------------------------------------------------------------------------
 local SKULL_LEVEL = -1
 
--- Capital-city dungeons show their city's faction crest by the title. A display choice, not data;
--- belongs to the dungeon template's header slot when templates arrive.
-local CREST_BY_INSTANCE = { [389] = "Horde", [2999] = "Horde", [34] = "Alliance", [3065] = "Alliance" }
-
 -- Session cache: dungeon key -> view, and view -> list of boss views
 local viewCache, bossCache = {}, {}
 
 -- A store, or nil when the DataStore is off; every public call checks first
 ---@return any
 local function store(name)
-    local DataStore = parent.DataStore
+    local DataStore = ns.DataStore
     return DataStore and DataStore:IsEnabled() and DataStore[name] or nil
 end
 
@@ -65,7 +61,7 @@ local function levelText(minLevel, maxLevel)
     return tostring(minLevel)
 end
 
--- "Moonbrook, Westfall" from the entrance's area and zone; the legacy hint when the area is unknown
+-- "Moonbrook, Westfall" from the entrance's area (or our place name) and zone; the legacy hint when neither is known
 local function locationText(entranceKey)
     local locations = store("LocationStore")
     local entrance = locations and locations:Get(entranceKey)
@@ -73,12 +69,37 @@ local function locationText(entranceKey)
         return nil
     end
     local zone = entrance.uiMapID and store("ZoneStore"):GetLabel(entrance.uiMapID)
-    if entrance.areaID then
-        local area = store("AreaStore"):GetLabel(entrance.areaID)
+    local area = entrance.areaID and store("AreaStore"):GetLabel(entrance.areaID) or entrance.place
+    if area then
         return (zone and zone ~= area) and (area .. ", " .. zone) or area
     end
     local hint = locations:GetHints(entranceKey, "areaID")[1]
     return hint and hint.text or zone
+end
+
+-- An instance with no wings and several entrances: each entrance's place in their order, "A / B / C"; nil otherwise
+local function entrancesText(view)
+    local locations = store("LocationStore")
+    if not locations or view.wingKey or view.wingCount > 0 then
+        return nil
+    end
+    local keys = {}
+    for _, key in ipairs(locations:FindBy("instanceID", view.instanceID)) do
+        if locations:Get(key).kind == "entrance" then
+            keys[#keys + 1] = key
+        end
+    end
+    if #keys < 2 then
+        return nil
+    end
+    sort(keys, function(a, b)
+        return (locations:Get(a).order or 0) < (locations:Get(b).order or 0)
+    end)
+    local parts = {}
+    for i, key in ipairs(keys) do
+        parts[i] = locationText(key)
+    end
+    return concat(parts, " / ")
 end
 
 -- ----------------------------------------------------------------------------
@@ -86,52 +107,8 @@ end
 -- ----------------------------------------------------------------------------
 local Access = {}
 
---- The entrance record key for a dungeon view: the wing's own door, else the instance's; an instance whose
---- doors all belong to wings uses its first wing's.
-function Access:GetEntranceKey(view)
-    local locations = store("LocationStore")
-    if not locations or not view then
-        return nil
-    end
-    if view.wingKey then
-        for _, key in ipairs(locations:FindBy("wingKey", view.wingKey)) do
-            if locations:Get(key).kind == "entrance" then
-                return key
-            end
-        end
-    end
-    for _, key in ipairs(locations:FindBy("instanceID", view.instanceID)) do
-        local record = locations:Get(key)
-        if record.kind == "entrance" and (not record.wingKey or record.wingKey == view.wingKey) then
-            return key
-        end
-    end
-    if view.wingKey then
-        return nil
-    end
-    local instances = store("InstanceStore")
-    local wingKeys = instances and instances:FindBy("instanceID", view.instanceID) or {}
-    local firstWing
-    for _, wingKey in ipairs(wingKeys) do
-        if not firstWing or (instances:Get(wingKey).order or 0) < (instances:Get(firstWing).order or 0) then
-            firstWing = wingKey
-        end
-    end
-    return firstWing and self:GetEntranceKey({ wingKey = firstWing, instanceID = view.instanceID })
-end
-
---- The entrance's map point: { uiMapID, x, y, name }, or nil.
-function Access:GetEntrance(view)
-    local key = self:GetEntranceKey(view)
-    local record = key and store("LocationStore"):Get(key)
-    if not record or not record.uiMapID then
-        return nil
-    end
-    return { uiMapID = record.uiMapID, x = record.x, y = record.y, name = view.fullName }
-end
-
---- The view for a dungeon key (instance map ID or wing slug), built once per session.
-function Access:GetDungeon(key)
+--- The view for an instance key (instance map ID or wing slug), built once per session.
+function Access:GetInstance(key)
     if viewCache[key] then
         return viewCache[key]
     end
@@ -145,11 +122,12 @@ function Access:GetDungeon(key)
     local wingKeys = instances:FindBy("instanceID", instanceID)
     local view = {
         key = key, id = key, instanceID = instanceID, wingKey = record.instanceID and key or nil,
+        instanceType = instance.type, maxPlayers = instance.maxPlayers, tier = instance.tier,
+        attunement = instance.attunement,
         name = instances:GetLabel(key),
         icon = record.icon or instance.icon,
         aliases = record.aliases,
         comingSoon = instance.comingSoon,
-        crest = CREST_BY_INSTANCE[instanceID],
         description = instances:GetText(key, "description"),
         art = { record.loadingScreen or instance.loadingScreen },
         wingCount = (not record.instanceID) and #wingKeys or 0,
@@ -168,7 +146,7 @@ function Access:GetDungeon(key)
         if wing.maxLevel and (not view.maxLevel or wing.maxLevel > view.maxLevel) then view.maxLevel = wing.maxLevel end
     end
     view.level = levelText(view.minLevel, view.maxLevel)
-    view.location = locationText(self:GetEntranceKey(view))
+    view.location = entrancesText(view) or locationText(self:GetEntranceKey(view))
     -- Instance-wide drops: the wing's own plus its instance's (shared by every wing)
     local seen = {}
     view.zoneItemIDs = {}
@@ -180,16 +158,18 @@ function Access:GetDungeon(key)
     return view
 end
 
---- The grid: one view per instance (wings live on their instance's wing page).
-function Access:GetDungeonList()
+--- The list: one view per instance of `instanceType` ("dungeon" or "raid"); wings live on their instance's
+--- wing page.
+function Access:GetInstanceList(instanceType)
     local instances = store("InstanceStore")
     local list = {}
     if not instances then
         return list
     end
     for key in instances:EachKey() do
-        if not instances:Get(key).instanceID then
-            list[#list + 1] = self:GetDungeon(key)
+        local record = instances:Get(key)
+        if not record.instanceID and record.type == instanceType then
+            list[#list + 1] = self:GetInstance(key)
         end
     end
     return list
@@ -200,7 +180,7 @@ function Access:GetWings(view)
     local instances = store("InstanceStore")
     local list = {}
     for _, key in ipairs(instances and instances:FindBy("instanceID", view.instanceID) or {}) do
-        list[#list + 1] = self:GetDungeon(key)
+        list[#list + 1] = self:GetInstance(key)
     end
     sort(list, function(a, b)
         return (instances:Get(a.key).order or 0) < (instances:Get(b.key).order or 0)
@@ -208,8 +188,8 @@ function Access:GetWings(view)
     return list
 end
 
---- One boss view from an encounter; a group gathers its members' NPCs and loot.
-function Access:BuildBoss(key, record)
+--- One encounter view; a group gathers its members' NPCs and loot.
+function Access:BuildEncounter(key, record)
     local encounters, npcs = store("EncounterStore"), store("NpcStore")
     local parts = { record }
     for _, field in ipairs({ "encounterID", "encounterKey" }) do
@@ -218,11 +198,14 @@ function Access:BuildBoss(key, record)
         end
     end
     local itemIDs, seenItems = {}, {}
+    local baseItemIDs, seenBase, lootSets = {}, {}, {}
     local minLevel, maxLevel, mainNpc
     for _, part in ipairs(parts) do
         appendUnique(itemIDs, seenItems, part.itemIDs)
+        appendUnique(baseItemIDs, seenBase, part.itemIDs)
         for _, set in ipairs(part.lootSets or {}) do
             appendUnique(itemIDs, seenItems, set.itemIDs)
+            lootSets[#lootSets + 1] = { label = set.label, itemIDs = set.itemIDs }
         end
         for _, entry in ipairs(part.npcs or {}) do
             if entry.role == "boss" then
@@ -240,6 +223,7 @@ function Access:BuildBoss(key, record)
     end
     local kind = record.kind or "boss"
     local npc = mainNpc and npcs:Get(mainNpc)
+    local description = encounters:GetText(key, "description")
     return {
         key = key, name = encounters:GetLabel(key),
         level = levelText(minLevel, maxLevel), minLevel = minLevel, maxLevel = maxLevel,
@@ -247,13 +231,15 @@ function Access:BuildBoss(key, record)
         rare = kind == "rare", isMinor = kind == "minor", isChallenge = kind == "challenge",
         isEvent = kind == "event", holidayID = record.holidayID,
         npcID = mainNpc, displayID = npc and npc.displayID, icon = record.icon,
-        description = encounters:GetText(key, "description"),
-        itemIDs = itemIDs,
+        description = description,
+        -- Known only by name: no loot, no NPC and no description
+        isIncomplete = #itemIDs == 0 and not mainNpc and not description,
+        itemIDs = itemIDs, baseItemIDs = baseItemIDs, lootSets = lootSets,
     }
 end
 
---- A dungeon's (or wing's) bosses in boss-list order. Group members appear inside their group.
-function Access:GetBosses(view)
+--- An instance's (or wing's) encounters in boss-list order. Group members appear inside their group.
+function Access:GetEncounters(view)
     if not view or view.wingCount > 0 then
         return {}
     end
@@ -264,8 +250,11 @@ function Access:GetBosses(view)
     local entries = {}
     for _, key in ipairs(encounters and encounters:FindBy("instanceID", view.instanceID) or {}) do
         local record = encounters:Get(key)
-        if not (record.encounterID or record.encounterKey) and record.wingKey == view.wingKey then
-            entries[#entries + 1] = { key = key, order = record.order or 0, view = self:BuildBoss(key, record) }
+        -- A `place` display override shows an encounter on a wing's page (its data names no wing)
+        local placed = encounters:GetDisplayOverride(key, "place", "bossList")
+        local wingKey = placed and placed.value.wingKey or record.wingKey
+        if not (record.encounterID or record.encounterKey) and wingKey == view.wingKey then
+            entries[#entries + 1] = { key = key, order = record.order or 0, view = self:BuildEncounter(key, record) }
         end
     end
     sort(entries, function(a, b)
@@ -280,90 +269,6 @@ function Access:GetBosses(view)
     return list
 end
 
---- Whether a boss matches the search: its name (for a simple query) or any of its loot.
-function Access:BossMatches(boss, query)
-    local Search = parent.Search
-    local parsed = Search:Parse(query)
-    if parsed.isEmpty then
-        return true
-    end
-    if not Search:IsMultiConstraint(parsed) and strfind(strlower(boss.name or ""), parsed.raw, 1, true) then
-        return true
-    end
-    for _, itemID in ipairs(boss.itemIDs or {}) do
-        if Search:ItemMatches(itemID, parsed) then
-            return true
-        end
-    end
-    return false
-end
-
---- Whether a grid entry matches the search: name, location, levels, aliases, a wing, a boss or any loot.
-function Access:DungeonMatches(view, query)
-    local q = strlower(query or ""):match("^%s*(.-)%s*$")
-    if q == "" then
-        return true
-    end
-    for _, text in ipairs({ view.fullName, view.location, view.level }) do
-        if text and strfind(strlower(text), q, 1, true) then
-            return true
-        end
-    end
-    for _, alias in ipairs(view.aliases or {}) do
-        if strfind(strlower(alias), q, 1, true) then
-            return true
-        end
-    end
-    local targets = view.wingCount > 0 and self:GetWings(view) or { view }
-    for _, target in ipairs(targets) do
-        if target ~= view and self:DungeonMatches(target, query) then
-            return true
-        end
-        for _, boss in ipairs(self:GetBosses(target)) do
-            if self:BossMatches(boss, query) then
-                return true
-            end
-        end
-        if self:BossMatches({ itemIDs = target.zoneItemIDs }, query) then
-            return true
-        end
-    end
-    return false
-end
-
---- The wing whose region (named subzone, LocationStore) is `subzone`, or nil.
---- @param instanceID number
---- @param subzone string|nil the name under the minimap
-function Access:GetWingBySubzone(instanceID, subzone)
-    local locations = store("LocationStore")
-    if not locations or not subzone or subzone == "" then
-        return nil
-    end
-    for _, key in ipairs(locations:FindBy("instanceID", instanceID)) do
-        local region = locations:Get(key)
-        if region.kind == "region" and region.wingKey and region.label == subzone then
-            return self:GetDungeon(region.wingKey)
-        end
-    end
-end
-
---- The dungeon the player is inside, or nil outside a dungeon or in one not in the catalog. In an instance
---- with wings, the wing the current subzone belongs to; the instance itself when the subzone has no wing.
-function Access:GetCurrentInstanceDungeon()
-    if not GetInstanceInfo then
-        return nil
-    end
-    local _, instanceType, _, _, _, _, _, instanceID = GetInstanceInfo()
-    if instanceType ~= "party" or not instanceID then
-        return nil
-    end
-    local dungeon = self:GetDungeon(instanceID)
-    if dungeon and dungeon.wingCount > 0 and GetSubZoneText then
-        return self:GetWingBySubzone(instanceID, GetSubZoneText()) or dungeon
-    end
-    return dungeon
-end
-
 --- Forgets cached views (after a data change).
 function Access:ClearCache()
     for key in pairs(viewCache) do viewCache[key] = nil end
@@ -373,4 +278,5 @@ end
 -- ----------------------------------------------------------------------------
 -- 4. Namespace Attachment
 -- ----------------------------------------------------------------------------
-ns.Data.DungeonAccess = Access
+ns.Data = ns.Data or {}
+ns.Data.InstanceAccess = Access

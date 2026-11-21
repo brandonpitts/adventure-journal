@@ -29,7 +29,9 @@ DataStore.StoreBase:New({
         x            = { type = "number", comment = "Position on the map, 0-1." },
         y            = { type = "number", comment = "Position on the map, 0-1." },
         areaID       = { type = "number", links = "AreaStore", comment = "The named area it sits in." },
-        instanceID   = { type = "number", links = "InstanceStore", comment = "The instance it leads into or belongs to." },
+        place        = { type = "string", comment = "Our name for its spot within the zone when the client has no area for it (e.g. \"Summit\"); the area wins once there is one." },
+        instanceID   = { type = "key",    links = "InstanceStore", comment = "The instance it leads into or belongs to: its map ID, or its slug until the client ships the map." },
+        order        = { type = "number", comment = "An entrance's place among its instance's entrances, when it has several." },
         wingKey      = { type = "string", links = "InstanceStore", comment = "The wing (entrances, regions)." },
         wmoIDs       = { type = "table",  list = true, comment = "Regions: the client's building models (WMOAreaTable WMOID) the name comes from." },
         -- Reserved for instance maps (region kind)

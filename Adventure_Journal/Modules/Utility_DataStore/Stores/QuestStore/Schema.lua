@@ -35,6 +35,6 @@ DataStore.StoreBase:New({
         requiredItemIDs = { type = "table",   list = true, links = "ItemStore", comment = "Items needed that aren't objectives." },
         rewardItemIDs   = { type = "table",   list = true, links = "ItemStore", comment = "Reward items." },
         rewardChoice    = { type = "boolean", comment = "True when you pick one reward." },
-        questLine       = { type = "string",  comment = "Name of the chain this quest completes (on the goal quest)." },
+        questLine       = { type = "string",  comment = "Name of the questline this quest completes (on the goal quest)." },
     },
 })

@@ -20,7 +20,7 @@ local SOUNDKIT = SOUNDKIT
 local Constants = {
     ADDON_NAME = addonName,
     TITLE = "Adventure Journal",
-    VERSION = "0.10.0",
+    VERSION = "0.11.0",
     AUTHOR = "Brandon (Endoria)",
 
     BINDING_HEADER = "JOURNALBASE",
@@ -94,7 +94,7 @@ local Constants = {
     },
 
     DB_DEFAULTS = {
-        schemaVersion = 9,
+        schemaVersion = 10,
         showInAddonCompartment = false,
         enableAdvancedSearch = false,
         minimap = {
@@ -116,9 +116,22 @@ local Constants = {
             showMinorMonsters = true,
             showEventBosses = "holiday",
             showDungeonSetChallenges = false,
+            showIncompleteBosses = false,
             worldMapDungeonIcons = "min_level",
-            dungeonGridSort = "level",
-            dungeonGridLayout = "four",
+            dungeonListSort = "level",
+            dungeonListLayout = "four",
+            showBothFactionData = false,
+        },
+        raids = {
+            showBossLevel = true,
+            showBossDifficultyColor = true,
+            showMinorMonsters = true,
+            showEventBosses = "holiday",
+            showChallenges = false,
+            worldMapRaidIcons = "min_level",
+            raidListSort = "sizeAsc",
+            raidListLayout = "four",
+            groupRaidsByTier = true,
             showBothFactionData = false,
         },
         map_icons = {

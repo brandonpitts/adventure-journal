@@ -26,10 +26,11 @@ local MODULE_ROW_GAP = 6
 -- Distance between the tops of consecutive General rows
 local GENERAL_ROW_SPACING = 28
 
--- Dungeon setting dropdowns: the setting, its choices, the default, and old saved values that map to a choice
+-- Dungeon setting dropdowns: the module, the setting, its choices, the default, and old saved values that map
+-- to a choice
 local DUNGEON_DROPDOWNS = {
     sort = {
-        key = "dungeonGridSort", default = "level", aliases = { name = "alphabetical" },
+        moduleKey = "dungeons", key = "dungeonListSort", default = "level", aliases = { name = "alphabetical" },
         options = {
             { text = "Level Ascending (Default)", value = "level" },
             { text = "Level Descending", value = "levelDesc" },
@@ -37,7 +38,7 @@ local DUNGEON_DROPDOWNS = {
         },
     },
     layout = {
-        key = "dungeonGridLayout", default = "four",
+        moduleKey = "dungeons", key = "dungeonListLayout", default = "four",
         options = {
             { text = "4 per Row (Default)", value = "four" },
             { text = "3 per Row", value = "three" },
@@ -51,10 +52,10 @@ local DUNGEON_DROPDOWNS = {
 -- 2. Private Helper Functions
 -- ----------------------------------------------------------------------------
 
---- A dungeon dropdown's saved value as one of its choices, and that choice's label.
---- @param def table a DUNGEON_DROPDOWNS entry
+--- A setting dropdown's saved value as one of its choices, and that choice's label.
+--- @param def table a dropdown definition (DUNGEON_DROPDOWNS, or the Raids section's)
 local function currentChoice(def)
-    local raw = ns.Settings and ns.Settings.GetDungeonSetting and ns.Settings:GetDungeonSetting(def.key, def.default)
+    local raw = ns.Settings:GetModuleSetting(def.moduleKey, def.key, def.default)
     raw = def.aliases and def.aliases[raw] or raw
     local fallback
     for _, opt in ipairs(def.options) do
@@ -139,7 +140,7 @@ function SettingsPanel:Init()
     self.scrollFrame = scrollFrame
 
     local scrollChild = CreateFrame("Frame", nil, scrollFrame)
-    scrollChild:SetSize(580, 876)
+    scrollChild:SetSize(580, 912)
     scrollFrame:SetScrollChild(scrollChild)
     self.scrollChild = scrollChild
 
@@ -155,6 +156,8 @@ function SettingsPanel:Init()
     self:CreateInstalledModulesSection(scrollChild)
     self:CreateDungeonModuleSection(scrollChild)
     self:CreateBothFactionQuestsRow(scrollChild)
+    self:CreateIncompleteBossesRow(scrollChild)
+    self:CreateRaidModuleSection(scrollChild)
     self:CreateMapIconsModuleSection(scrollChild)
 
     -- Populate immediately and on OnShow so the first view in 16001 is never blank.
@@ -674,10 +677,10 @@ function SettingsPanel:CreateInstalledModulesSection(panel)
     self.NoModulesText = emptyText
 end
 
---- Builds a labeled dropdown row for a dungeon setting (`def`, a DUNGEON_DROPDOWNS entry), its label placed
---- with the given anchor. Choosing an option saves it and tells the Dungeons module. Returns the label.
+--- Builds a labeled dropdown row for a module setting (`def`: `{ moduleKey, key, default, options }`), its label placed
+--- with the given anchor. Choosing an option saves it and tells the module. Returns the label.
 --- @return FontString
-function SettingsPanel:CreateDungeonDropdownRow(panel, def, labelText, frameName, point, relativeTo, relativePoint,
+function SettingsPanel:CreateSettingDropdownRow(panel, def, labelText, frameName, point, relativeTo, relativePoint,
         x, y, tooltipText)
     local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     label:SetPoint(point, relativeTo, relativePoint, x, y)
@@ -705,12 +708,7 @@ function SettingsPanel:CreateDungeonDropdownRow(panel, def, labelText, frameName
                     if UIDropDownMenu_SetText then
                         UIDropDownMenu_SetText(dropdown, btn:GetText())
                     end
-                    if ns.Settings and ns.Settings.SetDungeonSetting then
-                        ns.Settings:SetDungeonSetting(def.key, btn.value)
-                    end
-                    if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
-                        _G.JournalBase:OnDungeonSettingChanged(def.key, btn.value)
-                    end
+                    ns.Settings:SetModuleSetting(def.moduleKey, def.key, btn.value)
                 end
                 info.checked = (opt.value == selectedValue)
                 if UIDropDownMenu_AddButton then
@@ -734,8 +732,8 @@ function SettingsPanel:CreateDungeonDropdownRow(panel, def, labelText, frameName
         end
     end)
 
-    self.dungeonDropdowns = self.dungeonDropdowns or {}
-    self.dungeonDropdowns[#self.dungeonDropdowns + 1] = { dropdown = dropdown, def = def }
+    self.settingDropdowns = self.settingDropdowns or {}
+    self.settingDropdowns[#self.settingDropdowns + 1] = { dropdown = dropdown, def = def }
     return label
 end
 
@@ -759,21 +757,21 @@ function SettingsPanel:CreateDungeonModuleSection(panel)
     divider:SetTexture(Constants.ASSETS.WHITE_8X8)
     divider:SetVertexColor(0.68, 0.52, 0.20, 0.35)
 
-    -- Row 1: "Sort Dungeon Grid by"
-    local sortLabel = self:CreateDungeonDropdownRow(panel, DUNGEON_DROPDOWNS.sort, "Sort Dungeon Grid by",
+    -- Row 1: "Sort Dungeon List by"
+    local sortLabel = self:CreateSettingDropdownRow(panel, DUNGEON_DROPDOWNS.sort, "Sort Dungeon List by",
         "AdventureJournalDungeonSortDropdown", "TOPLEFT", divider, "BOTTOMLEFT", 6, -16,
-        "Controls how dungeon cards are ordered on the Dungeons tab grid:\n\n• Level Ascending: Lowest level range first, matching official Blizzard Looking For Group brackets (Default).\n• Level Descending: Highest level range first.\n• Alphabetical (A-Z): Sorted alphabetically by dungeon name.")
+        "Controls how dungeon cards are ordered on the Dungeons tab list:\n\n• Level Ascending: Lowest level range first, matching official Blizzard Looking For Group brackets (Default).\n• Level Descending: Highest level range first.\n• Alphabetical (A-Z): Sorted alphabetically by dungeon name.")
     self.DungeonSortLabel = sortLabel
 
-    -- Row 2: "Dungeon Grid Layout"
-    local layoutLabel = self:CreateDungeonDropdownRow(panel, DUNGEON_DROPDOWNS.layout, "Dungeon Grid Layout",
+    -- Row 2: "Dungeon List Layout"
+    local layoutLabel = self:CreateSettingDropdownRow(panel, DUNGEON_DROPDOWNS.layout, "Dungeon List Layout",
         "AdventureJournalDungeonLayoutDropdown", "TOPLEFT", sortLabel, "BOTTOMLEFT", 0, -22,
-        "How many dungeon cards sit in each row of the Dungeons tab grid:\n\n• 2 per Row (Compact) and (Large): wide cards with the name, levels, and zone.\n• 3 per Row: the name, levels, and zone.\n• 4 per Row: small cards with the name and levels centered (Default).")
+        "How many dungeon cards sit in each row of the Dungeons tab list:\n\n• 2 per Row (Compact) and (Large): wide cards with the name, levels, and zone.\n• 3 per Row: the name, levels, and zone.\n• 4 per Row: small cards with the name and levels centered (Default).")
 
-    -- Row 3: "Show Levels on Dungeon Grid and Boss List Buttons"
+    -- Row 3: "Show Levels on Dungeon List and Boss List Buttons"
     local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     label:SetPoint("TOPLEFT", layoutLabel, "BOTTOMLEFT", 0, -22)
-    label:SetText("Show Levels on Dungeon Grid and Boss List Buttons")
+    label:SetText("Show Levels on Dungeon List and Boss List Buttons")
 
     local checkbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
     checkbox:SetSize(28, 28)
@@ -783,8 +781,8 @@ function SettingsPanel:CreateDungeonModuleSection(panel)
     checkbox:SetScript("OnEnter", function(cb)
         if GameTooltip then
             GameTooltip:SetOwner(cb, "ANCHOR_RIGHT")
-            GameTooltip:AddLine("Show Levels on Dungeon Grid and Boss List Buttons", 1.0, 0.82, 0.0)
-            GameTooltip:AddLine("When enabled, recommended levels are displayed on dungeon grid cards and boss list buttons. When disabled, levels are hidden on tiles and list buttons, while remaining visible on the dungeon heading and selected boss overview.", 1.0, 1.0, 1.0, true)
+            GameTooltip:AddLine("Show Levels on Dungeon List and Boss List Buttons", 1.0, 0.82, 0.0)
+            GameTooltip:AddLine("When enabled, recommended levels are displayed on dungeon list cards and boss list buttons. When disabled, levels are hidden on tiles and list buttons, while remaining visible on the dungeon heading and selected boss overview.", 1.0, 1.0, 1.0, true)
             GameTooltip:Show()
         end
     end)
@@ -805,9 +803,6 @@ function SettingsPanel:CreateDungeonModuleSection(panel)
             self.UpdateDifficultyDependency()
         end
 
-        if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
-            _G.JournalBase:OnDungeonSettingChanged("showBossLevel", isChecked)
-        end
     end)
 
     self.BossLevelCheckbox = checkbox
@@ -845,9 +840,6 @@ function SettingsPanel:CreateDungeonModuleSection(panel)
         end
         ns.Settings:SetDungeonSetting("showBossDifficultyColor", isChecked)
 
-        if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
-            _G.JournalBase:OnDungeonSettingChanged("showBossDifficultyColor", isChecked)
-        end
     end)
 
     self.DifficultyColorCheckbox = diffCheckbox
@@ -898,10 +890,6 @@ function SettingsPanel:CreateDungeonModuleSection(panel)
         ns.Settings:SetDungeonSetting("showMinorMonsters", isChecked)
         ns.Settings:SetDungeonSetting("hideMinorMonsters", not isChecked)
 
-        if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
-            _G.JournalBase:OnDungeonSettingChanged("showMinorMonsters", isChecked)
-            _G.JournalBase:OnDungeonSettingChanged("hideMinorMonsters", not isChecked)
-        end
     end)
 
     self.MinorMonstersCheckbox = minorCheckbox
@@ -949,9 +937,6 @@ function SettingsPanel:CreateDungeonModuleSection(panel)
                 end
                 if ns.Settings and ns.Settings.SetDungeonSetting then
                     ns.Settings:SetDungeonSetting("showEventBosses", btn.value)
-                end
-                if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
-                    _G.JournalBase:OnDungeonSettingChanged("showEventBosses", btn.value)
                 end
             end
             info.checked = (opt.value == selectedValue)
@@ -1012,9 +997,6 @@ function SettingsPanel:CreateDungeonModuleSection(panel)
         end
         ns.Settings:SetDungeonSetting("showDungeonSetChallenges", isChecked)
 
-        if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
-            _G.JournalBase:OnDungeonSettingChanged("showDungeonSetChallenges", isChecked)
-        end
     end)
 
     self.ChallengeBossesCheckbox = challengeCheckbox
@@ -1054,19 +1036,54 @@ function SettingsPanel:CreateBothFactionQuestsRow(panel)
             PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
         end
         ns.Settings:SetDungeonSetting("showBothFactionData", isChecked)
-        if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
-            _G.JournalBase:OnDungeonSettingChanged("showBothFactionData", isChecked)
-        end
     end)
 
     self.BothFactionQuestsCheckbox = bothFactionCheckbox
+end
+
+--- Adds the Dungeons section's last row: "Show Unverified Bosses" (encounters known only by name).
+--- @param panel Frame
+function SettingsPanel:CreateIncompleteBossesRow(panel)
+    local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetPoint("TOPLEFT", self.BothFactionQuestsLabel, "BOTTOMLEFT", 0, -22)
+    label:SetText("Show Unverified Bosses")
+    self.IncompleteBossesLabel = label
+
+    local checkbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+    checkbox:SetSize(28, 28)
+    checkbox:SetPoint("RIGHT", panel, "RIGHT", -24, 0)
+    checkbox:SetPoint("CENTER", label, "CENTER", 0, 0)
+
+    checkbox:SetScript("OnEnter", function(cb)
+        if GameTooltip then
+            GameTooltip:SetOwner(cb, "ANCHOR_RIGHT")
+            GameTooltip:AddLine("Show Unverified Bosses", 1.0, 0.82, 0.0)
+            GameTooltip:AddLine("When enabled, the boss list includes encounters the journal knows only by name, with no loot, creature or description recorded yet. They still appear in search results either way.", 1.0, 1.0, 1.0, true)
+            GameTooltip:Show()
+        end
+    end)
+    checkbox:SetScript("OnLeave", function()
+        if GameTooltip then
+            GameTooltip:Hide()
+        end
+    end)
+
+    checkbox:SetScript("OnClick", function(cb)
+        local isChecked = cb:GetChecked() and true or false
+        if PlaySound then
+            PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
+        end
+        ns.Settings:SetDungeonSetting("showIncompleteBosses", isChecked)
+    end)
+
+    self.IncompleteBossesCheckbox = checkbox
 end
 
 --- Builds the "Map Icons Module" section with options for world map markers.
 --- @param panel Frame
 function SettingsPanel:CreateMapIconsModuleSection(panel)
     local sectionHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    sectionHeader:SetPoint("TOPLEFT", self.BothFactionQuestsLabel, "BOTTOMLEFT", -6, -26)
+    sectionHeader:SetPoint("TOPLEFT", self.RaidSectionLastLabel, "BOTTOMLEFT", -6, -26)
     sectionHeader:SetText("Map Icons Module")
     self.MapIconsModuleHeader = sectionHeader
 
@@ -1178,9 +1195,6 @@ function SettingsPanel:CreateMapIconsModuleSection(panel)
         if ns.Settings and ns.Settings.SetMapIconsSetting then
             ns.Settings:SetMapIconsSetting("showFlightPaths", isChecked)
         end
-        if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
-            _G.JournalBase:OnDungeonSettingChanged("showFlightPaths", isChecked)
-        end
         if self.UpdateFlightPathDependencies then
             self:UpdateFlightPathDependencies()
         end
@@ -1220,9 +1234,6 @@ function SettingsPanel:CreateMapIconsModuleSection(panel)
         if ns.Settings and ns.Settings.SetMapIconsSetting then
             ns.Settings:SetMapIconsSetting("useFactionColorsForFlightPaths", isChecked)
         end
-        if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
-            _G.JournalBase:OnDungeonSettingChanged("useFactionColorsForFlightPaths", isChecked)
-        end
         if ns.MapPinProvider and ns.MapPinProvider.Refresh then
             ns.MapPinProvider:Refresh()
         end
@@ -1258,9 +1269,6 @@ function SettingsPanel:CreateMapIconsModuleSection(panel)
         end
         if ns.Settings and ns.Settings.SetMapIconsSetting then
             ns.Settings:SetMapIconsSetting("showEnemyFactionFlightPaths", isChecked)
-        end
-        if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
-            _G.JournalBase:OnDungeonSettingChanged("showEnemyFactionFlightPaths", isChecked)
         end
         if ns.MapPinProvider and ns.MapPinProvider.Refresh then
             ns.MapPinProvider:Refresh()
@@ -1333,9 +1341,6 @@ function SettingsPanel:CreateMapIconsModuleSection(panel)
                     ns.Settings:SetMapIconsSetting("worldMapDungeonIcons", btn.value)
                 elseif ns.Settings and ns.Settings.SetDungeonSetting then
                     ns.Settings:SetDungeonSetting("worldMapDungeonIcons", btn.value)
-                end
-                if _G.JournalBase and _G.JournalBase.OnDungeonSettingChanged then
-                    _G.JournalBase:OnDungeonSettingChanged("worldMapDungeonIcons", btn.value)
                 end
                 if ns.MapPinProvider and ns.MapPinProvider.Refresh then
                     ns.MapPinProvider:Refresh()
@@ -1674,7 +1679,7 @@ function SettingsPanel:Refresh()
     if self.ChallengeBossesCheckbox then
         self.ChallengeBossesCheckbox:SetChecked(ns.Settings:GetDungeonSetting("showDungeonSetChallenges", false) == true)
     end
-    for _, entry in ipairs(self.dungeonDropdowns or {}) do
+    for _, entry in ipairs(self.settingDropdowns or {}) do
         local selectedValue, labelText = currentChoice(entry.def)
         if UIDropDownMenu_SetSelectedValue then
             UIDropDownMenu_SetSelectedValue(entry.dropdown, selectedValue)
@@ -1683,8 +1688,12 @@ function SettingsPanel:Refresh()
             UIDropDownMenu_SetText(entry.dropdown, labelText)
         end
     end
+    self:RefreshRaidSection()
     if self.BothFactionQuestsCheckbox then
         self.BothFactionQuestsCheckbox:SetChecked(ns.Settings:GetDungeonSetting("showBothFactionData", false) == true)
+    end
+    if self.IncompleteBossesCheckbox then
+        self.IncompleteBossesCheckbox:SetChecked(ns.Settings:GetDungeonSetting("showIncompleteBosses", false) == true)
     end
     if self.ZoneLevelsCheckbox then
         self.ZoneLevelsCheckbox:SetChecked(ns.Settings:GetMapIconsSetting("showZoneLevels", true) ~= false)
@@ -1728,9 +1737,9 @@ function SettingsPanel:Refresh()
     end
     self:RefreshModuleRows()
 
-    local totalH = 1360
+    local totalH = 1500
     if status and status.isMismatch then
-        totalH = 1400
+        totalH = 1540
     end
     if self.scrollChild and self.scrollFrame then
         local w = self.scrollFrame:GetWidth()
@@ -1753,6 +1762,7 @@ function SettingsPanel:RegisterWithBlizzardSettings(panel)
             { name = "Advanced Searching", header = self.AdvancedSearchHeader },
             { name = "Installed Modules", header = self.ModuleSectionHeader },
             { name = "Dungeon Module", header = self.DungeonModuleHeader },
+            { name = "Raid Module", header = self.RaidModuleHeader },
             { name = "Map Icons Module", header = self.MapIconsModuleHeader },
         })
         return
