@@ -21,6 +21,7 @@ local C_Spell = C_Spell
 local C_Map = C_Map
 local C_TooltipInfo = C_TooltipInfo
 local GetRealZoneText = GetRealZoneText
+local issecretvalue = issecretvalue
 local DataStore = ns.DataStore
 
 -- ----------------------------------------------------------------------------
@@ -35,6 +36,11 @@ local listeners = {}
 local changed, flushScheduled = {}, false
 
 local function remember(kind, id, value)
+    -- The client can hide an answer as a secret value (e.g. NPC names inside instances), which can't be compared
+    -- or shown as data: treated as no answer, so the store's own value is used
+    if issecretvalue and issecretvalue(value) then
+        return nil
+    end
     if value == nil or value == "" then
         return nil
     end
