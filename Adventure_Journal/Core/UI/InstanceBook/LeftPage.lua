@@ -194,6 +194,7 @@ function InstanceBook:RefreshLeftPage()
         sections[i] = { encounters = encounters or {}, label = section.label, color = section.color,
             dividerAfter = section.dividerAfter, dividerBefore = section.dividerBefore }
     end
+    self.shownEncounterSections = sections
     local drawn = self.encounterList:Render(sections, { selected = self.selectedBoss, showLevel = showBossLevel,
         useDifficultyColor = showDifficultyColor, instance = d,
         iconFor = function(boss) return self:EncounterIcon(boss) end })

@@ -20,7 +20,7 @@ local SOUNDKIT = SOUNDKIT
 local Constants = {
     ADDON_NAME = addonName,
     TITLE = "Adventure Journal",
-    VERSION = "0.11.1",
+    VERSION = "0.12.0",
     AUTHOR = "Brandon (Endoria)",
 
     BINDING_HEADER = "JOURNALBASE",
@@ -38,7 +38,6 @@ local Constants = {
         CRUMB_TRACK_RIGHT_X = -252,
         CRUMB_TRACK_HEIGHT = 28,
         NAVBAR_SCALE = 0.86,
-        BREADCRUMB_BUTTON_HEIGHT = 24,
         SEARCH_WIDTH = 205,
         SEARCH_HEIGHT = 20,
         SEARCH_OFFSET_X = -34,

@@ -115,9 +115,7 @@ function InstanceBook:Init(parent, callbacks)
         end)
     self.questList = Blocks.QuestList:Create(bossScroll, bossScrollChild, bookCfg.BOSS_BTN_WIDTH + 8,
         bookCfg.BOSS_BTN_HEIGHT, function(quest)
-            self.selectedQuest = quest
-            self:RefreshLeftPage()
-            self:RefreshRightPage()
+            self:SelectQuest(quest)
         end)
 
     self.encounterDetail = Blocks.EncounterDetail:Create(rightPage, bookCfg.RIGHT_CONTENT_WIDTH)
@@ -224,6 +222,26 @@ function InstanceBook:SetSelectedBoss(boss)
     self:RefreshLeftPage()
     self:UpdateSideTabs()
     self:RefreshRightPage()
+end
+
+--- Selects a quest on the Quests tab and shows it on the right page.
+function InstanceBook:SelectQuest(quest)
+    self.selectedQuest = quest
+    self:RefreshLeftPage()
+    self:RefreshRightPage()
+end
+
+--- The encounter sections the left page last drew: `{ { encounters, label } }`.
+function InstanceBook:ShownEncounterSections()
+    return self.shownEncounterSections or {}
+end
+
+--- The open instance's quest rows by section, as the Quests tab lists them (QuestGroup:Rows).
+function InstanceBook:QuestRows()
+    if not self.currentDungeon then
+        return {}
+    end
+    return self.quests:Rows(self.quests:Lists(self.currentDungeon), self.selectedQuest)
 end
 
 function InstanceBook:Show()

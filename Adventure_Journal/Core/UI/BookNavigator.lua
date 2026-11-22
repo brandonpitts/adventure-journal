@@ -78,11 +78,19 @@ function BookNavigator:PushInstanceSteps()
     if wingParent then
         bar:PushStep(wingParent.name, function()
             self:ShowWingPage(wingParent)
+        end, nil, function()
+            return self:InstanceMenu(wingParent.key)
         end)
     end
-    if self.current then
-        bar:PushStep(self.current.name, function()
+    local current = self.current
+    if current then
+        bar:PushStep(current.name, function()
             self:ReturnToOverview()
+        end, nil, function()
+            if wingParent then
+                return self:WingMenu(wingParent)
+            end
+            return self:InstanceMenu(current.key)
         end)
     end
 end
@@ -107,9 +115,13 @@ function BookNavigator:UpdateBreadcrumbs()
         local boss = self.selectedBoss
         bar:PushStep(boss.name, function()
             self:SelectBoss(boss)
+        end, nil, function()
+            return self:BossMenu()
         end)
     elseif self.book.activeRightTab == "quests" then
-        bar:PushStep(self.text.quests, function() end)
+        bar:PushStep(self.text.quests, function() end, nil, function()
+            return self:QuestMenu()
+        end)
     end
 end
 

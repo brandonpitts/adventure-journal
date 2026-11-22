@@ -186,6 +186,15 @@ function InstanceList:Refresh()
     end)
 end
 
+--- Every instance of the list, ignoring the search box, in the player's sort order and the list's sections
+--- (InstanceListOrder:Grouped): `{ { title, entries } }`.
+function InstanceList:AllGrouped()
+    local Order = ns.UI.InstanceListOrder
+    local instances = Order:Filtered(self.template.instanceType, "", self:Setting("listSort"))
+    local groups = self.template.listGroups
+    return Order:Grouped(self.template, instances, groups and self:Setting(groups.setting) == true)
+end
+
 function InstanceList:Show()
     if self.frame then
         self.frame:Show()
