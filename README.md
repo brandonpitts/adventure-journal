@@ -26,13 +26,13 @@ Adventure Journal was developed through agentic AI workflows to assist, explore,
 
 ## Quick Installation
 
-1. Download **[`Adventure_Journal-v0.11.0.zip`](Adventure_Journal-v0.11.0.zip)**.
+1. Download **[`Adventure_Journal-v0.11.1.zip`](Adventure_Journal-v0.11.1.zip)**.
 2. Extract the archive into your WoW Forever AddOns directory:
    ```text
    World of Warcraft\_forever_\Interface\AddOns\
    ```
    > **Tip:** You can easily locate your game folder by clicking the gear icon next to the Play button in the Battle.net launcher for your WoW Forever client and selecting **"Show in Explorer"**.
-3. Confirm that the folder is named `Adventure_Journal` (not `Adventure_Journal-v0.11.0` or a nested folder).
+3. Confirm that the folder is named `Adventure_Journal` (not `Adventure_Journal-v0.11.1` or a nested folder).
 4. Launch or `/reload` in World of Warcraft.
 5. Open your journal with `/aj`, `/journal`, or by clicking the gold Minimap button!
 
@@ -40,6 +40,7 @@ Adventure Journal was developed through agentic AI workflows to assist, explore,
 
 ## Changelog & Release History
 
+* **`v0.11.1`**: Fixed an error blamed on the Journal when opening the world map after using a Journal map button; the map buttons now open the map the game's own way, and only out of combat.
 * **`v0.11.0`**: Rebuilt the Journal's pages on a new shared template system: dungeon pages are now drawn from reusable templates and blocks instead of hand-built screens, so new content arrives as data rather than new code; added the Raids module with shells for three upcoming raids.
 * **`v0.10.0`**: New dungeon grid layouts (four, three, or two cards per row); level colors now match the game's own everywhere; the game's Settings window lists each settings section; the Journal reopens on the tab you used last; dungeon quest chains are listed once; added shells for the Raids and Quests modules.
 * **`v0.9.0`**: Rebuilt all of the Journal's information into one DataStore checked against the game (corrected boss names, quest titles and loot); the Journal now opens to the dungeon and wing you're in; new dungeon cards, side tabs, and window background settings.

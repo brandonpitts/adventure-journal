@@ -21,6 +21,9 @@ local C_QuestLog = C_QuestLog
 local C_SuperTrack = C_SuperTrack
 local C_Texture = C_Texture
 local GameTooltip = GameTooltip
+local InCombatLockdown = InCombatLockdown
+local UIErrorsFrame = UIErrorsFrame
+local ERR_NOT_IN_COMBAT = ERR_NOT_IN_COMBAT
 local UiMapPoint = UiMapPoint
 local SetPortraitTextureFromCreatureDisplayID = SetPortraitTextureFromCreatureDisplayID
 
@@ -104,12 +107,15 @@ function GameApi:GetAtlasInfo(name)
     end
 end
 
---- Opens the world map on `uiMapID` (the Journal stays open).
+--- Opens the world map on `uiMapID` (the Journal stays open). Out of combat only.
+-- Opens through C_Map, never OpenWorldMap or WorldMapFrame:SetMapID: those taint the map's pins, and the
+-- game then blocks the map's own SetPassThroughButtons calls.
 function GameApi:OpenWorldMap(uiMapID)
-    OpenWorldMap(uiMapID)
-    if uiMapID and WorldMapFrame then
-        WorldMapFrame:SetMapID(uiMapID)
+    if InCombatLockdown() then
+        UIErrorsFrame:AddMessage(ERR_NOT_IN_COMBAT, 1.0, 0.1, 0.1)
+        return
     end
+    C_Map.OpenWorldMap(uiMapID)
 end
 
 --- Places and tracks the game's own map pin at x, y on `uiMapID` (x and y as 0-1 or 0-100).
