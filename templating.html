@@ -298,90 +298,6 @@
       line-height: 1.65;
     }
 
-    /* Transitional Architecture Era Switcher Tabs */
-    .arch-switcher-wrap {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 0.6rem;
-      margin: 0 auto 2.5rem;
-      padding: 0 1rem;
-      flex-wrap: wrap;
-    }
-
-    .arch-switcher {
-      display: inline-flex;
-      background: #101218;
-      border: 1px solid rgba(198, 155, 58, 0.45);
-      border-radius: 10px;
-      padding: 0.35rem;
-      gap: 0.35rem;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-
-    .arch-tab-btn {
-      appearance: none;
-      background: transparent;
-      border: 1px solid transparent;
-      color: var(--text-muted);
-      font-family: 'Cinzel', serif;
-      font-size: 0.9rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      padding: 0.65rem 1.35rem;
-      border-radius: 7px;
-      cursor: pointer;
-      transition: all 0.22s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .arch-tab-btn:hover {
-      color: #fff;
-      background: rgba(198, 155, 58, 0.08);
-    }
-
-    .arch-tab-btn.active {
-      background: linear-gradient(180deg, rgba(198, 155, 58, 0.24) 0%, rgba(198, 155, 58, 0.1) 100%);
-      border-color: var(--border-gold);
-      color: var(--gold-bright);
-      box-shadow: 0 2px 12px rgba(198, 155, 58, 0.25);
-    }
-
-    .tab-pill {
-      font-family: 'Inter', sans-serif;
-      font-size: 0.68rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      padding: 0.12rem 0.45rem;
-      border-radius: 999px;
-      letter-spacing: 0.05em;
-    }
-
-    .tab-pill.new {
-      background: rgba(56, 239, 125, 0.16);
-      border: 1px solid rgba(56, 239, 125, 0.45);
-      color: var(--accent-green);
-    }
-
-    .tab-pill.legacy {
-      background: rgba(255, 107, 107, 0.14);
-      border: 1px solid rgba(255, 107, 107, 0.4);
-      color: var(--accent-red);
-    }
-
-    .arch-view-pane {
-      display: none;
-      animation: paneFadeIn 0.28s ease-out;
-    }
-
-    .arch-view-pane.active {
-      display: block;
-    }
-
     @keyframes paneFadeIn {
       from {
         opacity: 0;
@@ -417,116 +333,6 @@
       height: 2px;
       background: linear-gradient(90deg, transparent, var(--border-gold), transparent);
       margin: 0 auto 2.5rem;
-    }
-
-    /* Visual Architecture Map */
-    .arch-diagram {
-      margin-bottom: 3.5rem;
-    }
-
-    .arch-tiers {
-      display: flex;
-      flex-direction: column;
-      gap: 1.25rem;
-    }
-
-    .arch-tier {
-      background: var(--bg-panel);
-      border: 1px solid var(--border-dark);
-      border-radius: 8px;
-      padding: 1.35rem 1.5rem;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
-    }
-
-    .legacy-diagram .arch-tier {
-      border-color: rgba(255, 107, 107, 0.35);
-    }
-
-    .arch-tier-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 1rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-      padding-bottom: 0.5rem;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-
-    .arch-tier-label {
-      font-family: 'Cinzel', serif;
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: var(--gold-bright);
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      display: inline-flex;
-      align-items: center;
-    }
-
-    .arch-tier-meta {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      font-family: Consolas, monospace;
-    }
-
-    .arch-nodes {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1rem;
-    }
-
-    .arch-node {
-      background: var(--bg-card);
-      border: 1px solid rgba(198, 155, 58, 0.3);
-      border-radius: 6px;
-      padding: 1rem;
-    }
-
-    .arch-node-title {
-      font-weight: 700;
-      color: #fff;
-      font-size: 0.95rem;
-      margin-bottom: 0.35rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.4rem;
-      line-height: 1.35;
-      flex-wrap: nowrap;
-    }
-
-    .arch-node-title code {
-      color: var(--accent-blue);
-      font-size: 0.80rem;
-      white-space: nowrap;
-      letter-spacing: -0.015em;
-    }
-
-    .arch-node-sub {
-      margin-top: -0.15rem;
-      margin-bottom: 0.45rem;
-    }
-
-    .arch-node-sub code {
-      color: var(--accent-blue);
-      font-size: 0.84rem;
-    }
-
-    .arch-node p {
-      font-size: 0.86rem;
-      color: var(--text-muted);
-      line-height: 1.5;
-    }
-
-    .arch-arrow {
-      text-align: center;
-      color: var(--gold-soft);
-      font-size: 0.85rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 0.15rem 0;
     }
 
     /* Old vs New Comparison Table */
@@ -785,75 +591,7 @@
       font-size: 0.84rem;
     }
 
-    /* 8-Dimension Taxonomy Grid */
-    .taxonomy-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
-      gap: 1.2rem;
-      margin-bottom: 3rem;
-    }
-
-    .dim-card {
-      background: var(--bg-panel);
-      border: 1px solid var(--border-dark);
-      border-radius: 8px;
-      padding: 1.35rem;
-    }
-
-    .dim-num {
-      font-size: 0.72rem;
-      font-weight: 800;
-      color: var(--gold-bright);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 0.3rem;
-    }
-
-    .dim-card h4 {
-      font-family: 'Cinzel', serif;
-      font-size: 1.05rem;
-      color: #fff;
-      margin-bottom: 0.75rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      line-height: 1.35;
-    }
-
-    .dim-title-text {
-      flex: 1;
-      padding-right: 0.35rem;
-    }
-
-    .dim-card h4 .info-tip {
-      margin-top: 2px;
-      margin-left: 0.4rem;
-      flex-shrink: 0;
-    }
-
-    .tag-pill-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.4rem;
-    }
-
-    .tag-pill {
-      background: rgba(73, 196, 255, 0.08);
-      border: 1px solid rgba(73, 196, 255, 0.28);
-      color: #9be0ff;
-      font-family: Consolas, monospace;
-      font-size: 0.76rem;
-      padding: 0.18rem 0.5rem;
-      border-radius: 4px;
-      white-space: nowrap;
-    }
-
     /* v0.9 DataStore pane */
-    .tab-pill.past {
-      background: rgba(255, 184, 77, 0.14);
-      border: 1px solid rgba(255, 184, 77, 0.4);
-      color: #ffb84d;
-    }
 
     .stat-grid {
       display: grid;
@@ -897,21 +635,6 @@
 
     .plain-list strong {
       color: #fff;
-    }
-
-    .build-log {
-      background: var(--bg-panel);
-      border: 1px solid var(--border-dark);
-      border-radius: 8px;
-      padding: 1rem 1.4rem;
-      margin-bottom: 3rem;
-    }
-
-    .build-log summary {
-      cursor: pointer;
-      font-family: 'Cinzel', serif;
-      color: var(--gold-bright);
-      font-weight: 700;
     }
 
     footer {
@@ -1013,13 +736,11 @@
 
     /* Card hover: every card's border turns gold and it lifts, as on the home page */
     .card,
-    .dim-card,
     .stat-tile {
       transition: border-color 0.25s ease, transform 0.25s ease;
     }
 
     .card:hover,
-    .dim-card:hover,
     .stat-tile:hover {
       border-color: rgba(198, 155, 58, 0.6);
       transform: translateY(-3px);
