@@ -341,6 +341,10 @@
       margin-bottom: 2.5rem;
     }
 
+    .features-grid-last {
+      margin-bottom: 4rem;
+    }
+
     .features-row-label {
       font-family: 'Cinzel', serif;
       font-size: 0.95rem;
@@ -601,9 +605,16 @@
       border-left: 4px solid var(--border-gold);
       border-radius: 8px;
       padding: 1.8rem 2rem;
-      margin: 0 auto 4rem;
+      margin: 0 auto 2.5rem;
       max-width: 900px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      transition: border-color 0.25s ease, transform 0.25s ease;
+    }
+
+    .disclaimer-box:hover {
+      border-color: rgba(198, 155, 58, 0.6);
+      border-left-color: var(--border-gold);
+      transform: translateY(-3px);
     }
 
     .disclaimer-header {
@@ -920,21 +931,25 @@
     <h2 class="section-title">Feature <span>Highlights</span></h2>
     <div class="section-divider"></div>
 
+    <!-- Agentic Development Disclaimer -->
+    <div class="disclaimer-box">
+      <div class="disclaimer-header">
+        <span class="disclaimer-badge">Development Context</span>
+        <h3>Built with Agentic Coding</h3>
+      </div>
+      <p>Adventure Journal was developed through agentic AI workflows to explore, test, and refine agent-driven software
+        engineering workflows, skills, and practices using models from <strong>Google (Gemini)</strong> and
+        <strong>Anthropic (Claude)</strong>.</p>
+    </div>
+
     <!-- Row 1: the modules behind the Journal's tabs -->
     <div class="features-row-label">In the Journal</div>
     <div class="features-grid">
-      <div class="card has-tip">
+      <div class="card">
         <div class="card-tag">Dungeon Module</div>
         <h3>Dungeons, Bosses &amp; Loot</h3>
         <p>Every Classic and WoW Forever dungeon with its bosses, loot and lore. Open the Journal inside a dungeon and
-          it goes straight to that dungeon, even to the exact
-          <span style="white-space: nowrap;">wing&nbsp;<span class="info-tip" tabindex="0">?
-              <span class="info-tip-box">
-                <strong>Wings</strong>
-                Some dungeons, like Scarlet Monastery or Blackrock Spire, are split into separate sections called
-                wings. The Journal reads the room name under your minimap to tell which wing you're in.
-              </span>
-            </span></span> you're standing in. Dungeon entrances appear on the world map through Blizzard's own map
+          it goes straight to that dungeon, even to the exact wing you're standing in. Dungeon entrances appear on the world map through Blizzard's own map
           pin system, and any dungeon page can show its entrance on the map in one click.</p>
       </div>
 
@@ -957,7 +972,7 @@
 
     <!-- Row 2: the systems behind everything -->
     <div class="features-row-label">Behind the Scenes</div>
-    <div class="features-grid">
+    <div class="features-grid features-grid-last">
       <div class="card has-tip">
         <div class="card-tag">System • DataStore</div>
         <h3>
@@ -1001,17 +1016,6 @@
           straight into the search. Retail-style breadcrumbs let you jump from any page to another dungeon, wing,
           boss or quest.</p>
       </div>
-    </div>
-
-    <!-- Agentic Development Disclaimer -->
-    <div class="disclaimer-box">
-      <div class="disclaimer-header">
-        <span class="disclaimer-badge">Development Context</span>
-        <h3>Built with Agentic Coding</h3>
-      </div>
-      <p>Adventure Journal was developed through agentic AI workflows to explore, test, and refine agent-driven software
-        engineering workflows, skills, and practices using models from <strong>Google (Gemini)</strong> and
-        <strong>Anthropic (Claude)</strong>.</p>
     </div>
 
     <!-- Development Roadmap -->
