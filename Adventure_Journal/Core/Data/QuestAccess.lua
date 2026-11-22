@@ -4,7 +4,7 @@
 -- FixtureStore, ItemStore). Source and Turn-In come from links: the giver's
 -- name, hint or zone, whether it is inside an instance, and its map point.
 -- Player state is read live. Missing values stay nil; templates show them.
---   quest view: id, name, level, questLevel, reqLevel, faction, classOnly, baseXP, objective,
+--   quest view: id, name, level, questLevel, reqLevel, faction, classOnly (first of classes), classes, baseXP, objective,
 --               pickup, giver, turnin, turninGiver, rewardItems, rewardChoice, isQuestline
 --   giver:      kind ("npc" | "fixture" | "item"), key, name, where, inside, point
 -- ============================================================================
@@ -123,7 +123,7 @@ local function buildQuest(questID)
     local view = {
         id = questID, name = quests:GetLabel(questID),
         questLevel = record.questLevel, level = record.questLevel, reqLevel = record.requiredLevel,
-        faction = record.faction or "Both", classOnly = record.classes and record.classes[1],
+        faction = record.faction or "Both", classOnly = record.classes and record.classes[1], classes = record.classes,
         baseXP = record.xp, objective = quests:GetText(questID, "objective"),
         rewardItems = record.rewardItemIDs, rewardChoice = record.rewardChoice, isQuestline = isQuestline,
     }
@@ -175,7 +175,10 @@ function QuestAccess:Passes(quest, factionFilter, classFilter)
     local faction = factionFilter or UnitFactionGroup("player")
     local class = classFilter or select(2, UnitClass("player"))
     local factionOk = faction == "All" or quest.faction == "Both" or quest.faction == faction
-    local classOk = not quest.classOnly or class == "All" or strupper(quest.classOnly) == class
+    local classOk = not quest.classOnly or class == "All"
+    for _, allowed in ipairs(quest.classes or { quest.classOnly }) do
+        classOk = classOk or strupper(allowed) == class
+    end
     return factionOk and classOk
 end
 

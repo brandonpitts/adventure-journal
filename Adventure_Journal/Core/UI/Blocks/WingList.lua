@@ -1,7 +1,9 @@
 -- ============================================================================
 -- Adventure Journal - Core/UI/Blocks/WingList.lua
 -- An instance's wings on a book's left page: one picture card per wing (its
--- loading screen, name, and level range in its difficulty color).
+-- loading screen, name, and level range in its difficulty color). Hovering a
+-- card shows a tooltip the caller fills; with favorites, right-clicking one
+-- adds or removes it and favorites show a star.
 -- ============================================================================
 local addonName, ns = ...
 
@@ -11,6 +13,7 @@ local addonName, ns = ...
 local ipairs = ipairs
 local max = math.max
 local setmetatable = setmetatable
+local GameTooltip = GameTooltip
 local PlaySound = PlaySound
 
 -- ----------------------------------------------------------------------------
@@ -28,20 +31,57 @@ local WingList = {}
 WingList.__index = WingList
 
 --- A wing list drawn into `child` (the left page's scroll child; `scroll` its scroll frame). Cards are
---- `width` x `height`, `gap` apart. `onSelect(wing)` runs on a click.
-function WingList:Create(scroll, child, width, height, gap, onSelect)
+--- `width` x `height`, `gap` apart. `onSelect(wing)` runs on a click. `options` (optional):
+--- - `onTooltip(wing)`: fills GameTooltip (owned and shown by the list)
+--- - `onRightClick(wing)` and `isMarked(wing)`: favorites (a right-click toggles; marked wings show the star)
+function WingList:Create(scroll, child, width, height, gap, onSelect, options)
     return setmetatable({ scroll = scroll, child = child, width = width, height = height, gap = gap,
-        onSelect = onSelect, cards = {} }, WingList)
+        onSelect = onSelect, options = options or {}, cards = {} }, WingList)
+end
+
+--- Shows the card's star when its wing is marked.
+function WingList:UpdateStar(card)
+    if card.favoriteStar then
+        Blocks.StoneCard:ShowFavoriteStar(card, card.wing ~= nil and self.options.isMarked(card.wing) == true)
+    end
 end
 
 function WingList:CreateCard()
+    local options = self.options
     local card = Blocks.StoneCard:Create(self.child, self.width, self.height, { picture = true })
-    card:SetScript("OnClick", function(c)
+    local function showTooltip(c)
+        if c.wing and options.onTooltip then
+            GameTooltip:SetOwner(c, "ANCHOR_RIGHT")
+            options.onTooltip(c.wing)
+            GameTooltip:Show()
+        end
+    end
+    if options.onRightClick then
+        card:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    end
+    card:SetScript("OnClick", function(c, button)
         PlaySound(Styles.SOUNDS.CLICK)
-        if c.wing then
+        if not c.wing then
+            return
+        end
+        if button == "RightButton" then
+            options.onRightClick(c.wing)
+            self:UpdateStar(c)
+            if c:IsMouseOver() then
+                showTooltip(c)
+            end
+        else
             self.onSelect(c.wing)
         end
     end)
+    -- Hooked, not set: the card's own hover and press visuals are hooks too
+    card:HookScript("OnEnter", showTooltip)
+    card:HookScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
+    if options.isMarked then
+        Blocks.StoneCard:AddFavoriteStar(card)
+    end
     return card
 end
 
@@ -64,6 +104,7 @@ function WingList:Render(wings, options)
         else
             card.subText:SetTextColor(1, 1, 1)
         end
+        self:UpdateStar(card)
         card:Show()
         y = y - (self.height + self.gap)
     end

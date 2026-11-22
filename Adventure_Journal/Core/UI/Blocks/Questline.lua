@@ -2,7 +2,9 @@
 -- Adventure Journal - Core/UI/Blocks/Questline.lua
 -- A questline on a QuestDetail page: one banner per step (status, title,
 -- level); a step's banner opens to its sections, indented under it. The
--- first unfinished step starts open.
+-- first unfinished step starts open and finished steps closed, each time the
+-- questline is opened and each time the Journal window is opened again; steps
+-- opened or closed by hand stay that way until then.
 -- ============================================================================
 local addonName, ns = ...
 
@@ -24,8 +26,9 @@ local QuestDetail = Blocks.QuestDetail
 --- A questline (`page.steps`): one banner per step; open steps show their sections.
 function QuestDetail:RenderQuestline(page)
     local steps = page.steps
-    if self.openQuestID ~= page.questID then
-        self.openQuestID, self.openSteps = page.questID, {}
+    local closeCount = ns.UI.MainFrame.closeCount
+    if self.openQuestID ~= page.questID or self.openCloseCount ~= closeCount then
+        self.openQuestID, self.openCloseCount, self.openSteps = page.questID, closeCount, {}
         local first
         for _, step in ipairs(steps) do
             first = first or (not step.isCompleted and step.id)

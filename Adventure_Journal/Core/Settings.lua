@@ -143,6 +143,16 @@ function Settings:Init()
         _G.JournalBaseDB.schemaVersion = 10
     end
 
+    -- Schema migration: "Show Both Factions' Instance Quests" covers raids too; raids take the saved choice
+    if _G.JournalBaseDB and (_G.JournalBaseDB.schemaVersion or 0) < 11 then
+        local db = _G.JournalBaseDB
+        if db.dungeons and db.dungeons.showBothFactionData ~= nil then
+            db.raids = db.raids or {}
+            db.raids.showBothFactionData = db.dungeons.showBothFactionData
+        end
+        db.schemaVersion = 11
+    end
+
     self.db = _G.JournalBaseDB
 end
 

@@ -51,8 +51,13 @@ function BookNavigator:Init(canvas, headerBar)
     root:SetAllPoints(canvas)
     self.rootFrame = root
 
+    -- A favorite wing on the list opens its page directly, with its instance in the breadcrumbs
     self.list:Init(root, function(instance)
-        self:SelectInstance(instance)
+        if instance.wingKey then
+            self:SelectWing(instance)
+        else
+            self:SelectInstance(instance)
+        end
     end)
     self.book:Init(root, {
         onSelectBoss = function(boss)

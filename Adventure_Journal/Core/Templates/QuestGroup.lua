@@ -53,7 +53,7 @@ ns.Templates:Extend("base", "questGroup", {
         step = "Step %d: %s",
         objectives = "Objectives",
         questLogTitle = "Show on Map",
-        questLogHint = "Click to open the map and quest log to this quest.",
+        questLogHint = "<Left-click to open the map and quest log to this quest>",
         source = "Quest Source",
         turnin = "Turn-In",
         sourceInside = "Source item is located inside the {noun_lower}.",

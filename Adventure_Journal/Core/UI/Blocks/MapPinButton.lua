@@ -42,7 +42,7 @@ local function onEnter(btn)
             GameTooltip:AddLine(btn.targetLabel, 1.0, 1.0, 1.0, true)
         end
         GameTooltip:AddLine(btn.coordText, 0.7, 0.7, 0.7)
-        GameTooltip:AddLine(text.hint, 0.2, 0.8, 1.0, true)
+        GameTooltip:AddLine(text.hint, 0.25, 0.92, 0.32, true)
     else
         GameTooltip:AddLine(text.unavailable, 0.75, 0.75, 0.75)
         if btn.unavailableReason and btn.unavailableReason ~= "" then

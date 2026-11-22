@@ -26,13 +26,13 @@ Adventure Journal was developed through agentic AI workflows to assist, explore,
 
 ## Quick Installation
 
-1. Download **[`Adventure_Journal-v0.12.1.zip`](Adventure_Journal-v0.12.1.zip)**.
+1. Download **[`Adventure_Journal-v0.13.0.zip`](Adventure_Journal-v0.13.0.zip)**.
 2. Extract the archive into your WoW Forever AddOns directory:
    ```text
    World of Warcraft\_forever_\Interface\AddOns\
    ```
    > **Tip:** You can easily locate your game folder by clicking the gear icon next to the Play button in the Battle.net launcher for your WoW Forever client and selecting **"Show in Explorer"**.
-3. Confirm that the folder is named `Adventure_Journal` (not `Adventure_Journal-v0.12.1` or a nested folder).
+3. Confirm that the folder is named `Adventure_Journal` (not `Adventure_Journal-v0.13.0` or a nested folder).
 4. Launch or `/reload` in World of Warcraft.
 5. Open your journal with `/aj`, `/journal`, or by clicking the gold Minimap button!
 
@@ -40,6 +40,7 @@ Adventure Journal was developed through agentic AI workflows to assist, explore,
 
 ## Changelog & Release History
 
+* **`v0.13.0`**: Favorite dungeons and wings (right-click a card) with an optional Favorites section, richer tooltips on instance cards, nearly 200 more dungeon quests, quests now shown only to the faction and class that can take them, class crests on class quests, and a new Show All Class Quests setting; Show Both Factions' Instance Quests now applies to raids too.
 * **`v0.12.1`**: Fixed an error when opening the Journal inside a dungeon or raid; inside instances the Journal now uses its own boss and NPC names.
 * **`v0.12.0`**: Rebuilt the breadcrumb bar at the top of the Journal in the style of the retail Adventure Guide: each step is a button fitted to its name, and dropdowns on the dungeon, wing, boss and quest steps jump straight to another one.
 * **`v0.11.1`**: Fixed an error blamed on the Journal when opening the world map after using a Journal map button; the map buttons now open the map the game's own way, and only out of combat.

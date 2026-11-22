@@ -54,6 +54,8 @@ local Styles = {
         PORTRAIT_MASK = "Interface\\CharacterFrame\\TempPortraitAlphaMask",
         -- The Settings panel's horizontal line, under section headers in the instance lists
         SECTION_LINE_ATLAS = "Options_HorizontalDivider",
+        -- The game's favorites star (the Pet Journal's; Wowpedia Iconsmall-obj111), on favorite instance cards
+        FAVORITE_ATLAS = "PetJournal-FavoritesIcon",
     },
 
     SOUNDS = {

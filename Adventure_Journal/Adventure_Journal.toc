@@ -2,7 +2,7 @@
 ## Title: Adventure Journal
 ## Notes: Complete in-game adventure guide, dungeon and raid reference for WoW Forever.
 ## Author: Brand
-## Version: 0.12.1
+## Version: 0.13.0
 ## IconTexture: Interface\Icons\INV_Misc_Book_09
 ## SavedVariables: JournalBaseDB
 ## AddonCompartmentFunc: AdventureJournal_OnAddonCompartmentClick
@@ -63,6 +63,7 @@ Core\UI\MinimapButton.lua
 Core\UI\KeybindButton.lua
 Core\UI\SettingsPanel.lua
 Core\UI\SettingsRaids.lua
+Core\UI\SettingsFavorites.lua
 Core\Core.lua
 
 # Modules: Utility - DataStore (loads before every journal module)
@@ -146,6 +147,8 @@ Core\Data\QuestAccess.lua
 Core\Data\ItemAccess.lua
 
 # Core: instance pages (use the data feeds as they load)
+Core\UI\InstanceFavorites.lua
+Core\UI\InstanceTooltip.lua
 Core\UI\InstanceListOrder.lua
 Core\UI\InstanceList.lua
 Core\UI\QuestGroup\QuestGroup.lua

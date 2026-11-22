@@ -25,7 +25,7 @@ ns.Templates:Register("base", {
         loading = "Loading...",
         pinTitle = "Pin to Map",
         pinCoords = "Coordinates: %.1f, %.1f",
-        pinHint = "Click to set waypoint and open the World Map.",
+        pinHint = "<Left-click to set waypoint and open the World Map>",
         pinUnavailable = "Pin Unavailable",
     },
 })

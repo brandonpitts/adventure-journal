@@ -34,7 +34,7 @@ local function onEnter(btn)
     btn.icon:SetVertexColor(1.0, 0.95, 0.60, 1.0)
     GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
     GameTooltip:AddLine(btn.text.title, 1.0, 0.82, 0.0)
-    GameTooltip:AddLine(btn.text.hint, 0.2, 0.8, 1.0, true)
+    GameTooltip:AddLine(btn.text.hint, 0.25, 0.92, 0.32, true)
     GameTooltip:Show()
 end
 

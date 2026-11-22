@@ -55,6 +55,11 @@ ns.Templates:Extend("base", "instance", {
     -- the setting (by its settingKeys name) that turns it on, and the header's text key ("%s" the value).
     -- Entries without the field come last, under no header.
     listGroups = nil,
+    -- Favorites (Core/UI/InstanceFavorites.lua): right-click a list card or wing card to add or remove it;
+    -- favorites show a star, and (behind the `showFavorites` setting) favorite instances and wings are copied into
+    -- a Favorites section above the rest of the list. Needs the `favorites` and `showFavorites` settingKeys. Off
+    -- for templates that leave it false.
+    favorites = false,
 
     -- The left page header's meta line, in order, joined with " • ": "level" (colored by the difficulty-color
     -- setting), "location", "size" (the `header.size` slot; raids list it)
@@ -109,8 +114,8 @@ ns.Templates:Extend("base", "instance", {
         questsTab = "{noun} Quests",
         questsTabHint = "View all quests, questlines, and rewards for this {noun_lower}.",
         questsTabOff = "No quests available for your faction or class in this {noun_lower}.",
-        headerToAllLoot = "Click to view All {noun} Loot & enable Overview tab",
-        headerToOverview = "Click to return to {noun} Overview",
+        headerToAllLoot = "<Click to view All {noun} Loot & enable Overview tab>",
+        headerToOverview = "<Click to return to {noun} Overview>",
         headerSelected = "Main {noun} Page selected",
         zoneDrops = "Zone Drops",
         zoneDropsSearch = "zone drops",
@@ -125,7 +130,12 @@ ns.Templates:Extend("base", "instance", {
         listLevel = "Level %s",
         listLevelShort = "Lvl %s",
         listWings = "Wings",
-        listOpen = "Click to open",
+        listOpen = "<Left-click to open>",
+        wingLabel = "{noun} Wing",
+        favoritesHeader = "Favorites",
+        allHeader = "{noun}s",
+        favoriteAdd = "<Right-click to add to Favorites>",
+        favoriteRemove = "<Right-click to remove from Favorites>",
     },
 })
 

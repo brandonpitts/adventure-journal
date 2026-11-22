@@ -183,6 +183,36 @@ function StoneCard:Create(parentFrame, width, height, options)
     return button
 end
 
+--- Adds the favorite star (the game's favorites star) to `button`, hidden: `button.favoriteStar`. Show it with
+--- `ShowFavoriteStar`.
+--- @param button Button
+function StoneCard:AddFavoriteStar(button)
+    local star = button:CreateTexture(nil, "OVERLAY", nil, 7)
+    star:SetAtlas(Styles.ASSETS.FAVORITE_ATLAS)
+    star:SetSize(20, 20)
+    star:Hide()
+    button.favoriteStar = star
+end
+
+--- Shows or hides `button`'s favorite star (call after `SetInstancePicture`). It sits in the top-right corner, or
+--- just left of the missing-art question mark when the card shows one there.
+--- @param button Button a card with `AddFavoriteStar`
+--- @param shown boolean
+function StoneCard:ShowFavoriteStar(button, shown)
+    local star = button.favoriteStar
+    if not star then
+        return
+    end
+    star:ClearAllPoints()
+    local missingIcon = button.window.missingIcon
+    if missingIcon and missingIcon:IsShown() then
+        star:SetPoint("RIGHT", missingIcon, "LEFT", -3, 0)
+    else
+        star:SetPoint("TOPRIGHT", button, "TOPRIGHT", -9, -9)
+    end
+    star:SetShown(shown)
+end
+
 --- The small cards' text: the name in capitals (Morpheus, gold) centered on the card, wrapping when it must,
 --- and `subText` (the levels) centered under it.
 --- @param button Button

@@ -179,7 +179,7 @@ function MapPinProvider:ShowTooltip(pin)
         GameTooltip:AddLine(levels, ns.LevelColors:ForRange(data.minLevel, data.maxLevel))
     end
 
-    -- Line 3: Action Prompt (Bright Green "<Click to open Adventure Journal>")
+    -- Line 3: Action Prompt (Bright Green "<Left-click to open Adventure Journal>")
     local r3, g3, b3 = unpack(Constants.TOOLTIP.ACTION_COLOR)
     GameTooltip:AddLine(Constants.TOOLTIP.ACTION_TEXT, r3, g3, b3)
 

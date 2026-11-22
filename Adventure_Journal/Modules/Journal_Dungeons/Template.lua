@@ -27,9 +27,12 @@ parent.Templates:Extend("instance", "dungeon", {
         showLevel = "showBossLevel", showColor = "showBossDifficultyColor", showMinor = "showMinorMonsters",
         hideMinor = "hideMinorMonsters", showEvents = "showEventBosses", showChallenges = "showDungeonSetChallenges",
         showIncomplete = "showIncompleteBosses",
-        showBothFactions = "showBothFactionData", mapButton = "worldMapDungeonIcons",
+        showBothFactions = "showBothFactionData", showAllClasses = "showAllClassQuests", mapButton = "worldMapDungeonIcons",
         listSort = "dungeonListSort", listLayout = "dungeonListLayout",
+        favorites = "favoriteDungeons", showFavorites = "showFavoritesSection",
     },
+    -- The dungeon list has favorites (raids don't)
+    favorites = true,
     -- The boss list's sections, in order (InstanceAccess:GroupEncounters sorts encounters into these kinds)
     encounterSections = {
         { kind = "event", dividerAfter = true },

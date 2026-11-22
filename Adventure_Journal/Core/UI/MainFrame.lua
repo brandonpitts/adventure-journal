@@ -60,6 +60,8 @@ end
 local MainFrame = {
     frame = nil,
     hasOpenedOnce = false,
+    -- Counts the window's closes; pages that reset what they remember on each open compare against it
+    closeCount = 0,
 }
 
 --- Initializes the `JournalBaseMainFrame` window.
@@ -353,6 +355,7 @@ function MainFrame:SetupDragAndLifecycle(frame)
     end)
 
     frame:SetScript("OnHide", function()
+        self.closeCount = self.closeCount + 1
         if isMoving then
             isMoving = false
             frame:StopMovingOrSizing()

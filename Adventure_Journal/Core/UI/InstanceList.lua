@@ -4,7 +4,10 @@
 -- template's type (a CardList), in the order InstanceListOrder gives
 -- (filtered, sorted and grouped by the player's settings). Redraws on level
 -- up, on setting changes, and when loaded item names change what a search
--- matches.
+-- matches. Lists with favorites (InstanceFavorites): right-click a card to
+-- add or remove it; favorites get a star, and favorite instances and wings
+-- are copied into a Favorites section above the rest while the template's
+-- `showFavorites` setting is on.
 -- ============================================================================
 local addonName, ns = ...
 
@@ -14,7 +17,6 @@ local addonName, ns = ...
 local ipairs = ipairs
 local concat = table.concat
 local C_Timer = C_Timer
-local GameTooltip = GameTooltip
 local setmetatable = setmetatable
 
 -- ----------------------------------------------------------------------------
@@ -30,33 +32,6 @@ local function zoneOf(location)
     return location:match(",%s*([^,]+)$") or location
 end
 
---- The instance's tooltip: name, levels and location, description, its wings, and a click hint.
-local function fillTooltip(template, d)
-    local T = ns.Templates
-    GameTooltip:AddLine(d.fullName, 1.0, 0.82, 0.0)
-    -- "Level 60 • Dustwallow Marsh"; a list whose cards show the group size adds it after the level
-    local parts = { T:Text(template, "listLevel", d.level or "?") }
-    if template.listInfo == "size" and d.maxPlayers then
-        parts[#parts + 1] = T:Text(template, "size", d.maxPlayers)
-    end
-    parts[#parts + 1] = d.location or ""
-    GameTooltip:AddLine(concat(parts, " • "), 0.90, 0.82, 0.62)
-    if d.description and d.description ~= "" then
-        GameTooltip:AddLine(" ")
-        GameTooltip:AddLine(d.description, 0.85, 0.85, 0.85, true)
-    end
-    -- A dungeon with wings lists them in order, each with its levels
-    if d.wingCount and d.wingCount > 0 then
-        GameTooltip:AddLine(" ")
-        GameTooltip:AddLine(T:Text(template, "listWings"), 1.0, 0.82, 0.0)
-        for _, wing in ipairs(ns.Data.InstanceAccess:GetWings(d)) do
-            GameTooltip:AddDoubleLine(wing.name, wing.level and T:Text(template, "listLevel", wing.level) or "",
-                0.95, 0.95, 0.95, 0.90, 0.82, 0.62)
-        end
-    end
-    GameTooltip:AddLine(" ")
-    GameTooltip:AddLine(T:Text(template, "listOpen"), 0.25, 0.92, 0.32)
-end
 
 -- ----------------------------------------------------------------------------
 -- 3. Module / Mixin Definition
@@ -82,16 +57,29 @@ function InstanceList:Init(parent, onSelectDungeon)
         return
     end
     self.onSelectDungeon = onSelectDungeon
+    local template = self.template
+    local Favorites = ns.UI.InstanceFavorites
+    local hasFavorites = Favorites:IsOn(template)
     self.cards = Blocks.CardList:Create(parent, {
-        geometry = self.template.layout.list,
-        layouts = self.template.layout.list.LAYOUTS,
+        geometry = template.layout.list,
+        layouts = template.layout.list.LAYOUTS,
         onSelect = function(dungeon)
             if self.onSelectDungeon then
                 self.onSelectDungeon(dungeon)
             end
         end,
-        onTooltip = function(d)
-            fillTooltip(self.template, d)
+        onTooltip = function(view)
+            ns.UI.InstanceTooltip:Fill(template, view)
+        end,
+        onRightClick = hasFavorites and function(view)
+            Favorites:Toggle(template, view)
+        end or nil,
+        isMarked = hasFavorites and function(view)
+            return Favorites:IsFavorite(template, view)
+        end or nil,
+        -- A favorite wing in the Favorites section shows its instance's name too ("Stratholme: Main Gate")
+        nameFor = function(view)
+            return view.wingKey and view.fullName or view.name
         end,
     })
     local frame = self.cards.frame
@@ -106,6 +94,10 @@ function InstanceList:Init(parent, onSelectDungeon)
     local groups = self.template.listGroups
     if groups then
         watched[keys[groups.setting]] = true
+    end
+    if hasFavorites then
+        watched[keys.favorites] = true
+        watched[keys.showFavorites] = true
     end
     self.settingsListener = ns.Settings:AddChangeListener(function(moduleKey, key)
         if moduleKey == self.template.settings and watched[key] and self.frame and self.frame:IsShown() then
@@ -163,6 +155,7 @@ function InstanceList:Refresh()
     local dungeons = Order:Filtered(self.template.instanceType, self.searchQuery, self:Setting("listSort"))
     local groups = self.template.listGroups
     local sections = Order:Grouped(self.template, dungeons, groups and self:Setting(groups.setting) == true)
+    sections = self:WithFavoritesSection(sections, dungeons)
 
     self.cards:Render(sections, layoutKey, function(dungeon, layout)
         local info = {}
@@ -184,6 +177,45 @@ function InstanceList:Refresh()
         local crop = ns.Templates.Resolver:Slot(self.template, "card.crop", dungeon, "InstanceStore", dungeon.key)
         return crop and crop.centerV
     end)
+end
+
+--- `sections` with the favorites among `instances` and their wings (in list order, each favorite wing after its
+--- instance's place) copied into a Favorites section on top, and the rest under one titled section, when the list
+--- has favorites, its Favorites section setting is on, and any favorite is listed (the search can hide them all).
+--- Otherwise `sections` unchanged.
+function InstanceList:WithFavoritesSection(sections, instances)
+    local template = self.template
+    local Favorites = ns.UI.InstanceFavorites
+    if not (Favorites:IsOn(template) and self:Setting("showFavorites") == true) then
+        return sections
+    end
+    local favorites = {}
+    for _, instance in ipairs(instances) do
+        if Favorites:IsFavorite(template, instance) then
+            favorites[#favorites + 1] = instance
+        end
+        if instance.wingCount and instance.wingCount > 0 then
+            for _, wing in ipairs(ns.Data.InstanceAccess:GetWings(instance)) do
+                if Favorites:IsFavorite(template, wing) then
+                    favorites[#favorites + 1] = wing
+                end
+            end
+        end
+    end
+    if #favorites == 0 then
+        return sections
+    end
+    local T = ns.Templates
+    local result = { { title = T:Text(self.template, "favoritesHeader"), entries = favorites } }
+    -- A list without its own groups gets one titled section for everything; grouped lists keep their headers
+    if #sections == 1 and not sections[1].title then
+        result[2] = { title = T:Text(self.template, "allHeader"), entries = sections[1].entries }
+    else
+        for _, section in ipairs(sections) do
+            result[#result + 1] = section
+        end
+    end
+    return result
 end
 
 --- Every instance of the list, ignoring the search box, in the player's sort order and the list's sections

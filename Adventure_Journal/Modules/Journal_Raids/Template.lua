@@ -26,7 +26,7 @@ parent.Templates:Extend("instance", "raid", {
     settingKeys = {
         showLevel = "showBossLevel", showColor = "showBossDifficultyColor", showMinor = "showMinorMonsters",
         hideMinor = "hideMinorMonsters", showEvents = "showEventBosses", showChallenges = "showChallenges",
-        showBothFactions = "showBothFactionData", mapButton = "worldMapRaidIcons",
+        showBothFactions = "showBothFactionData", showAllClasses = "showAllClassQuests", mapButton = "worldMapRaidIcons",
         listSort = "raidListSort", listLayout = "raidListLayout", groupByTier = "groupRaidsByTier",
     },
     -- The header's meta line: the raid's size after its level

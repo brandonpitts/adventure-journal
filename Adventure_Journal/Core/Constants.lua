@@ -20,7 +20,7 @@ local SOUNDKIT = SOUNDKIT
 local Constants = {
     ADDON_NAME = addonName,
     TITLE = "Adventure Journal",
-    VERSION = "0.12.1",
+    VERSION = "0.13.0",
     AUTHOR = "Brandon (Endoria)",
 
     BINDING_HEADER = "JOURNALBASE",
@@ -93,7 +93,7 @@ local Constants = {
     },
 
     DB_DEFAULTS = {
-        schemaVersion = 10,
+        schemaVersion = 11,
         showInAddonCompartment = false,
         enableAdvancedSearch = false,
         minimap = {
@@ -119,7 +119,11 @@ local Constants = {
             worldMapDungeonIcons = "min_level",
             dungeonListSort = "level",
             dungeonListLayout = "four",
+            showFavoritesSection = true,
+            -- Favorite dungeons, account-wide: instance key -> true (right-click a card on the Dungeons tab list)
+            favoriteDungeons = {},
             showBothFactionData = false,
+            showAllClassQuests = false,
         },
         raids = {
             showBossLevel = true,
@@ -132,6 +136,7 @@ local Constants = {
             raidListLayout = "four",
             groupRaidsByTier = true,
             showBothFactionData = false,
+            showAllClassQuests = false,
         },
         map_icons = {
             showZoneLevels = true,

@@ -107,12 +107,26 @@ function InstanceBook:Init(parent, callbacks)
         end
     end)
 
+    -- Wing cards: the instance card tooltip, and favorites when the template has them
+    local template = self.template
+    local Favorites = ns.UI.InstanceFavorites
+    local hasFavorites = Favorites:IsOn(template)
     self.wingList = Blocks.WingList:Create(bossScroll, bossScrollChild, bookCfg.BOSS_BTN_WIDTH,
         bookCfg.WING_BTN_HEIGHT, bookCfg.WING_BTN_GAP, function(wing)
             if self.onSelectWing then
                 self.onSelectWing(wing)
             end
-        end)
+        end, {
+            onTooltip = function(wing)
+                ns.UI.InstanceTooltip:Fill(template, wing)
+            end,
+            onRightClick = hasFavorites and function(wing)
+                Favorites:Toggle(template, wing)
+            end or nil,
+            isMarked = hasFavorites and function(wing)
+                return Favorites:IsFavorite(template, wing)
+            end or nil,
+        })
     self.questList = Blocks.QuestList:Create(bossScroll, bossScrollChild, bookCfg.BOSS_BTN_WIDTH + 8,
         bookCfg.BOSS_BTN_HEIGHT, function(quest)
             self:SelectQuest(quest)

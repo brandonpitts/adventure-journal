@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Adventure Journal - Core/UI/Blocks/QuestDetail.lua
--- A quest's page: a header (title, meta line, faction crest, divider) over a
+-- A quest's page: a header (title, meta line, class and faction crests, divider) over a
 -- scrolling body, drawn from QuestPage.lua's models. A questline shows each step
 -- as a banner that opens to its sections (the first unfinished step starts
 -- open; Questline.lua); a single quest shows its sections directly. Also the
@@ -24,6 +24,11 @@ local CreateFrame = CreateFrame
 local Blocks = ns.UI.Blocks
 local Styles = ns.UI.Styles
 local CREST = { Horde = "Interface\\Timer\\Horde-Logo", Alliance = "Interface\\Timer\\Alliance-Logo" }
+-- The class crest is a medallion whose ring matches the faction crest's height; the ring reaches past the icon
+local CLASS_ICON_SIZE, CLASS_RING_SIZE = 28, 38
+local RING_OVERHANG = (CLASS_RING_SIZE - CLASS_ICON_SIZE) / 2
+-- Trims the class art's own rim so only our ring frames it
+local CLASS_ART_TRIM = 0.06
 local DEFAULT_WIDTH = 340
 
 local function acquire(pools, kind, index, create)
@@ -68,6 +73,11 @@ function QuestDetail:Create(container, contentWidth)
     crest:SetPoint("RIGHT", container, "TOPRIGHT", -12, centerY)
     crest:Hide()
     detail.crest = crest
+    detail.centerY = centerY
+
+    local classCrest = Blocks.Medallion:Create(container, CLASS_ICON_SIZE, CLASS_RING_SIZE)
+    classCrest:Hide()
+    detail.classCrest = classCrest
 
     local title = shadowed(container:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge"))
     title:SetJustifyH("LEFT")
@@ -96,17 +106,28 @@ function QuestDetail:Create(container, contentWidth)
     return detail
 end
 
---- Title and meta run to the crest when it shows, else to the page's edge.
+--- The class crest sits left of the faction crest, or in its place when there's none. Title and meta run to the
+--- leftmost crest that shows, else to the page's edge.
 function QuestDetail:AnchorHeader()
-    local right = self.crest:IsShown() and self.crest or self.container
-    local point, x = self.crest:IsShown() and "LEFT" or "RIGHT", self.crest:IsShown() and -6 or -12
+    self.classCrest:ClearAllPoints()
+    if self.crest:IsShown() then
+        self.classCrest:SetPoint("RIGHT", self.crest, "LEFT", -4 - RING_OVERHANG, 0)
+    else
+        self.classCrest:SetPoint("RIGHT", self.container, "TOPRIGHT", -12 - RING_OVERHANG, self.centerY)
+    end
+    local classShown = self.classCrest:IsShown()
+    local crest = (classShown and self.classCrest) or (self.crest:IsShown() and self.crest) or nil
+    local right = crest or self.container
+    local point = crest and "LEFT" or "RIGHT"
+    local x = (classShown and -6 - RING_OVERHANG) or (crest and -6) or -12
     self.title:ClearAllPoints()
     self.title:SetPoint("TOPLEFT", self.container, "TOPLEFT", 6, self.titleY)
     self.title:SetPoint("RIGHT", right, point, x, 0)
     self.meta:SetPoint("RIGHT", right, point, x, 0)
 end
 
---- Fills the header from `header` (`{ title, meta, faction }`; the faction picks the crest).
+--- Fills the header from `header` (`{ title, meta, faction, classOnly }`; the faction and the class pick the
+--- crests).
 function QuestDetail:SetHeader(header)
     self.title:SetText(header.title)
     local crest = CREST[header.faction]
@@ -118,6 +139,22 @@ function QuestDetail:SetHeader(header)
     else
         self.crest:Hide()
     end
+    local info, file = nil, nil
+    if header.classOnly then
+        info, file = ns.GameApi:GetAtlasInfo("classicon-" .. header.classOnly:lower())
+    end
+    if info then
+        local icon = self.classCrest.icon
+        local trimU = (info.rightTexCoord - info.leftTexCoord) * CLASS_ART_TRIM
+        local trimV = (info.bottomTexCoord - info.topTexCoord) * CLASS_ART_TRIM
+        icon:SetTexture(file)
+        icon:SetTexCoord(info.leftTexCoord + trimU, info.rightTexCoord - trimU,
+            info.topTexCoord + trimV, info.bottomTexCoord - trimV)
+        Blocks.Medallion:SyncRing(self.classCrest)
+        self.classCrest:Show()
+    else
+        self.classCrest:Hide()
+    end
     self:AnchorHeader()
     self.meta:SetText(header.meta)
 end
@@ -127,6 +164,7 @@ function QuestDetail:Clear()
     self.title:SetText("")
     self.meta:SetText("")
     self.crest:Hide()
+    self.classCrest:Hide()
     self:Begin()
 end
 

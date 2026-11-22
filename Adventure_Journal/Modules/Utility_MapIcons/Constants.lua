@@ -50,8 +50,8 @@ local Constants = {
     TOOLTIP = {
         TITLE_COLOR = { 1.0, 1.0, 1.0 },
         SUBTITLE_COLOR = { 1.0, 0.82, 0.0 }, -- Gold ("Dungeon")
-        ACTION_COLOR = { 0.0, 1.0, 0.0 },   -- Bright Green ("<Click to open Adventure Journal>")
-        ACTION_TEXT = "<Click to open Adventure Journal>",
+        ACTION_COLOR = { 0.0, 1.0, 0.0 },   -- Bright Green ("<Left-click to open Adventure Journal>")
+        ACTION_TEXT = "<Left-click to open Adventure Journal>",
     },
 }
 

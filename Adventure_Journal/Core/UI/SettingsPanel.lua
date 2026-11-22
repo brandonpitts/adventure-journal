@@ -156,6 +156,7 @@ function SettingsPanel:Init()
     self:CreateInstalledModulesSection(scrollChild)
     self:CreateDungeonModuleSection(scrollChild)
     self:CreateBothFactionQuestsRow(scrollChild)
+    self:CreateAllClassQuestsRow(scrollChild)
     self:CreateIncompleteBossesRow(scrollChild)
     self:CreateRaidModuleSection(scrollChild)
     self:CreateMapIconsModuleSection(scrollChild)
@@ -768,9 +769,12 @@ function SettingsPanel:CreateDungeonModuleSection(panel)
         "AdventureJournalDungeonLayoutDropdown", "TOPLEFT", sortLabel, "BOTTOMLEFT", 0, -22,
         "How many dungeon cards sit in each row of the Dungeons tab list:\n\n• 2 per Row (Compact) and (Large): wide cards with the name, levels, and zone.\n• 3 per Row: the name, levels, and zone.\n• 4 per Row: small cards with the name and levels centered (Default).")
 
-    -- Row 3: "Show Levels on Dungeon List and Boss List Buttons"
+    -- Row 3: "Show Favorites Section" (Core/UI/SettingsFavorites.lua)
+    local favoritesLabel = self:CreateFavoritesRow(panel, layoutLabel)
+
+    -- Row 4: "Show Levels on Dungeon List and Boss List Buttons"
     local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("TOPLEFT", layoutLabel, "BOTTOMLEFT", 0, -22)
+    label:SetPoint("TOPLEFT", favoritesLabel, "BOTTOMLEFT", 0, -22)
     label:SetText("Show Levels on Dungeon List and Boss List Buttons")
 
     local checkbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
@@ -1036,16 +1040,56 @@ function SettingsPanel:CreateBothFactionQuestsRow(panel)
             PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
         end
         ns.Settings:SetDungeonSetting("showBothFactionData", isChecked)
+        ns.Settings:SetModuleSetting("raids", "showBothFactionData", isChecked)
     end)
 
     self.BothFactionQuestsCheckbox = bothFactionCheckbox
+end
+
+--- Adds the Dungeons section's row under the faction row: "Show All Class Quests" (dungeons and raids).
+--- @param panel Frame
+function SettingsPanel:CreateAllClassQuestsRow(panel)
+    local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetPoint("TOPLEFT", self.BothFactionQuestsLabel, "BOTTOMLEFT", 0, -22)
+    label:SetText("Show All Class Quests")
+    self.AllClassQuestsLabel = label
+
+    local checkbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+    checkbox:SetSize(28, 28)
+    checkbox:SetPoint("RIGHT", panel, "RIGHT", -24, 0)
+    checkbox:SetPoint("CENTER", label, "CENTER", 0, 0)
+
+    checkbox:SetScript("OnEnter", function(cb)
+        if GameTooltip then
+            GameTooltip:SetOwner(cb, "ANCHOR_RIGHT")
+            GameTooltip:AddLine("Show All Class Quests", 1.0, 0.82, 0.0)
+            GameTooltip:AddLine("When enabled, instance quest tabs list every class's quests, marked with their class crest. When disabled, only quests your class can take are shown.", 1.0, 1.0, 1.0, true)
+            GameTooltip:Show()
+        end
+    end)
+    checkbox:SetScript("OnLeave", function()
+        if GameTooltip then
+            GameTooltip:Hide()
+        end
+    end)
+
+    checkbox:SetScript("OnClick", function(cb)
+        local isChecked = cb:GetChecked() and true or false
+        if PlaySound then
+            PlaySound(isChecked and Constants.SOUNDS.CHECKBOX_ON or Constants.SOUNDS.CHECKBOX_OFF)
+        end
+        ns.Settings:SetDungeonSetting("showAllClassQuests", isChecked)
+        ns.Settings:SetModuleSetting("raids", "showAllClassQuests", isChecked)
+    end)
+
+    self.AllClassQuestsCheckbox = checkbox
 end
 
 --- Adds the Dungeons section's last row: "Show Unverified Bosses" (encounters known only by name).
 --- @param panel Frame
 function SettingsPanel:CreateIncompleteBossesRow(panel)
     local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("TOPLEFT", self.BothFactionQuestsLabel, "BOTTOMLEFT", 0, -22)
+    label:SetPoint("TOPLEFT", self.AllClassQuestsLabel, "BOTTOMLEFT", 0, -22)
     label:SetText("Show Unverified Bosses")
     self.IncompleteBossesLabel = label
 
@@ -1689,8 +1733,12 @@ function SettingsPanel:Refresh()
         end
     end
     self:RefreshRaidSection()
+    self:RefreshFavoritesRow()
     if self.BothFactionQuestsCheckbox then
         self.BothFactionQuestsCheckbox:SetChecked(ns.Settings:GetDungeonSetting("showBothFactionData", false) == true)
+    end
+    if self.AllClassQuestsCheckbox then
+        self.AllClassQuestsCheckbox:SetChecked(ns.Settings:GetDungeonSetting("showAllClassQuests", false) == true)
     end
     if self.IncompleteBossesCheckbox then
         self.IncompleteBossesCheckbox:SetChecked(ns.Settings:GetDungeonSetting("showIncompleteBosses", false) == true)

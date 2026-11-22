@@ -88,6 +88,11 @@ function InstanceBook:RegisterUpdates(frame)
         Blocks.Medallion:SyncRing(self.dungeonMedallion)
         Blocks.Medallion:SyncRing(self.encounterDetail.medallion)
         self:UpdateSideTabs()
+        -- An open quest page is rebuilt with current progress, so a questline opens on the step the player is on
+        -- (Questline resets its open steps when the window has been closed since)
+        if self.activeRightTab == "quests" and self.selectedQuest then
+            self:RefreshRightPage()
+        end
     end)
 
     -- The template's settings that change what the open page shows redraw it

@@ -62,6 +62,9 @@ end
 function QuestGroup:Lists(group)
     local playerFaction = UnitFactionGroup("player") or "Both"
     local _, playerClass = UnitClass("player")
+    if self.host:Setting("showAllClasses") == true then
+        playerClass = "All"
+    end
     local sections, wantsOther = {}, false
     for _, section in ipairs(self.template.listSections) do
         if not section.setting or self.host:Setting(section.setting) == true then
@@ -158,7 +161,8 @@ function QuestGroup:Header(quest, group)
     elseif quest.isQuestline then
         parts[#parts + 1] = self:T("questline")
     end
-    return { title = self:Slot("quest.title", quest), meta = concat(parts, " • "), faction = quest.faction }
+    return { title = self:Slot("quest.title", quest), meta = concat(parts, " • "), faction = quest.faction,
+        classOnly = quest.classOnly }
 end
 
 -- ----------------------------------------------------------------------------

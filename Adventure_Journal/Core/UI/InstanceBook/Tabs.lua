@@ -110,7 +110,8 @@ function InstanceBook:UpdateSideTabs()
         local showBoth = self:Setting("showBothFactions") == true
         local factionFilter = showBoth and "All" or (UnitFactionGroup("player") or "Both")
         local _, playerClass = UnitClass("player")
-        hasQuests = QuestAccess:HasInstanceQuests(self.currentDungeon, factionFilter, playerClass)
+        local classFilter = self:Setting("showAllClasses") == true and "All" or playerClass
+        hasQuests = QuestAccess:HasInstanceQuests(self.currentDungeon, factionFilter, classFilter)
     end
 
     local overviewEnabled = not hasBoss

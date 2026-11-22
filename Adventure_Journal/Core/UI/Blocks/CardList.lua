@@ -67,6 +67,9 @@ CardList.__index = CardList
 --- - `geometry`: `{ GAP_X, GAP_Y, START_X, START_Y, SCROLL_TOP_Y, SCROLL_BOTTOM_Y, SCROLL_LEFT_X, SCROLL_RIGHT_X }`
 --- - `layouts`: layout key -> `{ columns, width, height, centered, noFade }`
 --- - `onSelect(entry)`, `onTooltip(entry)` (GameTooltip owned and shown by the list)
+--- - `onRightClick(entry)` (optional): a right-click on a card; the list redraws itself through its owner
+--- - `isMarked(entry)` (optional): true shows the favorite star in the card's top-right corner
+--- - `nameFor(entry)` (optional): the card's name; default `entry.name`
 function CardList:Create(parent, options)
     local list = setmetatable({ options = options, pools = {} }, CardList)
     local g = options.geometry
@@ -102,23 +105,40 @@ function CardList:Card(index, layoutKey)
         card.subText:SetPoint("RIGHT", card, "RIGHT", -16, 0)
         card.subText:SetWordWrap(false)
     end
-    card:SetScript("OnClick", function(c)
-        PlaySound(Styles.SOUNDS.CLICK)
-        if c.entry then
-            self.options.onSelect(c.entry)
-        end
-    end)
-    -- Hooked, not set: the card's own hover and press visuals are hooks too
-    card:HookScript("OnEnter", function(c)
+    local function showTooltip(c)
         if c.entry then
             GameTooltip:SetOwner(c, "ANCHOR_RIGHT")
             self.options.onTooltip(c.entry)
             GameTooltip:Show()
         end
+    end
+    local onRightClick = self.options.onRightClick
+    if onRightClick then
+        card:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    end
+    card:SetScript("OnClick", function(c, button)
+        PlaySound(Styles.SOUNDS.CLICK)
+        if not c.entry then
+            return
+        end
+        if button == "RightButton" then
+            onRightClick(c.entry)
+            -- The redraw can move another entry under the mouse; show that one's tooltip
+            if c:IsVisible() and c:IsMouseOver() then
+                showTooltip(c)
+            end
+        else
+            self.options.onSelect(c.entry)
+        end
     end)
+    -- Hooked, not set: the card's own hover and press visuals are hooks too
+    card:HookScript("OnEnter", showTooltip)
     card:HookScript("OnLeave", function()
         GameTooltip:Hide()
     end)
+    if self.options.isMarked then
+        Blocks.StoneCard:AddFavoriteStar(card)
+    end
     pool[index] = card
     return card
 end
@@ -194,10 +214,13 @@ function CardList:Render(sections, layoutKey, lineFor, showMissingArt, cropFor)
             card:ClearAllPoints()
             card:SetPoint("TOPLEFT", self.child, "TOPLEFT", g.START_X + col * (layout.width + g.GAP_X),
                 y - row * (layout.height + g.GAP_Y))
-            local name = entry.name or ""
+            local name = (self.options.nameFor and self.options.nameFor(entry)) or entry.name or ""
             card.nameText:SetText(card.upperName and name:upper() or name)
             card.subText:SetText(lineFor(entry, layout))
             Blocks.StoneCard:SetInstancePicture(card, entry, showMissingArt ~= false, cropFor and cropFor(entry))
+            if card.favoriteStar then
+                Blocks.StoneCard:ShowFavoriteStar(card, self.options.isMarked(entry) == true)
+            end
         end
         y = y - ceil(#section.entries / cols) * (layout.height + g.GAP_Y)
     end
